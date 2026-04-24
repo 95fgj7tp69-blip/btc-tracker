@@ -80,7 +80,9 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
-  const [activeTab, setActiveTab] = useState("7D");
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
+  });
   const data = PORTFOLIO_CHART_DATA[activeTab];
   const isNeg = pnlChf < 0;
   return (
@@ -90,7 +92,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
           <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
           <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
             {["1D", "7D", "30D", "ALL"].map(t => (
-              <button key={t} onClick={() => setActiveTab(t)} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>{t}</button>
+              <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none" }}>{t}</button>
             ))}
           </div>
         </div>
@@ -157,7 +159,9 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T }) {
 }
 
 function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
-  const [activeTab, setActiveTab] = useState("1T");
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return localStorage.getItem("marketTab") || "1T"; } catch { return "1T"; }
+  });
   const [chartData, setChartData] = useState([]);
   const [loadingChart, setLoadingChart] = useState(false);
   const isPos = dayChangePct >= 0;
@@ -210,7 +214,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
         <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>CHF {fmtChf(btcChf, 0)}</div>
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
+            <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("marketTab", t); } catch {} }} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
           ))}
         </div>
       </div>
@@ -312,7 +316,8 @@ function BreakEvenCard({ avgChf, currentChf, T }) {
   const R = 54, cx = 80, cy = 72;
   const toRad = (d) => (d * Math.PI) / 180;
   const arcPath = (s, e, r) => { const sr = toRad(s - 90), er = toRad(e - 90); const x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr), x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er); return `M ${x1} ${y1} A ${r} ${r} 0 ${e - s > 180 ? 1 : 0} 1 ${x2} ${y2}`; };
-  const nRad = toRad(-90 + (ratio + 1) * 90 - 90);
+  const needleAngle = isAbove ? ratio * 90 : -90 + (ratio + 1) * 90;
+  const nRad = toRad(needleAngle - 90);
   const nx = cx + (R - 6) * Math.cos(nRad), ny = cy + (R - 6) * Math.sin(nRad);
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
@@ -321,7 +326,10 @@ function BreakEvenCard({ avgChf, currentChf, T }) {
         <svg viewBox="0 0 160 88" style={{ width: 160, flexShrink: 0 }}>
           <path d={arcPath(-90, 0, R)} fill="none" stroke="rgba(239,68,68,0.2)" strokeWidth="10" strokeLinecap="round" />
           <path d={arcPath(0, 90, R)} fill="none" stroke="rgba(34,197,94,0.2)" strokeWidth="10" strokeLinecap="round" />
-          {isAbove ? <path d={arcPath(0, Math.max(0.1, Math.min(90, ratio * 90)), R)} fill="none" stroke="#22c55e" strokeWidth="10" strokeLinecap="round" opacity="0.85" /> : <path d={arcPath(Math.max(-90, Math.min(-0.1, ratio * 90)), 0, R)} fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" opacity="0.85" />}
+          {isAbove
+            ? <path d={arcPath(0, Math.max(0.1, Math.min(90, ratio * 90)), R)} fill="none" stroke="#22c55e" strokeWidth="10" strokeLinecap="round" opacity="0.85" />
+            : <path d={arcPath(-90, Math.min(-0.1, ratio * 90), R)} fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" opacity="0.85" />
+          }
           <line x1={cx} y1={cy - R + 5} x2={cx} y2={cy - R + 14} stroke={T.border} strokeWidth="1.5" />
           <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={T.text} strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
           <circle cx={cx} cy={cy} r="4" fill={T.surface} stroke={T.textFaint} strokeWidth="1.5" />
@@ -436,7 +444,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   return (
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 8 }}>DARSTELLUNG</div>
@@ -451,7 +458,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions }) {
           </div>
         </div>
       </div>
-
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
@@ -462,7 +468,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions }) {
           <button onClick={exportCSV} style={{ background: "#f7931a", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>↓ Export</button>
         </div>
       </div>
-
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         {[{ label: "Version", value: "1.0.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
@@ -507,8 +512,8 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
           {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="0.00002" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>CHF BETRAG</div><input type="number" placeholder="3500" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
         </div>
         {!isTransfer && <div style={{ marginBottom: 16 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF)</div><input type="number" placeholder="5.50" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
-        <div style={{ marginBottom: 16 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+        <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
           <button onClick={handleSave} disabled={saving} style={{ padding: "15px 0", background: saving ? T.textFaint : TYPE_META[form.type].color, border: "none", color: form.type === "buy" ? "#000" : "#fff", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
             {saving ? "Speichern..." : editTx ? "Speichern" : `${TYPE_META[form.type].label} erfassen`}
