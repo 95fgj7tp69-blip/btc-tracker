@@ -1,11 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Area, AreaChart, ResponsiveContainer, YAxis, XAxis, Tooltip } from "recharts";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  "https://xjkomserewmxktwvmoaa.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa29tc2VyZXdteGt0d3Ztb2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3NTI5NzQsImV4cCI6MjA1OTMyODk3NH0.JsEP4TuBHnBXdgkGpMlYFMmTtEVpFiHi4ql_mAXBMic"
+);
+
+const authHeaders = (token) => ({
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`,
+});
 
 const api = {
-  getAll: ()   => fetch("/api/transactions").then(r => r.json()),
-  create: (tx) => fetch("/api/transactions", { method: "POST",   headers: { "Content-Type": "application/json" }, body: JSON.stringify(tx) }).then(r => r.json()),
-  update: (tx) => fetch(`/api/transactions/${tx.id}`, { method: "PUT",    headers: { "Content-Type": "application/json" }, body: JSON.stringify(tx) }).then(r => r.json()),
-  remove: (id) => fetch(`/api/transactions/${id}`,   { method: "DELETE" }).then(r => r.json()),
+  getAll: (token) => fetch("/api/transactions", { headers: authHeaders(token) }).then(r => r.json()),
+  create: (tx, token) => fetch("/api/transactions", { method: "POST", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  update: (tx, token) => fetch(`/api/transactions/${tx.id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  remove: (id, token) => fetch(`/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
 };
 
 const fmtChf = (n, d = 2) => new Intl.NumberFormat("de-CH", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -59,6 +70,86 @@ const PORTFOLIO_CHART_DATA = {
     { t: "Jul", v: 40000 }, { t: "Sep", v: 36000 }, { t: "Nov", v: 45000 }, { t: "Jetzt", v: 31350 },
   ],
 };
+
+function AuthScreen({ T }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const iStyle = {
+    width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`,
+    color: T.text, padding: "14px 16px", borderRadius: 12, fontSize: 16,
+    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+    appearance: "none", WebkitAppearance: "none",
+  };
+
+  const handleSubmit = async () => {
+    setError(""); setSuccess("");
+    if (!email || (!password && mode !== "reset")) { setError("Bitte alle Felder ausfüllen."); return; }
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else if (mode === "register") {
+        if (password.length < 6) throw new Error("Passwort muss mindestens 6 Zeichen haben.");
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setSuccess("Bestätigungsmail gesendet! Bitte E-Mail prüfen.");
+      } else if (mode === "reset") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        if (error) throw error;
+        setSuccess("Passwort-Reset E-Mail gesendet!");
+      }
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const titles = { login: "Anmelden", register: "Konto erstellen", reset: "Passwort zurücksetzen" };
+  const btnLabels = { login: "Anmelden", register: "Registrieren", reset: "Link senden" };
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
+          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "#000", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>₿</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>BTC Portfolio</div>
+          <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>Dein Bitcoin-Tracker</div>
+        </div>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px" }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: T.text, marginBottom: 24 }}>{titles[mode]}</div>
+          {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "12px 14px", marginBottom: 16, color: "#ef4444", fontSize: 14 }}>{error}</div>}
+          {success && <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "12px 14px", marginBottom: 16, color: "#22c55e", fontSize: 14 }}>{success}</div>}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em", marginBottom: 8 }}>E-MAIL</div>
+            <input type="email" placeholder="name@beispiel.ch" value={email} onChange={e => setEmail(e.target.value)} style={iStyle} autoCapitalize="none" />
+          </div>
+          {mode !== "reset" && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em", marginBottom: 8 }}>PASSWORT</div>
+              <input type="password" placeholder={mode === "register" ? "Mindestens 6 Zeichen" : "••••••••"} value={password} onChange={e => setPassword(e.target.value)} style={iStyle} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            </div>
+          )}
+          <button onClick={handleSubmit} disabled={loading} style={{ width: "100%", padding: "15px 0", background: loading ? T.textFaint : "#f7931a", border: "none", borderRadius: 12, color: "#000", fontSize: 16, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "default" : "pointer", marginBottom: 16 }}>
+            {loading ? "Bitte warten..." : btnLabels[mode]}
+          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+            {mode === "login" && (<>
+              <button onClick={() => { setMode("reset"); setError(""); setSuccess(""); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Passwort vergessen?</button>
+              <button onClick={() => { setMode("register"); setError(""); setSuccess(""); }} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>Noch kein Konto? Registrieren</button>
+            </>)}
+            {(mode === "register" || mode === "reset") && (
+              <button onClick={() => { setMode("login"); setError(""); setSuccess(""); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Zurück zur Anmeldung</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
   const t = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
@@ -247,7 +338,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
             </div>
           </>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: T.textFaint, fontSize: 13 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
             <button onClick={() => fetchMarketChart(activeTab)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>↻ Neu laden</button>
           </div>
         )}
@@ -361,9 +452,9 @@ function BreakEvenCard({ avgChf, currentChf, T }) {
         <div style={{ height: 4, background: T.input, borderRadius: 2, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.min(100, Math.max(2, (currentChf / (avgChf * 1.5)) * 100))}%`, background: isAbove ? "linear-gradient(90deg,#15803d,#22c55e)" : "linear-gradient(90deg,#991b1b,#ef4444)", borderRadius: 2 }} /></div>
       </div>
     </div>
+  
   );
 }
-
 function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T }) {
   const [input, setInput] = useState("");
   const [feeInput, setFeeInput] = useState("0");
@@ -438,7 +529,7 @@ function BarChart({ portfolioChf, investedChf, T }) {
   );
 }
 
-function SettingsView({ darkMode, setDarkMode, T, transactions }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout }) {
   const exportCSV = () => {
     const header = "Datum,Typ,BTC,CHF,Gebühren,Notiz";
     const rows = [...transactions]
@@ -455,7 +546,15 @@ function SettingsView({ darkMode, setDarkMode, T, transactions }) {
   };
   return (
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 8 }}>DARSTELLUNG</div>
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>KONTO</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ color: T.textMuted, fontSize: 14 }}>Eingeloggt als</span>
+          <span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{userEmail}</span>
+        </div>
+        <button onClick={onLogout} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: "#ef4444", fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>Abmelden</button>
+      </div>
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
           <div>
@@ -500,235 +599,4 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
   const handleSave = async () => {
     if (!form.btc) return;
     setSaving(true);
-    await onSave({ ...form, btc: +form.btc, chf: isTransfer ? 0 : +form.chf || 0, fee: +form.fee || 0 });
-    setSaving(false);
-    onClose();
-  };
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderRadius: "20px 20px 0 0", padding: "12px 20px 40px", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto" }}>
-        <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 16px" }} />
-        <div style={{ color: T.text, fontSize: 19, fontWeight: 500, marginBottom: 20 }}>{editTx ? "Transaktion bearbeiten" : "Neue Transaktion"}</div>
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>TYP</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            {Object.entries(TYPE_META).map(([t, m]) => (<button key={t} onClick={() => set("type", t)} style={{ padding: "12px 0", borderRadius: 10, background: form.type === t ? m.bg : T.input, border: `1px solid ${form.type === t ? m.color + "55" : T.inputBorder}`, color: form.type === t ? m.color : T.textMuted, cursor: "pointer", fontSize: 15, fontWeight: 500, fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}><span style={{ fontSize: 19 }}>{m.icon}</span>{m.label}</button>))}
-          </div>
-        </div>
-        <div style={{ marginBottom: 16 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>DATUM</div><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={iStyle} /></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BTC MENGE</div><input type="number" placeholder="0.05" value={form.btc} onChange={e => set("btc", e.target.value)} style={iStyle} step="any" /></div>
-          {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="0.00002" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>CHF BETRAG</div><input type="number" placeholder="3500" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
-        </div>
-        {!isTransfer && <div style={{ marginBottom: 16 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF)</div><input type="number" placeholder="5.50" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
-        <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
-          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
-          <button onClick={handleSave} disabled={saving} style={{ padding: "15px 0", background: saving ? T.textFaint : TYPE_META[form.type].color, border: "none", color: form.type === "buy" ? "#000" : "#fff", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-            {saving ? "Speichern..." : editTx ? "Speichern" : `${TYPE_META[form.type].label} erfassen`}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TxRow({ tx, onDelete, onEdit, T }) {
-  const m = TYPE_META[tx.type];
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
-      <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{m.icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
-          <div style={{ color: m.color, fontSize: 15 }}>{tx.type === "transfer" ? (tx.fee > 0 ? `−${tx.fee} BTC` : "—") : `CHF ${fmtChf(tx.chf)}`}</div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-          {tx.fee > 0 && tx.type !== "transfer" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. CHF {fmtChf(tx.fee)}</div>}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <button onClick={() => onEdit(tx)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✎</button>
-        <button onClick={() => onDelete(tx.id)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✕</button>
-      </div>
-    </div>
-  );
-}
-
-function BottomNav({ view, setView, onAdd, T }) {
-  const btn = (id, icon, label) => (
-    <button onClick={() => setView(id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 19, color: view === id ? "#f7931a" : T.textFaint, width: 24, textAlign: "center", display: "block" }}>{icon}</span>
-      <span style={{ fontSize: 10, color: view === id ? "#f7931a" : T.textFaint, fontWeight: view === id ? 600 : 400, whiteSpace: "nowrap" }}>{label}</span>
-    </button>
-  );
-  return (
-    <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: T.navBg, backdropFilter: "blur(20px)", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: "10px 16px calc(16px + env(safe-area-inset-bottom))" }}>
-      {btn("dashboard", "◈", "Dashboard")}
-      {btn("analyse", "◎", "Analyse")}
-      <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px", boxShadow: "0 4px 20px rgba(247,147,26,0.35)", flexShrink: 0 }}>+</button>
-      {btn("verlauf", "≡", "Verlauf")}
-      {btn("settings", "⚙︎", "Einstellungen")}
-    </div>
-  );
-}
-
-export default function App() {
-  const [transactions, setTransactions]           = useState([]);
-  const [btcUsd, setBtcUsd]                       = useState(77664);
-  const [usdChf, setUsdChf]                       = useState(0.787);
-  const [dayChangePct, setDayChangePct]           = useState(1.25);
-  const [historicChartData, setHistoricChartData] = useState([]);
-  const [lastUpdated, setLastUpdated]             = useState(null);
-  const [view, setView]                           = useState("dashboard");
-  const [showModal, setShowModal]                 = useState(false);
-  const [editTx, setEditTx]                       = useState(null);
-  const [loading, setLoading]                     = useState(false);
-  const [dbLoading, setDbLoading]                 = useState(true);
-  const [txFilter, setTxFilter]                   = useState("all");
-  const [darkMode, setDarkMode]                   = useState(() => {
-    try { return localStorage.getItem("darkMode") !== "false"; } catch { return true; }
-  });
-
-  const T = darkMode ? DARK : LIGHT;
-
-  useEffect(() => {
-    try { localStorage.setItem("darkMode", darkMode); } catch {}
-    document.documentElement.style.background = T.bg;
-    document.body.style.background = T.bg;
-    document.body.style.color = T.text;
-  }, [darkMode, T]);
-
-  useEffect(() => {
-    let meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) { meta = document.createElement("meta"); meta.name = "viewport"; document.head.appendChild(meta); }
-    meta.content = "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover";
-  }, []);
-
-  const loadTransactions = useCallback(async () => {
-    setDbLoading(true);
-    try { const data = await api.getAll(); setTransactions(Array.isArray(data) ? data : []); } catch {}
-    setDbLoading(false);
-  }, []);
-
-  useEffect(() => { loadTransactions(); }, [loadTransactions]);
-
-  const fetchPrice = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,chf&include_24hr_change=true");
-      const d = await r.json();
-      if (d.bitcoin) { setBtcUsd(d.bitcoin.usd); setUsdChf(d.bitcoin.chf / d.bitcoin.usd); setDayChangePct(d.bitcoin.usd_24h_change ?? 0); setLastUpdated(new Date()); }
-    } catch {}
-    setLoading(false);
-  }, []);
-
-  const fetchHistoricChart = useCallback(async () => {
-    try {
-      const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=chf&days=730&interval=daily");
-      const d = await r.json();
-      if (!d.prices?.length) return;
-      const monthly = {};
-      d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
-      const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
-      if (data.length) setHistoricChartData(data);
-    } catch {}
-  }, []);
-
-  useEffect(() => { fetchPrice(); fetchHistoricChart(); }, [fetchPrice, fetchHistoricChart]);
-  useEffect(() => { const id = setInterval(fetchPrice, 60_000); return () => clearInterval(id); }, [fetchPrice]);
-
-  const btcChf = btcUsd * usdChf;
-  const buyTx  = transactions.filter(t => t.type === "buy");
-  const sellTx = transactions.filter(t => t.type === "sell");
-  const trfTx  = transactions.filter(t => t.type === "transfer");
-
-  const totalBtc = buyTx.reduce((s, t) => s + +t.btc, 0)
-                 - sellTx.reduce((s, t) => s + +t.btc, 0)
-                 - trfTx.reduce((s, t) => s + +(t.fee || 0), 0);
-
-  const buyBtc      = buyTx.reduce((s, t) => s + +t.btc, 0);
-  const buyInvested = buyTx.reduce((s, t) => s + +t.chf + +(t.fee || 0), 0);
-  const sellProceeds = sellTx.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
-  const totalInvested = buyInvested - sellProceeds;
-
-  const portfolioChf  = totalBtc * btcChf;
-  const pnlChf        = portfolioChf - totalInvested;
-  const pnlPct        = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
-  const avgChf        = buyBtc > 0 ? buyInvested / buyBtc : 0;
-  const avgUsd        = avgChf / usdChf;
-
-  const handleSave = async (form) => {
-    if (form.id && transactions.find(t => t.id === form.id)) {
-      const updated = await api.update(form);
-      setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
-    } else {
-      const created = await api.create(form);
-      setTransactions(prev => [...prev, created]);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    await api.remove(id);
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  };
-
-  const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
-  const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
-
-  return (
-    <>
-      <style>{`
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html { height: -webkit-fill-available; }
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; min-height: -webkit-fill-available; overscroll-behavior: none; }
-        button { font-family: inherit; }
-        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-        input[type=date]::-webkit-calendar-picker-indicator { filter: ${darkMode ? "invert(0.3)" : "none"}; cursor: pointer; }
-        input { font-size: 16px !important; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} />
-        {dbLoading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: T.textFaint, fontSize: 15 }}>Lade Daten...</div>
-        ) : (
-          <>
-            {view === "dashboard" && (
-              <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} />
-                <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} />
-                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} />
-              </div>
-            )}
-            {view === "analyse" && (
-              <div style={{ ...scrollStyle, padding: "0 12px" }}>
-                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
-                <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} />
-                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} />
-                <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} T={T} />
-              </div>
-            )}
-            {view === "verlauf" && (
-              <div style={{ ...scrollStyle, padding: "0 16px" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", paddingTop: 4 }}>
-                  {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
-                    <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
-                  ))}
-                </div>
-                {filteredTx.length === 0 && <div style={{ color: T.textFaint, textAlign: "center", padding: "40px 0", fontSize: 15 }}>Keine Transaktionen</div>}
-                {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
-              </div>
-            )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} />}
-          </>
-        )}
-      </div>
-
-      <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} />
-      {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} />}
-    </>
-  );
-}
+    await onSave({ ...form, btc: +form.btc, chf: isTransfer ? 0 : +form.chf || 0, fee: +​​​​​​​​​​​​​​​​
