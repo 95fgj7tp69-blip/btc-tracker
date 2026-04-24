@@ -206,8 +206,8 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>CHF {fmtChf(btcChf, 0)}</div>
-        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>${fmtUsd(btcUsd)}</div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>CHF {fmtChf(btcChf, 0)}</div>
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setActiveTab(t)} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
@@ -516,13 +516,12 @@ function TxRow({ tx, onDelete, onEdit, T }) {
 }
 
 function BottomNav({ view, setView, onAdd, T }) {
- const btn = (id, icon, label) => (
-  <button onClick={() => setView(id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0 }}>
-    <span style={{ fontSize: 19, color: view === id ? "#f7931a" : T.textFaint, width: 24, textAlign: "center", display: "block" }}>{icon}</span>
-    <span style={{ fontSize: 10, color: view === id ? "#f7931a" : T.textFaint, fontWeight: view === id ? 600 : 400, whiteSpace: "nowrap" }}>{label}</span>
-  </button>
-);
-
+  const btn = (id, icon, label) => (
+    <button onClick={() => setView(id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 19, color: view === id ? "#f7931a" : T.textFaint, width: 24, textAlign: "center", display: "block" }}>{icon}</span>
+      <span style={{ fontSize: 10, color: view === id ? "#f7931a" : T.textFaint, fontWeight: view === id ? 600 : 400, whiteSpace: "nowrap" }}>{label}</span>
+    </button>
+  );
   return (
     <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: T.navBg, backdropFilter: "blur(20px)", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: "10px 16px calc(16px + env(safe-area-inset-bottom))" }}>
       {btn("dashboard", "◈", "Dashboard")}
