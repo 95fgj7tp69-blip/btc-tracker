@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
 const supabase = createClient(
   "https://xjkomserewmxktwvmoaa.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa29tc2VyZXdteGt0d3Ztb2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3NTI5NzQsImV4cCI6MjA1OTMyODk3NH0.JsEP4TuBHnBXdgkGpMlYFMmTtEVpFiHi4ql_mAXBMic"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa29tc2VyZXdteGt0d3Ztb2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjEzNTMsImV4cCI6MjA5MjUzNzM1M30.4GVJpwwQUCwhFGgMPFFYr_H23RUbX_3TpRAYpbvy9Es"
 );
 
 // ── API (mit JWT Auth) ────────────────────────────────────────────────────────
