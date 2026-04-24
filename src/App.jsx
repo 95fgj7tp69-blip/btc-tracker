@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Area, AreaChart, ResponsiveContainer, YAxis, Tooltip } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, YAxis, XAxis, Tooltip } from "recharts";
 
 const api = {
   getAll: ()   => fetch("/api/transactions").then(r => r.json()),
@@ -164,22 +164,87 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf }) {
 }
 
 function MarketCard({ btcChf, btcUsd, dayChangePct }) {
+  const [activeTab, setActiveTab] = useState("1T");
+  const [chartData, setChartData] = useState([]);
+  const [loadingChart, setLoadingChart] = useState(false);
   const isPos = dayChangePct >= 0;
+  const color = isPos ? "#22c55e" : "#ef4444";
+  const TABS = ["1T", "1W", "1M", "3M", "6M", "1J"];
+
+  const fetchMarketChart = useCallback(async (tab) => {
+    setLoadingChart(true);
+    try {
+      const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
+      const days = daysMap[tab];
+      const r = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=chf&days=${days}`);
+      const d = await r.json();
+      if (!d.prices?.length) return;
+      const formatted = d.prices.map(([ts, price]) => {
+        const dt = new Date(ts);
+        let label;
+        if (days === 1) label = dt.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+        else if (days <= 7) label = dt.toLocaleDateString("de-CH", { weekday: "short" });
+        else label = dt.toLocaleDateString("de-CH", { day: "numeric", month: "short" });
+        return { t: label, v: Math.round(price) };
+      });
+      const step = Math.max(1, Math.floor(formatted.length / 60));
+      setChartData(formatted.filter((_, i) => i % step === 0 || i === formatted.length - 1));
+    } catch {}
+    setLoadingChart(false);
+  }, []);
+
+  useEffect(() => { fetchMarketChart(activeTab); }, [activeTab, fetchMarketChart]);
+
+  const vals = chartData.map(d => d.v);
+  const minV = vals.length ? Math.min(...vals) : 0;
+  const maxV = vals.length ? Math.max(...vals) : 0;
+  const midV = Math.round((minV + maxV) / 2);
+  const xTicks = chartData.filter((_, i) => { const total = chartData.length; if (total <= 8) return true; return i % Math.floor(total / 5) === 0 || i === total - 1; }).map(d => d.t);
+
   return (
-    <div style={{ margin: "0 12px 12px", background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 20, padding: "18px 20px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div style={{ color: "#888", fontSize: 13, marginBottom: 14 }}>Aktueller Kurs</div>
-        <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isPos ? "#22c55e" : "#ef4444", fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
-          <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
+    <div style={{ margin: "0 12px 12px", background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 20, overflow: "hidden" }}>
+      <div style={{ padding: "18px 20px 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#000", flexShrink: 0 }}>₿</div>
+            <span style={{ color: "#aaa", fontSize: 14 }}>Bitcoin (BTC)</span>
+          </div>
+          <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
+            <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
+          </div>
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>CHF {fmtChf(btcChf, 0)}</div>
+        <div style={{ color: "#777", fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>
+        <div style={{ display: "flex", gap: 2, borderBottom: "1px solid #1a1a1a", paddingBottom: 12 }}>
+          {TABS.map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? "#1e1e1e" : "transparent", color: activeTab === t ? "#fff" : "#555" }}>{t}</button>
+          ))}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 28, height: 28, background: "#f7931a", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#000", flexShrink: 0 }}>₿</div>
-        <span style={{ color: "#aaa", fontSize: 14 }}>Bitcoin (BTC)</span>
-      </div>
-      <div>
-        <div style={{ color: "#fff", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>CHF {fmtChf(btcChf, 0)}</div>
-        <div style={{ color: "#777", fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>
+      <div style={{ height: 160, position: "relative" }}>
+        {loadingChart ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#333", fontSize: 13 }}>Lade...</div>
+        ) : chartData.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 8, right: 52, left: 0, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="marketGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+                    <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="t" tick={{ fill: "#444", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
+                <YAxis domain={["auto", "auto"]} hide />
+                <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "#aaa" }} itemStyle={{ color: "#fff" }} formatter={(v) => [`CHF ${fmtChf(v, 0)}`, ""]} />
+                <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill="url(#marketGrad)" dot={false} activeDot={{ r: 3, fill: color }} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div style={{ position: "absolute", right: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: "#555", textAlign: "right" }}>{fmtChf(v, 0)}</span>))}
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -428,17 +493,24 @@ function TxRow({ tx, onDelete, onEdit }) {
 
 function BottomNav({ view, setView, onAdd }) {
   return (
-    <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "rgba(5,5,5,0.97)", backdropFilter: "blur(20px)", borderTop: "1px solid #141414", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "10px 32px calc(16px + env(safe-area-inset-bottom))" }}>
-      <button onClick={() => setView("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifySelf: "center" }}>
-        <span style={{ fontSize: 20, color: view === "dashboard" ? "#f7931a" : "#333" }}>◈</span>
-        <span style={{ fontSize: 11, color: view === "dashboard" ? "#f7931a" : "#444", fontWeight: view === "dashboard" ? 600 : 400 }}>Dashboard</span>
-      </button>
-      <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px",
-color: "#000", fontWeight: 300, lineHeight: 1, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>+</button>
-      <button onClick={() => setView("verlauf")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifySelf: "center" }}>
-        <span style={{ fontSize: 20, color: view === "verlauf" ? "#f7931a" : "#333" }}>≡</span>
-        <span style={{ fontSize: 11, color: view === "verlauf" ? "#f7931a" : "#444", fontWeight: view === "verlauf" ? 600 : 400 }}>Verlauf</span>
-      </button>
+    <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "rgba(5,5,5,0.97)", backdropFilter: "blur(20px)", borderTop: "1px solid #141414", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "10px 20px calc(16px + env(safe-area-inset-bottom))" }}>
+      <div style={{ display: "flex", gap: 16, justifySelf: "start", alignItems: "center" }}>
+        <button onClick={() => setView("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+          <span style={{ fontSize: 19, color: view === "dashboard" ? "#f7931a" : "#333" }}>◈</span>
+          <span style={{ fontSize: 10, color: view === "dashboard" ? "#f7931a" : "#444", fontWeight: view === "dashboard" ? 600 : 400 }}>Dashboard</span>
+        </button>
+        <button onClick={() => setView("analyse")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+          <span style={{ fontSize: 19, color: view === "analyse" ? "#f7931a" : "#333" }}>◎</span>
+          <span style={{ fontSize: 10, color: view === "analyse" ? "#f7931a" : "#444", fontWeight: view === "analyse" ? 600 : 400 }}>Analyse</span>
+        </button>
+      </div>
+      <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px", boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>+</button>
+      <div style={{ justifySelf: "end" }}>
+        <button onClick={() => setView("verlauf")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+          <span style={{ fontSize: 19, color: view === "verlauf" ? "#f7931a" : "#333" }}>≡</span>
+          <span style={{ fontSize: 10, color: view === "verlauf" ? "#f7931a" : "#444", fontWeight: view === "verlauf" ? 600 : 400 }}>Verlauf</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -448,7 +520,7 @@ export default function App() {
   const [btcUsd, setBtcUsd]             = useState(77664);
   const [usdChf, setUsdChf]             = useState(0.787);
   const [dayChangePct, setDayChangePct] = useState(1.25);
-  const [chartData, setChartData]       = useState([]);
+  const [historicChartData, setHistoricChartData] = useState([]);
   const [lastUpdated, setLastUpdated]   = useState(null);
   const [view, setView]                 = useState("dashboard");
   const [showModal, setShowModal]       = useState(false);
@@ -482,7 +554,7 @@ export default function App() {
     setLoading(false);
   }, []);
 
-  const fetchChart = useCallback(async () => {
+  const fetchHistoricChart = useCallback(async () => {
     try {
       const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=chf&days=730&interval=daily");
       const d = await r.json();
@@ -490,11 +562,11 @@ export default function App() {
       const monthly = {};
       d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
       const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
-      if (data.length) setChartData(data);
+      if (data.length) setHistoricChartData(data);
     } catch {}
   }, []);
 
-  useEffect(() => { fetchPrice(); fetchChart(); }, [fetchPrice, fetchChart]);
+  useEffect(() => { fetchPrice(); fetchHistoricChart(); }, [fetchPrice, fetchHistoricChart]);
   useEffect(() => { const id = setInterval(fetchPrice, 60_000); return () => clearInterval(id); }, [fetchPrice]);
 
   const btcChf = btcUsd * usdChf;
@@ -525,6 +597,7 @@ export default function App() {
   };
 
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
+  const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
   return (
     <>
@@ -542,26 +615,28 @@ export default function App() {
       `}</style>
 
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: "#000" }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchChart(); }} loading={loading} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} />
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: "#444", fontSize: 15 }}>Lade Daten...</div>
         ) : (
           <>
             {view === "dashboard" && (
-              <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 }}>
+              <div style={scrollStyle}>
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} />
-                <div style={{ padding: "0 12px" }}>
-                  <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={chartData} />
-                  <BreakEvenCard avgChf={avgChf} currentChf={btcChf} />
-                  <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} />
-                  <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} />
-                </div>
+              </div>
+            )}
+            {view === "analyse" && (
+              <div style={{ ...scrollStyle, padding: "0 12px" }}>
+                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} />
+                <BreakEvenCard avgChf={avgChf} currentChf={btcChf} />
+                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} />
+                <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} />
               </div>
             )}
             {view === "verlauf" && (
-              <div style={{ padding: "0 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 }}>
+              <div style={{ ...scrollStyle, padding: "0 16px" }}>
                 <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", paddingTop: 4 }}>
                   {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
                     <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? "#fff" : "#111", color: txFilter === id ? "#000" : "#666", border: `1px solid ${txFilter === id ? "#fff" : "#1f1f1f"}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
