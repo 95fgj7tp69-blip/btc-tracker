@@ -599,4 +599,4 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
   const handleSave = async () => {
     if (!form.btc) return;
     setSaving(true);
-    await onSave({ ...form, btc: +form.btc, chf: isTransfer ? 0 : +form.chf || 0, fee: +​​​​​​​​​​​​​​​​
+    await onSave({ ...form, btc: +form.btc, chf: isTransfer ? 0 : +form.chf || 0, fee: +form.fee || 0 });
