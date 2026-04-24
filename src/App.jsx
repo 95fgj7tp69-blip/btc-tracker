@@ -90,7 +90,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
           <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
           <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
             {["1D", "7D", "30D", "ALL"].map(t => (
-              <button key={t} onClick={() => setActiveTab(t)} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
+              <button key={t} onClick={() => setActiveTab(t)} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>{t}</button>
             ))}
           </div>
         </div>
@@ -137,7 +137,7 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
         <div style={{ borderRight: `1px solid ${T.divider}`, paddingRight: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>Bestand</div>
-          <div style={{ color: T.text, fontSize: 20, fontWeight: 600 }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
+          <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
           <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ CHF {fmtChf(portfolioChf, 0)}</div>
         </div>
         <div style={{ paddingLeft: 16 }}>
@@ -421,11 +421,26 @@ function BarChart({ portfolioChf, investedChf, T }) {
   );
 }
 
-function SettingsView({ darkMode, setDarkMode, T }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions }) {
+  const exportCSV = () => {
+    const header = "Datum,Typ,BTC,CHF,Gebühren,Notiz";
+    const rows = [...transactions]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(t => [t.date, t.type, t.btc, t.chf, t.fee || 0, `"${(t.note || "").replace(/"/g, '""')}"`].join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `btc-transaktionen-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div style={{ padding: "8px 16px 100px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))" }}>
+    <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 8 }}>DARSTELLUNG</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16 }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
           <div>
             <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{darkMode ? "Dark Mode" : "Light Mode"}</div>
@@ -436,8 +451,20 @@ function SettingsView({ darkMode, setDarkMode, T }) {
           </div>
         </div>
       </div>
+
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>Transaktionen exportieren</div>
+            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{transactions.length} Einträge als CSV</div>
+          </div>
+          <button onClick={exportCSV} style={{ background: "#f7931a", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>↓ Export</button>
+        </div>
+      </div>
+
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16 }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         {[{ label: "Version", value: "1.0.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
@@ -673,7 +700,7 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} />}
           </>
         )}
       </div>
