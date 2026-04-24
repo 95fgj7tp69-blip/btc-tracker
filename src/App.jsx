@@ -170,12 +170,13 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
 
   const fetchMarketChart = useCallback(async (tab) => {
     setLoadingChart(true);
+    setChartData([]);
     try {
       const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
       const days = daysMap[tab];
       const r = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=chf&days=${days}`);
       const d = await r.json();
-      if (!d.prices?.length) return;
+      if (!d.prices?.length) { setLoadingChart(false); return; }
       const formatted = d.prices.map(([ts, price]) => {
         const dt = new Date(ts);
         let label;
@@ -186,11 +187,15 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
       });
       const step = Math.max(1, Math.floor(formatted.length / 60));
       setChartData(formatted.filter((_, i) => i % step === 0 || i === formatted.length - 1));
-    } catch {}
+    } catch (e) { console.error("Chart fetch failed:", e); }
     setLoadingChart(false);
   }, []);
 
-  useEffect(() => { fetchMarketChart(activeTab); }, [activeTab, fetchMarketChart]);
+  useEffect(() => {
+    fetchMarketChart(activeTab);
+    const retry = setTimeout(() => fetchMarketChart(activeTab), 3000);
+    return () => clearTimeout(retry);
+  }, [activeTab, fetchMarketChart]);
 
   const vals = chartData.map(d => d.v);
   const minV = vals.length ? Math.min(...vals) : 0;
@@ -241,7 +246,11 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
               {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtChf(v, 0)}</span>))}
             </div>
           </>
-        ) : null}
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: T.textFaint, fontSize: 13 }}>
+            <button onClick={() => fetchMarketChart(activeTab)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>↻ Neu laden</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -634,12 +643,20 @@ export default function App() {
   const buyTx  = transactions.filter(t => t.type === "buy");
   const sellTx = transactions.filter(t => t.type === "sell");
   const trfTx  = transactions.filter(t => t.type === "transfer");
-  const totalBtc      = buyTx.reduce((s, t) => s + +t.btc, 0) - sellTx.reduce((s, t) => s + +t.btc, 0) - trfTx.reduce((s, t) => s + +(t.fee || 0), 0);
-  const totalInvested = buyTx.reduce((s, t) => s + +t.chf + +(t.fee || 0), 0) - sellTx.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
+
+  const totalBtc = buyTx.reduce((s, t) => s + +t.btc, 0)
+                 - sellTx.reduce((s, t) => s + +t.btc, 0)
+                 - trfTx.reduce((s, t) => s + +(t.fee || 0), 0);
+
+  const buyBtc      = buyTx.reduce((s, t) => s + +t.btc, 0);
+  const buyInvested = buyTx.reduce((s, t) => s + +t.chf + +(t.fee || 0), 0);
+  const sellProceeds = sellTx.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
+  const totalInvested = buyInvested - sellProceeds;
+
   const portfolioChf  = totalBtc * btcChf;
   const pnlChf        = portfolioChf - totalInvested;
-  const pnlPct        = totalInvested > 0 ? (pnlChf / totalInvested) * 100 : 0;
-  const avgChf        = totalBtc > 0 ? totalInvested / totalBtc : 0;
+  const pnlPct        = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
+  const avgChf        = buyBtc > 0 ? buyInvested / buyBtc : 0;
   const avgUsd        = avgChf / usdChf;
 
   const handleSave = async (form) => {
