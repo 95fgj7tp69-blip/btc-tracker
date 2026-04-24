@@ -433,7 +433,8 @@ function BottomNav({ view, setView, onAdd }) {
         <span style={{ fontSize: 20, color: view === "dashboard" ? "#f7931a" : "#333" }}>◈</span>
         <span style={{ fontSize: 11, color: view === "dashboard" ? "#f7931a" : "#444", fontWeight: view === "dashboard" ? 600 : 400 }}>Dashboard</span>
       </button>
-      <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#000", fontWeight: 300, lineHeight: 1, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>+</button>
+      <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px",
+color: "#000", fontWeight: 300, lineHeight: 1, boxShadow: "0 4px 20px rgba(247,147,26,0.35)" }}>+</button>
       <button onClick={() => setView("verlauf")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifySelf: "center" }}>
         <span style={{ fontSize: 20, color: view === "verlauf" ? "#f7931a" : "#333" }}>≡</span>
         <span style={{ fontSize: 11, color: view === "verlauf" ? "#f7931a" : "#444", fontWeight: view === "verlauf" ? 600 : 400 }}>Verlauf</span>
