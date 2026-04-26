@@ -252,12 +252,14 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, buildPortfolioChart, hasRealData }) {
   const sym = CURRENCIES[currency].symbol;
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
   });
-  const data = PORTFOLIO_CHART_DATA[activeTab];
+  // Echter Chart wenn Daten vorhanden, sonst Demo-Daten
+  const realData = hasRealData ? buildPortfolioChart(activeTab) : null;
+  const data = (realData && realData.length > 1) ? realData : PORTFOLIO_CHART_DATA[activeTab];
   const isNeg = pnlChf < 0;
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -291,7 +293,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               </linearGradient>
             </defs>
             <YAxis domain={["auto", "auto"]} hide />
-            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text, fontWeight: 500 }} formatter={(v) => [`CHF ${fmtChf(v, 0)}`, ""]} />
+            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text, fontWeight: 500 }} formatter={(v) => [`${CURRENCIES[currency].symbol} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`, ""]} />
             <Area type="monotone" dataKey="v" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} fill="url(#portfolioGrad)" dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
           </AreaChart>
         </ResponsiveContainer>
@@ -300,7 +302,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           const mn = Math.min(...vals), mx = Math.max(...vals), mid = Math.round((mn + mx) / 2);
           return (
             <div style={{ position: "absolute", right: 8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none", padding: "8px 0" }}>
-              {[mx, mid, mn].map(v => (<span key={v} style={{ fontSize: 11, color: T.textMuted, textAlign: "right", fontWeight: 500 }}>{fmtChf(v, 0)}</span>))}
+              {[mx, mid, mn].map(v => (<span key={v} style={{ fontSize: 11, color: T.textMuted, textAlign: "right", fontWeight: 500 }}>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}</span>))}
             </div>
           );
         })()}
@@ -856,7 +858,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.4.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.5.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1171,6 +1173,7 @@ export default function App() {
   const [eurUsd, setEurUsd]                 = useState(0.92);
   const [dayChangePct, setDayChangePct]     = useState(1.25);
   const [historicChartData, setHistoricChartData] = useState([]);
+  const [rawPriceData, setRawPriceData]           = useState([]); // [[isoDate, chfPrice], ...]
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
@@ -1256,10 +1259,18 @@ export default function App() {
       const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=chf&days=730&interval=daily");
       const d = await r.json();
       if (!d.prices?.length) return;
+      // Für Markt-Chart: monatliche Durchschnitte
       const monthly = {};
       d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
       const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
       if (data.length) setHistoricChartData(data);
+      // Für Portfolio-Chart: tägliche Preise speichern
+      const daily = d.prices.map(([ts, price]) => {
+        const dt = new Date(ts);
+        const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+        return [iso, Math.round(price)];
+      });
+      setRawPriceData(daily);
     } catch {}
   }, []);
 
@@ -1310,6 +1321,42 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setTransactions([]);
+  };
+
+  // Berechnet echten Portfolio-Verlauf aus Transaktionen + historischen Kursen
+  const buildPortfolioChart = (tab) => {
+    if (!rawPriceData.length || !transactions.length) return [];
+    const now = new Date();
+    const msPerDay = 86400000;
+    let cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[tab] || 7;
+    const cutoff = new Date(now - cutoffDays * msPerDay);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    // Filtere Preisdaten auf gewünschten Zeitraum
+    const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
+    if (!prices.length) return [];
+
+    // Sortiere Transaktionen nach Datum
+    const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
+
+    // Für jeden Preispunkt: berechne BTC-Menge zu diesem Datum
+    return prices.map(([date, chfPrice]) => {
+      let btcAmt = 0;
+      for (const tx of sortedTx) {
+        if (tx.date > date) break;
+        if (tx.type === "buy") btcAmt += +tx.btc;
+        else if (tx.type === "sell") btcAmt -= +tx.btc;
+        else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
+      }
+      const portfolioChfVal = Math.round(btcAmt * chfPrice);
+      // Label je nach Tab
+      let label = date;
+      if (tab === "1D") label = date.slice(11, 16) || date;
+      else if (tab === "7D") { const d = new Date(date); label = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]; }
+      else if (tab === "30D") label = date.slice(8, 10);
+      else label = date.slice(0, 7);
+      return { t: label, v: portfolioChfVal };
+    });
   };
 
   const exportCSV = () => {
@@ -1386,7 +1433,7 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} buildPortfolioChart={buildPortfolioChart} hasRealData={rawPriceData.length > 0 && transactions.length > 0} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
