@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, YAxis, XAxis, Tooltip } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 
