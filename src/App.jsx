@@ -34,17 +34,17 @@ const TYPE_META = {
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const DARK = {
-  bg:        "#000",
-  surface:   "#0a0a0a",
-  border:    "#1a1a1a",
-  text:      "#fff",
-  textSub:   "#aaa",
-  textMuted: "#777",
-  textFaint: "#555",
-  input:     "#111",
-  inputBorder: "#222",
-  navBg:     "rgba(5,5,5,0.97)",
-  divider:   "#1a1a1a",
+  bg:        "#0f0f0f",
+  surface:   "#1c1c1e",
+  border:    "#3a3a3c",
+  text:      "#ffffff",
+  textSub:   "#d1d1d6",
+  textMuted: "#98989f",
+  textFaint: "#636366",
+  input:     "#2c2c2e",
+  inputBorder: "#48484a",
+  navBg:     "rgba(18,18,18,0.97)",
+  divider:   "#3a3a3c",
 };
 
 const LIGHT = {
@@ -586,6 +586,9 @@ function BarChart({ portfolioChf, investedChf, T }) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout }) {
+  const [showPwModal, setShowPwModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const exportCSV = () => {
     const header = "Datum,Typ,BTC,CHF,Gebühren,Notiz";
     const rows = [...transactions]
@@ -602,12 +605,21 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   };
 
   return (
+    <>
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>KONTO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
           <span style={{ color: T.textMuted, fontSize: 14 }}>Eingeloggt als</span>
           <span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{userEmail}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Passwort ändern</span>
+          <button onClick={() => setShowPwModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ color: "#ef4444", fontSize: 15 }}>Konto löschen</span>
+          <button onClick={() => setShowDeleteModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
         <div style={{ padding: "4px 0" }}>
           <button onClick={onLogout} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: "#ef4444", fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
@@ -631,12 +643,114 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
 
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.1.3" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.2.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
           </div>
         ))}
+      </div>
+    </div>
+    {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
+    {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    </>
+  );
+}
+
+// ── Password Modal ────────────────────────────────────────────────────────────
+function PasswordModal({ onClose, T }) {
+  const [pwForm, setPwForm] = useState({ next: "", confirm: "" });
+  const [pwStatus, setPwStatus] = useState(null);
+  const [pwError, setPwError] = useState("");
+  const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }));
+  const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
+
+  const handleSave = async () => {
+    if (!pwForm.next || pwForm.next !== pwForm.confirm) {
+      setPwError("Passwörter stimmen nicht überein."); return;
+    }
+    if (pwForm.next.length < 6) {
+      setPwError("Mindestens 6 Zeichen erforderlich."); return;
+    }
+    setPwStatus("saving"); setPwError("");
+    const { error } = await supabase.auth.updateUser({ password: pwForm.next });
+    if (error) {
+      setPwError(error.message); setPwStatus("error");
+    } else {
+      setPwStatus("ok");
+      setTimeout(() => onClose(), 1500);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Passwort ändern</div>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>NEUES PASSWORT</div>
+          <input type="password" placeholder="Mindestens 6 Zeichen" value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={iStyle} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>PASSWORT BESTÄTIGEN</div>
+          <input type="password" placeholder="Wiederholen" value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={iStyle} />
+        </div>
+        {pwError && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{pwError}</div>}
+        {pwStatus === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14 }}>✓ Passwort erfolgreich geändert</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+          <button onClick={handleSave} disabled={pwStatus === "saving"} style={{ padding: "15px 0", background: pwStatus === "saving" ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {pwStatus === "saving" ? "Wird gespeichert..." : "Speichern"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Delete Account Modal ─────────────────────────────────────────────────────
+function DeleteAccountModal({ onClose, onLogout, T }) {
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const confirmed = confirm === "LÖSCHEN";
+
+  const handleDelete = async () => {
+    if (!confirmed) return;
+    setStatus("saving"); setError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch("/api/transactions/account", { method: "DELETE", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
+      if (!res.ok) throw new Error("Fehler beim Löschen");
+      await supabase.auth.signOut();
+      onLogout();
+    } catch (e) {
+      setError("Fehler: " + e.message); setStatus("error");
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>⚠️</div>
+        </div>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Konto löschen?</div>
+        <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 16 }}>Alle Transaktionen und Kontodaten werden unwiderruflich gelöscht.</div>
+        <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 20, padding: "10px 16px", background: "rgba(239,68,68,0.08)", borderRadius: 10 }}>
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>Tippe <strong style={{ color: "#ef4444" }}>LÖSCHEN</strong> zur Bestätigung</div>
+          <input type="text" placeholder="LÖSCHEN" value={confirm} onChange={e => setConfirm(e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${confirmed ? "#ef4444" : T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{error}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+          <button onClick={handleDelete} disabled={!confirmed || status === "saving"} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {status === "saving" ? "Wird gelöscht..." : "Konto löschen"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -799,7 +913,7 @@ export default function App() {
   const [dbLoading, setDbLoading]           = useState(true);
   const [txFilter, setTxFilter]             = useState("all");
   const [darkMode, setDarkMode]             = useState(() => {
-    try { return localStorage.getItem("darkMode") !== "false"; } catch { return true; }
+    try { const v = localStorage.getItem("darkMode"); return v === null ? false : v !== "false"; } catch { return false; }
   });
 
   const T = darkMode ? DARK : LIGHT;
