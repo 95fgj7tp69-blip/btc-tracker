@@ -623,8 +623,66 @@ function BarChart({ portfolioChf, investedChf, T }) {
   );
 }
 
+// ── Onboarding ───────────────────────────────────────────────────────────────
+function OnboardingScreen({ onFinish, T }) {
+  const [slide, setSlide] = useState(0);
+  const slides = [
+    {
+      icon: "₿",
+      iconBg: "#f7931a",
+      title: "Willkommen bei Bitfolio",
+      text: "Dein persönlicher Bitcoin-Portfolio-Tracker. Behalte den Überblick über deine Investitionen — jederzeit und überall.",
+    },
+    {
+      icon: "📊",
+      iconBg: "rgba(34,197,94,0.15)",
+      title: "Portfolio tracken",
+      text: "Erfasse Käufe, Verkäufe und Transfers. Bitfolio berechnet deinen Einstandspreis und zeigt dir deinen Gewinn oder Verlust in Echtzeit.",
+    },
+    {
+      icon: "🔍",
+      iconBg: "rgba(59,130,246,0.15)",
+      title: "Tiefe Analysen",
+      text: "Break-Even Analyse, DCA-Rechner und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
+    },
+    {
+      icon: "🌍",
+      iconBg: "rgba(247,147,26,0.15)",
+      title: "Deine Währung",
+      text: "Wähle zwischen CHF, EUR und USD. Alle Beträge werden automatisch umgerechnet — mit Live-Wechselkursen.",
+    },
+  ];
+  const s = slides[slide];
+  const isLast = slide === slides.length - 1;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
+      {/* Slide content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 360 }}>
+        <div style={{ width: 90, height: 90, borderRadius: 26, background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: slide === 0 ? 42 : 40, marginBottom: 32, fontWeight: 800, color: slide === 0 ? "#000" : "inherit", boxShadow: slide === 0 ? "0 8px 24px rgba(247,147,26,0.3)" : "none" }}>{s.icon}</div>
+        <div style={{ color: T.text, fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 16, lineHeight: 1.2 }}>{s.title}</div>
+        <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
+      </div>
+      {/* Dots */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
+        {slides.map((_, i) => (
+          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 24 : 8, height: 8, borderRadius: 4, background: i === slide ? "#f7931a" : T.border, cursor: "pointer", transition: "all 0.3s" }} />
+        ))}
+      </div>
+      {/* Buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: isLast ? "1fr" : "1fr 2fr", gap: 12, width: "100%", maxWidth: 360 }}>
+        {!isLast && (
+          <button onClick={onFinish} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Überspringen</button>
+        )}
+        <button onClick={() => isLast ? onFinish() : setSlide(s => s + 1)} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 14, cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>
+          {isLast ? "Loslegen 🚀" : "Weiter →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0 }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding }) {
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -678,12 +736,16 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.3.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.4.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
           </div>
         ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Einführung nochmals zeigen</span>
+          <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
       </div>
 
       {/* GEFAHRENZONE */}
@@ -975,6 +1037,17 @@ export default function App() {
   const [darkMode, setDarkMode]             = useState(() => {
     try { const v = localStorage.getItem("darkMode"); return v === null ? false : v !== "false"; } catch { return false; }
   });
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return localStorage.getItem("onboardingDone") !== "true"; } catch { return true; }
+  });
+  const finishOnboarding = () => {
+    try { localStorage.setItem("onboardingDone", "true"); } catch {}
+    setShowOnboarding(false);
+  };
+  const resetOnboarding = () => {
+    try { localStorage.removeItem("onboardingDone"); } catch {}
+    setShowOnboarding(true);
+  };
   const [currency, setCurrencyState]        = useState(() => {
     try { return localStorage.getItem("currency") || "CHF"; } catch { return "CHF"; }
   });
@@ -1194,11 +1267,12 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} />}
           </>
         )}
       </div>
 
+      {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} />}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />}
     </>
