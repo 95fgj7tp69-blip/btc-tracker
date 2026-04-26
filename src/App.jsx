@@ -605,6 +605,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   };
 
   return (
+    <>
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>KONTO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -652,6 +653,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     </div>
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    </>
   );
 }
 
