@@ -623,8 +623,186 @@ function BarChart({ portfolioChf, investedChf, T }) {
   );
 }
 
+// ── Onboarding ───────────────────────────────────────────────────────────────
+function OnboardingScreen({ onFinish, T }) {
+  const [slide, setSlide] = useState(0);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const privacyContent = [
+    { title: "Was gespeichert wird", text: "Deine E-Mail-Adresse (für Login) sowie deine erfassten Transaktionen: Datum, BTC-Menge, Betrag, Gebühren und Notiz." },
+    { title: "Wo", text: "Alle Daten werden verschlüsselt in der EU gespeichert — auf AWS-Servern in Irland (eu-west-1), betrieben über Supabase." },
+    { title: "Wer hat Zugriff", text: "Nur du. Dank Row-Level Security sieht ausschliesslich dein Account deine Daten." },
+    { title: "Löschen", text: "Du kannst dein Konto und alle Daten jederzeit unter Einstellungen → Konto löschen vollständig entfernen." },
+    { title: "Kontakt", text: "support [at] bluebubble [dot] ch" },
+  ];
+  const slides = [
+    {
+      icon: "₿",
+      iconBg: "#f7931a",
+      title: "Willkommen bei BTC Portfolio Tracker",
+      text: "Dein persönlicher Bitcoin-Portfolio-Tracker. Behalte den Überblick über deine Investitionen — jederzeit und überall.",
+    },
+    {
+      icon: "chart",
+      iconBg: null,
+      title: "Portfolio tracken",
+      text: "Erfasse Käufe, Verkäufe und Transfers. Die App berechnet deinen Einstandspreis und zeigt dir deinen Gewinn in Echtzeit.",
+    },
+    {
+      icon: "analyse",
+      iconBg: null,
+      title: "Tiefe Analysen",
+      text: "Break-Even Analyse, DCA-Rechner und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
+    },
+    {
+      icon: "currency",
+      iconBg: null,
+      title: "Deine Währung",
+      text: "Wähle zwischen CHF, EUR und USD. Alle Beträge werden automatisch umgerechnet — mit Live-Wechselkursen.",
+    },
+    {
+      icon: "privacy",
+      iconBg: null,
+      title: "Datenschutz",
+      text: "Deine Daten gehören dir. Alles wird verschlüsselt in der EU gespeichert — du kannst dein Konto jederzeit vollständig löschen.",
+    },
+  ];
+  const s = slides[slide];
+  const isLast = slide === slides.length - 1;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
+      {/* Slide content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 360 }}>
+        <div style={{ marginBottom: 32 }}>
+          {slide === 0 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
+              <text x="140" y="78" textAnchor="middle" fontSize="56" fontWeight="800" fill="#000">₿</text>
+              <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
+              <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
+              <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
+              <text x="225" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#185FA5">USD</text>
+              <circle cx="55" cy="90" r="20" fill="#eaf3de" stroke="#639922" strokeWidth="1"/>
+              <text x="55" y="95" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">EUR</text>
+              <line x1="75" y1="30" x2="90" y2="55" stroke="#f7931a" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+              <line x1="205" y1="30" x2="190" y2="55" stroke="#378ADD" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+              <line x1="75" y1="90" x2="90" y2="88" stroke="#639922" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+            </svg>
+          )}
+          {slide === 1 && (
+            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
+              <rect x="80" y="4" width="120" height="152" rx="20" fill={T.surface} stroke={T.border} strokeWidth="1"/>
+              <rect x="92" y="16" width="96" height="10" rx="5" fill={T.border}/>
+              <text x="140" y="52" textAnchor="middle" fontSize="11" fill={T.textFaint}>Portfolio</text>
+              <text x="140" y="74" textAnchor="middle" fontSize="22" fontWeight="700" fill={T.text}>61'200</text>
+              <text x="140" y="74" textAnchor="middle" fontSize="11" fill={T.textMuted} dy="-28">CHF</text>
+              <text x="140" y="92" textAnchor="middle" fontSize="12" fill="#22c55e">↑ +28.4%</text>
+              <rect x="96" y="106" width="88" height="8" rx="4" fill="#22c55e" opacity="0.15"/>
+              <rect x="96" y="106" width="64" height="8" rx="4" fill="#22c55e" opacity="0.75"/>
+              <rect x="88" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <rect x="116" y="130" width="22" height="7" rx="3" fill="#f7931a" opacity="0.85"/>
+              <rect x="144" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <rect x="172" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <circle cx="32" cy="60" r="26" fill="rgba(34,197,94,0.12)" stroke="#22c55e" strokeWidth="1.5"/>
+              <text x="32" y="54" textAnchor="middle" fontSize="10" fill="#3B6D11">Kauf</text>
+              <text x="32" y="68" textAnchor="middle" fontSize="13" fontWeight="600" fill="#27500A">+0.25</text>
+              <text x="32" y="80" textAnchor="middle" fontSize="9" fill="#3B6D11">BTC</text>
+              <line x1="58" y1="62" x2="80" y2="72" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
+              <circle cx="248" cy="100" r="26" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1.5"/>
+              <text x="248" y="94" textAnchor="middle" fontSize="10" fill="#991b1b">Verkauf</text>
+              <text x="248" y="108" textAnchor="middle" fontSize="13" fontWeight="600" fill="#7f1d1d">−0.1</text>
+              <text x="248" y="120" textAnchor="middle" fontSize="9" fill="#991b1b">BTC</text>
+              <line x1="200" y1="100" x2="222" y2="100" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
+            </svg>
+          )}
+          {slide === 2 && (
+            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
+              <rect x="14" y="10" width="252" height="130" rx="18" fill={T.surface} stroke={T.border} strokeWidth="1"/>
+              <polyline points="30,120 65,100 100,108 135,75 168,82 202,45 235,52 262,24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+              <line x1="162" y1="10" x2="162" y2="140" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.8"/>
+              <text x="168" y="30" fontSize="11" fontWeight="500" fill="#BA7517">Break-Even</text>
+              <circle cx="202" cy="45" r="5" fill="#22c55e"/>
+              <circle cx="262" cy="24" r="5" fill="#22c55e"/>
+              <circle cx="262" cy="24" r="9" fill="#22c55e" opacity="0.2"/>
+              <rect x="22" y="16" width="70" height="24" rx="8" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="57" y="32" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">+28.4%</text>
+              <rect x="22" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="64" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="106" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="148" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="22" y="118" width="36" height="14" rx="4" fill="#f7931a" opacity="0.8"/>
+            </svg>
+          )}
+          {slide === 3 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <line x1="55" y1="60" x2="225" y2="60" stroke={T.border} strokeWidth="0.5"/>
+              <circle cx="55" cy="60" r="38" fill="#fef3e0" stroke="#f7931a" strokeWidth="1.5"/>
+              <text x="55" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#BA7517">₣</text>
+              <circle cx="140" cy="60" r="38" fill="#eeedfe" stroke="#534AB7" strokeWidth="1.5"/>
+              <text x="140" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#3C3489">€</text>
+              <circle cx="225" cy="60" r="38" fill="#e8f4ff" stroke="#185FA5" strokeWidth="1.5"/>
+              <text x="225" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#185FA5">$</text>
+            </svg>
+          )}
+          {slide === 4 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="30" y="20" width="220" height="80" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
+              <rect x="46" y="36" width="60" height="8" rx="4" fill={T.border}/>
+              <rect x="46" y="52" width="100" height="8" rx="4" fill={T.border}/>
+              <rect x="46" y="68" width="80" height="8" rx="4" fill={T.border}/>
+              <circle cx="220" cy="36" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="40" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <circle cx="220" cy="60" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="64" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <circle cx="220" cy="84" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="88" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <rect x="30" y="20" width="220" height="80" rx="16" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.4"/>
+            </svg>
+          )}
+        </div>
+        <div style={{ color: T.text, fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 16, lineHeight: 1.2 }}>{s.title}</div>
+        <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
+      </div>
+      {/* Dots */}
+      {slide === 4 && (
+        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 14, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, textDecoration: "underline" }}>
+          Vollständige Datenschutzerklärung lesen
+        </button>
+      )}
+      <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
+        {slides.map((_, i) => (
+          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 24 : 8, height: 8, borderRadius: 4, background: i === slide ? "#f7931a" : T.border, cursor: "pointer", transition: "all 0.3s" }} />
+        ))}
+      </div>
+      {/* Buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: isLast ? "1fr" : "1fr 2fr", gap: 12, width: "100%", maxWidth: 360 }}>
+        {!isLast && (
+          <button onClick={onFinish} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Überspringen</button>
+        )}
+        <button onClick={() => isLast ? onFinish() : setSlide(s => s + 1)} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 14, cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>
+          {isLast ? "Loslegen 🚀" : "Weiter →"}
+        </button>
+      </div>
+    {showPrivacy && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Datenschutzerklärung</div>
+          {privacyContent.map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 16 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
+    </div>
+  );
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0 }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding }) {
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -633,6 +811,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   return (
     <>
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
+
+      {/* KONTO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>KONTO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
@@ -643,17 +823,12 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           <span style={{ color: T.text, fontSize: 15 }}>Passwort ändern</span>
           <button onClick={() => setShowPwModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
-          <span style={{ color: "#ef4444", fontSize: 15 }}>Konto löschen</span>
-          <button onClick={() => setShowDeleteModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
-        </div>
         <div style={{ padding: "4px 0" }}>
-          <button onClick={onLogout} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: "#ef4444", fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
-            Abmelden
-          </button>
+          <button onClick={onLogout} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: "#ef4444", fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>Abmelden</button>
         </div>
       </div>
 
+      {/* PORTFOLIO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>PORTFOLIO-WÄHRUNG</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>Alle Beträge werden in dieser Währung angezeigt und erfasst</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -664,6 +839,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* DARSTELLUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
@@ -677,18 +853,57 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.3.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.4.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
           </div>
         ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Datenschutzerklärung</span>
+          <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Einführung nochmals zeigen</span>
+          <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
       </div>
+
+      {/* GEFAHRENZONE */}
+      <div style={{ color: "#ef4444", fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 32 }}>KONTO LÖSCHEN</div>
+      <div style={{ background: T.surface, border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+          <span style={{ color: "#ef4444", fontSize: 15 }}>Konto löschen</span>
+          <button onClick={() => setShowDeleteModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+      </div>
+
     </div>
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    {showPrivacy && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Datenschutzerklärung</div>
+          {[
+            { title: "Was gespeichert wird", text: "Deine E-Mail-Adresse (für Login) sowie deine erfassten Transaktionen: Datum, BTC-Menge, Betrag, Gebühren und Notiz." },
+            { title: "Wo", text: "Alle Daten werden verschlüsselt in der EU gespeichert — auf AWS-Servern in Irland (eu-west-1), betrieben über Supabase." },
+            { title: "Wer hat Zugriff", text: "Nur du. Dank Row-Level Security sieht ausschliesslich dein Account deine Daten." },
+            { title: "Löschen", text: "Du kannst dein Konto und alle Daten jederzeit unter Einstellungen → Konto löschen vollständig entfernen." },
+            { title: "Kontakt", text: "support [at] bluebubble [dot] ch" },
+          ].map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 16 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
     </>
   );
 }
@@ -966,6 +1181,17 @@ export default function App() {
   const [darkMode, setDarkMode]             = useState(() => {
     try { const v = localStorage.getItem("darkMode"); return v === null ? false : v !== "false"; } catch { return false; }
   });
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return localStorage.getItem("onboardingDone") !== "true"; } catch { return true; }
+  });
+  const finishOnboarding = () => {
+    try { localStorage.setItem("onboardingDone", "true"); } catch {}
+    setShowOnboarding(false);
+  };
+  const resetOnboarding = () => {
+    try { localStorage.removeItem("onboardingDone"); } catch {}
+    setShowOnboarding(true);
+  };
   const [currency, setCurrencyState]        = useState(() => {
     try { return localStorage.getItem("currency") || "CHF"; } catch { return "CHF"; }
   });
@@ -1185,11 +1411,12 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} />}
           </>
         )}
       </div>
 
+      {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} />}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />}
     </>
