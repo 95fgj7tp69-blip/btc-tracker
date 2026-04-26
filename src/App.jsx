@@ -312,7 +312,12 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>{isRealChart ? "Gesamtwert" : "Gesamtwert (Demo)"}</div>
+          <div style={{ color: T.textMuted, fontSize: 13 }}>
+            {isRealChart ? "Gesamtwert" : "Gesamtwert (Demo)"}
+            <span style={{ fontSize: 10, color: "#f7931a", marginLeft: 6 }}>
+              [{rawPriceData.length}px / {transactions.length}tx]
+            </span>
+          </div>
           <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
             {["1D", "7D", "30D", "ALL"].map(t => (
               <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none" }}>{t}</button>
