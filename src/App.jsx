@@ -293,7 +293,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               </linearGradient>
             </defs>
             <YAxis domain={["auto", "auto"]} hide />
-            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text, fontWeight: 500 }} formatter={(v) => [`${CURRENCIES[currency].symbol} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`, ""]} />
+            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted, marginBottom: 2 }} itemStyle={{ color: T.text, fontWeight: 600 }} formatter={(v) => [`${CURRENCIES[currency].symbol} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`]} />
             <Area type="monotone" dataKey="v" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} fill="url(#portfolioGrad)" dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
           </AreaChart>
         </ResponsiveContainer>
@@ -1324,22 +1324,17 @@ export default function App() {
   };
 
   // Berechnet echten Portfolio-Verlauf aus Transaktionen + historischen Kursen
-  const buildPortfolioChart = (tab) => {
+  const buildPortfolioChart = useCallback((tab) => {
     if (!rawPriceData.length || !transactions.length) return [];
     const now = new Date();
     const msPerDay = 86400000;
-    let cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[tab] || 7;
+    const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[tab] || 7;
     const cutoff = new Date(now - cutoffDays * msPerDay);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
-
-    // Filtere Preisdaten auf gewünschten Zeitraum
     const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
     if (!prices.length) return [];
-
-    // Sortiere Transaktionen nach Datum
     const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-
-    // Für jeden Preispunkt: berechne BTC-Menge zu diesem Datum
+    const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
     return prices.map(([date, chfPrice]) => {
       let btcAmt = 0;
       for (const tx of sortedTx) {
@@ -1348,16 +1343,14 @@ export default function App() {
         else if (tx.type === "sell") btcAmt -= +tx.btc;
         else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
       }
-      const portfolioChfVal = Math.round(btcAmt * chfPrice);
-      // Label je nach Tab
-      let label = date;
-      if (tab === "1D") label = date.slice(11, 16) || date;
-      else if (tab === "7D") { const d = new Date(date); label = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]; }
-      else if (tab === "30D") label = date.slice(8, 10);
-      else label = date.slice(0, 7);
-      return { t: label, v: portfolioChfVal };
+      const v = Math.round(btcAmt * chfPrice);
+      let t = date;
+      if (tab === "7D") t = dayLabels[new Date(date).getDay()];
+      else if (tab === "30D") t = date.slice(8, 10) + ".";
+      else if (tab === "ALL") t = date.slice(0, 7);
+      return { t, v };
     });
-  };
+  }, [rawPriceData, transactions]);
 
   const exportCSV = () => {
     const sym = currency;
