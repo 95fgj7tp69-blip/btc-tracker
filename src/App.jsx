@@ -951,7 +951,12 @@ export default function App() {
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg }}>
+      {window.location.hostname.includes("dev--") && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: "linear-gradient(90deg, #7c3aed, #a855f7)", color: "#fff", textAlign: "center", fontSize: 12, fontWeight: 700, letterSpacing: 2, padding: "6px 0", fontFamily: "inherit" }}>
+          🧪 TESTUMGEBUNG — dev
+        </div>
+      )}
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: window.location.hostname.includes("dev--") ? 28 : 0 }}>
         <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} />
 
         {dbLoading ? (
