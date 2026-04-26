@@ -899,7 +899,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.5.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.6.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1282,13 +1282,14 @@ export default function App() {
   const fetchPrice = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,chf,eur&include_24hr_change=true");
+      // Eigener Proxy mit 60s Cache -- schützt vor Rate Limiting bei vielen Usern
+      const r = await fetch("/api/prices");
       const d = await r.json();
-      if (d.bitcoin) {
-        setBtcUsd(d.bitcoin.usd);
-        setUsdChf(d.bitcoin.chf / d.bitcoin.usd);
-        setEurUsd(d.bitcoin.eur / d.bitcoin.usd);
-        setDayChangePct(d.bitcoin.usd_24h_change ?? 0);
+      if (d.usd) {
+        setBtcUsd(d.usd);
+        setUsdChf(d.usdChf);
+        setEurUsd(d.eurUsd);
+        setDayChangePct(d.usd_24h_change ?? 0);
         setLastUpdated(new Date());
       }
     } catch {}
