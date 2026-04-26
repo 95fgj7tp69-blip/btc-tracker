@@ -259,31 +259,36 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
   });
 
   const realData = useMemo(() => {
-    if (!rawPriceData.length || !transactions.length) return null;
-    const now = new Date();
-    const msPerDay = 86400000;
-    const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
-    const cutoffStr = new Date(now - cutoffDays * msPerDay).toISOString().slice(0, 10);
-    const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
-    if (!prices.length) return null;
-    const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-    const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-    const result = prices.map(([date, chfPrice]) => {
-      let btcAmt = 0;
-      for (const tx of sortedTx) {
-        if (tx.date > date) break;
-        if (tx.type === "buy") btcAmt += +tx.btc;
-        else if (tx.type === "sell") btcAmt -= +tx.btc;
-        else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
-      }
-      const v = Math.round(btcAmt * chfPrice);
-      let t = date;
-      if (activeTab === "7D") t = dayLabels[new Date(date).getDay()];
-      else if (activeTab === "30D") t = date.slice(8, 10) + ".";
-      else if (activeTab === "ALL") t = date.slice(0, 7);
-      return { t, v };
-    });
-    return result.length > 1 ? result : null;
+    try {
+      if (!rawPriceData || !rawPriceData.length || !transactions || !transactions.length) return null;
+      const now = new Date();
+      const msPerDay = 86400000;
+      const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
+      const cutoffStr = new Date(now - cutoffDays * msPerDay).toISOString().slice(0, 10);
+      const prices = rawPriceData.filter(([d]) => typeof d === "string" && d >= cutoffStr);
+      if (!prices.length) return null;
+      const sortedTx = [...transactions].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+      const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+      const result = prices.map(([date, chfPrice]) => {
+        let btcAmt = 0;
+        for (const tx of sortedTx) {
+          if (!tx.date || tx.date > date) break;
+          if (tx.type === "buy") btcAmt += +(tx.btc || 0);
+          else if (tx.type === "sell") btcAmt -= +(tx.btc || 0);
+          else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
+        }
+        const v = Math.max(0, Math.round(btcAmt * (chfPrice || 0)));
+        let t = date;
+        if (activeTab === "7D") { try { t = dayLabels[new Date(date).getDay()]; } catch {} }
+        else if (activeTab === "30D") t = (date.slice(8, 10) || "") + ".";
+        else if (activeTab === "ALL") t = date.slice(0, 7) || date;
+        return { t, v };
+      });
+      const valid = result.filter(r => r && typeof r.v === "number" && !isNaN(r.v));
+      return valid.length > 1 ? valid : null;
+    } catch (e) {
+      return null;
+    }
   }, [rawPriceData, transactions, activeTab]);
 
   const data = realData || PORTFOLIO_CHART_DATA[activeTab];
