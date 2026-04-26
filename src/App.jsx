@@ -586,6 +586,29 @@ function BarChart({ portfolioChf, investedChf, T }) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout }) {
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwStatus, setPwStatus] = useState(null); // null | "saving" | "ok" | "error"
+  const [pwError, setPwError] = useState("");
+  const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }));
+
+  const handlePasswordChange = async () => {
+    if (!pwForm.next || pwForm.next !== pwForm.confirm) {
+      setPwError("Passwörter stimmen nicht überein."); return;
+    }
+    if (pwForm.next.length < 6) {
+      setPwError("Mindestens 6 Zeichen erforderlich."); return;
+    }
+    setPwStatus("saving"); setPwError("");
+    const { error } = await supabase.auth.updateUser({ password: pwForm.next });
+    if (error) {
+      setPwError(error.message); setPwStatus("error");
+    } else {
+      setPwStatus("ok");
+      setPwForm({ current: "", next: "", confirm: "" });
+      setTimeout(() => setPwStatus(null), 3000);
+    }
+  };
+
   const exportCSV = () => {
     const header = "Datum,Typ,BTC,CHF,Gebühren,Notiz";
     const rows = [...transactions]
@@ -616,6 +639,23 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>PASSWORT ÄNDERN</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", padding: "16px 18px" }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>NEUES PASSWORT</div>
+          <input type="password" placeholder="Mindestens 6 Zeichen" value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>PASSWORT BESTÄTIGEN</div>
+          <input type="password" placeholder="Wiederholen" value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        {pwError && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{pwError}</div>}
+        {pwStatus === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 12 }}>✓ Passwort erfolgreich geändert</div>}
+        <button onClick={handlePasswordChange} disabled={pwStatus === "saving"} style={{ width: "100%", padding: "14px 0", background: pwStatus === "saving" ? T.textFaint : "#f7931a", border: "none", borderRadius: 12, color: "#000", fontSize: 15, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
+          {pwStatus === "saving" ? "Wird gespeichert..." : "Passwort ändern"}
+        </button>
+      </div>
+
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
@@ -631,7 +671,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
 
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.1.3" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.2.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
