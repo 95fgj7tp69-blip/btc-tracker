@@ -252,14 +252,41 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, buildPortfolioChart, hasRealData }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, rawPriceData = [], transactions = [] }) {
   const sym = CURRENCIES[currency].symbol;
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
   });
-  // Echter Chart wenn Daten vorhanden, sonst Demo-Daten
-  const realData = hasRealData ? buildPortfolioChart(activeTab) : null;
-  const data = (realData && realData.length > 1) ? realData : PORTFOLIO_CHART_DATA[activeTab];
+
+  const realData = useMemo(() => {
+    if (!rawPriceData.length || !transactions.length) return null;
+    const now = new Date();
+    const msPerDay = 86400000;
+    const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
+    const cutoffStr = new Date(now - cutoffDays * msPerDay).toISOString().slice(0, 10);
+    const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
+    if (!prices.length) return null;
+    const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
+    const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+    const result = prices.map(([date, chfPrice]) => {
+      let btcAmt = 0;
+      for (const tx of sortedTx) {
+        if (tx.date > date) break;
+        if (tx.type === "buy") btcAmt += +tx.btc;
+        else if (tx.type === "sell") btcAmt -= +tx.btc;
+        else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
+      }
+      const v = Math.round(btcAmt * chfPrice);
+      let t = date;
+      if (activeTab === "7D") t = dayLabels[new Date(date).getDay()];
+      else if (activeTab === "30D") t = date.slice(8, 10) + ".";
+      else if (activeTab === "ALL") t = date.slice(0, 7);
+      return { t, v };
+    });
+    return result.length > 1 ? result : null;
+  }, [rawPriceData, transactions, activeTab]);
+
+  const data = realData || PORTFOLIO_CHART_DATA[activeTab];
   const isNeg = pnlChf < 0;
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -1426,7 +1453,7 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} buildPortfolioChart={buildPortfolioChart} hasRealData={rawPriceData.length > 0 && transactions.length > 0} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} rawPriceData={rawPriceData} transactions={transactions} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
