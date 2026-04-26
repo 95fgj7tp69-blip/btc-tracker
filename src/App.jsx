@@ -971,13 +971,13 @@ export default function App() {
             )}
             {view === "verlauf" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingTop: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingTop: 4, gap: 8 }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
                     {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
                       <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
                     ))}
                   </div>
-                  <button onClick={() => { const h="Datum,Typ,BTC,CHF,Gebühren,Notiz"; const r=[...transactions].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.btc,t.chf,t.fee||0,`"${(t.note||"").replace(/"/g,'""')}"`].join(",")); const csv=[h,...r].join("\n"); const b=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`btc-transaktionen-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); }} title="CSV exportieren" style={{ background: "transparent", border: "1.5px solid #f7931a", color: "#f7931a", borderRadius: 10, padding: "7px 13px", cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 5 }}><span style={{ fontSize: 14 }}>↓</span> CSV</button>
+                  <button onClick={() => { const h="Datum,Typ,BTC,CHF,Gebühren,Notiz"; const r=[...transactions].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.btc,t.chf,t.fee||0,`"${(t.note||"").replace(/"/g,'""')}"`].join(",")); const csv=[h,...r].join("\n"); const b=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`btc-transaktionen-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); }} title="CSV exportieren" style={{ background: "transparent", border: "1.5px solid #f7931a", color: "#f7931a", borderRadius: 10, padding: "7px 13px", cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}><span style={{ fontSize: 14 }}>↓</span> CSV</button>
                 </div>
                 {filteredTx.length === 0 && <div style={{ color: T.textFaint, textAlign: "center", padding: "40px 0", fontSize: 15 }}>Keine Transaktionen</div>}
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
