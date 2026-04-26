@@ -630,26 +630,32 @@ function OnboardingScreen({ onFinish, T }) {
     {
       icon: "₿",
       iconBg: "#f7931a",
-      title: "Willkommen bei Bitfolio",
+      title: "Willkommen bei BTC Portfolio Tracker",
       text: "Dein persönlicher Bitcoin-Portfolio-Tracker. Behalte den Überblick über deine Investitionen — jederzeit und überall.",
     },
     {
-      icon: "📊",
-      iconBg: "rgba(34,197,94,0.15)",
+      icon: "chart",
+      iconBg: null,
       title: "Portfolio tracken",
-      text: "Erfasse Käufe, Verkäufe und Transfers. Bitfolio berechnet deinen Einstandspreis und zeigt dir deinen Gewinn oder Verlust in Echtzeit.",
+      text: "Erfasse Käufe, Verkäufe und Transfers. Die App berechnet deinen Einstandspreis und zeigt dir deinen Gewinn in Echtzeit.",
     },
     {
-      icon: "🔍",
-      iconBg: "rgba(59,130,246,0.15)",
+      icon: "analyse",
+      iconBg: null,
       title: "Tiefe Analysen",
       text: "Break-Even Analyse, DCA-Rechner und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
     },
     {
-      icon: "🌍",
-      iconBg: "rgba(247,147,26,0.15)",
+      icon: "currency",
+      iconBg: null,
       title: "Deine Währung",
       text: "Wähle zwischen CHF, EUR und USD. Alle Beträge werden automatisch umgerechnet — mit Live-Wechselkursen.",
+    },
+    {
+      icon: "privacy",
+      iconBg: null,
+      title: "Datenschutz",
+      text: "Deine Daten gehören dir. Alles wird verschlüsselt in der EU gespeichert — du kannst dein Konto jederzeit vollständig löschen.",
     },
   ];
   const s = slides[slide];
@@ -658,7 +664,86 @@ function OnboardingScreen({ onFinish, T }) {
     <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
       {/* Slide content */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 360 }}>
-        <div style={{ width: 90, height: 90, borderRadius: 26, background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: slide === 0 ? 42 : 40, marginBottom: 32, fontWeight: 800, color: slide === 0 ? "#000" : "inherit", boxShadow: slide === 0 ? "0 8px 24px rgba(247,147,26,0.3)" : "none" }}>{s.icon}</div>
+        <div style={{ marginBottom: 32 }}>
+          {slide === 0 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
+              <text x="140" y="78" textAnchor="middle" fontSize="56" fontWeight="800" fill="#000">₿</text>
+              <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
+              <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
+              <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
+              <text x="225" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#185FA5">USD</text>
+              <circle cx="55" cy="90" r="20" fill="#eaf3de" stroke="#639922" strokeWidth="1"/>
+              <text x="55" y="95" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">EUR</text>
+              <line x1="75" y1="30" x2="90" y2="55" stroke="#f7931a" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+              <line x1="205" y1="30" x2="190" y2="55" stroke="#378ADD" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+              <line x1="75" y1="90" x2="90" y2="88" stroke="#639922" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
+            </svg>
+          )}
+          {slide === 1 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="90" y="5" width="100" height="110" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
+              <rect x="100" y="15" width="80" height="8" rx="4" fill={T.border}/>
+              <text x="140" y="45" textAnchor="middle" fontSize="9" fill={T.textFaint}>Portfolio</text>
+              <text x="140" y="63" textAnchor="middle" fontSize="18" fontWeight="700" fill={T.text}>CHF 61'200</text>
+              <text x="140" y="79" textAnchor="middle" fontSize="10" fill="#22c55e">↑ +28.4%</text>
+              <rect x="104" y="88" width="72" height="6" rx="3" fill="#22c55e" opacity="0.2"/>
+              <rect x="104" y="88" width="52" height="6" rx="3" fill="#22c55e" opacity="0.7"/>
+              <rect x="93" y="107" width="18" height="5" rx="2" fill={T.border}/>
+              <rect x="117" y="107" width="18" height="5" rx="2" fill="#f7931a" opacity="0.8"/>
+              <rect x="141" y="107" width="18" height="5" rx="2" fill={T.border}/>
+              <rect x="165" y="107" width="18" height="5" rx="2" fill={T.border}/>
+              <circle cx="44" cy="45" r="22" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="44" y="41" textAnchor="middle" fontSize="9" fill="#3B6D11">Kauf</text>
+              <text x="44" y="54" textAnchor="middle" fontSize="11" fontWeight="500" fill="#27500A">+0.25</text>
+              <text x="44" y="64" textAnchor="middle" fontSize="8" fill="#3B6D11">BTC</text>
+              <line x1="66" y1="47" x2="90" y2="58" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6"/>
+              <circle cx="236" cy="75" r="22" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1"/>
+              <text x="236" y="71" textAnchor="middle" fontSize="9" fill="#991b1b">Verkauf</text>
+              <text x="236" y="84" textAnchor="middle" fontSize="11" fontWeight="500" fill="#7f1d1d">−0.1</text>
+              <text x="236" y="94" textAnchor="middle" fontSize="8" fill="#991b1b">BTC</text>
+              <line x1="190" y1="76" x2="214" y2="76" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6"/>
+            </svg>
+          )}
+          {slide === 2 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="20" y="12" width="240" height="96" rx="14" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
+              <polyline points="38,88 68,72 98,78 128,52 158,58 188,32 218,38 250,18" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round"/>
+              <line x1="152" y1="12" x2="152" y2="108" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.8"/>
+              <text x="158" y="28" fontSize="9" fill="#BA7517">Break-Even</text>
+              <circle cx="188" cy="32" r="4" fill="#22c55e"/>
+              <circle cx="250" cy="18" r="4" fill="#22c55e"/>
+              <rect x="28" y="18" width="50" height="18" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="0.5"/>
+              <text x="53" y="31" textAnchor="middle" fontSize="9" fill="#3B6D11">+28.4%</text>
+            </svg>
+          )}
+          {slide === 3 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <line x1="55" y1="60" x2="225" y2="60" stroke={T.border} strokeWidth="0.5"/>
+              <circle cx="55" cy="60" r="38" fill="#fef3e0" stroke="#f7931a" strokeWidth="1.5"/>
+              <text x="55" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#BA7517">₣</text>
+              <circle cx="140" cy="60" r="38" fill="#eeedfe" stroke="#534AB7" strokeWidth="1.5"/>
+              <text x="140" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#3C3489">€</text>
+              <circle cx="225" cy="60" r="38" fill="#e8f4ff" stroke="#185FA5" strokeWidth="1.5"/>
+              <text x="225" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#185FA5">$</text>
+            </svg>
+          )}
+          {slide === 4 && (
+            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
+              <rect x="30" y="20" width="220" height="80" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
+              <rect x="46" y="36" width="60" height="8" rx="4" fill={T.border}/>
+              <rect x="46" y="52" width="100" height="8" rx="4" fill={T.border}/>
+              <rect x="46" y="68" width="80" height="8" rx="4" fill={T.border}/>
+              <circle cx="220" cy="36" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="40" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <circle cx="220" cy="60" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="64" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <circle cx="220" cy="84" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="220" y="88" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
+              <rect x="30" y="20" width="220" height="80" rx="16" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.4"/>
+            </svg>
+          )}
+        </div>
         <div style={{ color: T.text, fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 16, lineHeight: 1.2 }}>{s.title}</div>
         <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
       </div>
@@ -683,6 +768,7 @@ function OnboardingScreen({ onFinish, T }) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding }) {
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -743,6 +829,10 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           </div>
         ))}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Datenschutzerklärung</span>
+          <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
           <span style={{ color: T.text, fontSize: 15 }}>Einführung nochmals zeigen</span>
           <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
@@ -760,6 +850,26 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     </div>
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    {showPrivacy && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Datenschutzerklärung</div>
+          {[
+            { title: "Was gespeichert wird", text: "Deine E-Mail-Adresse (für Login) sowie deine erfassten Transaktionen: Datum, BTC-Menge, Betrag, Gebühren und Notiz." },
+            { title: "Wo", text: "Alle Daten werden verschlüsselt in der EU gespeichert — auf AWS-Servern in Irland (eu-west-1), betrieben über Supabase." },
+            { title: "Wer hat Zugriff", text: "Nur du. Dank Row-Level Security sieht ausschliesslich dein Account deine Daten." },
+            { title: "Löschen", text: "Du kannst dein Konto und alle Daten jederzeit unter Einstellungen → Konto löschen vollständig entfernen." },
+            { title: "Kontakt", text: "support [at] bluebubble [dot] ch" },
+          ].map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 16 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
     </>
   );
 }
