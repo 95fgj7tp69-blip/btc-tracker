@@ -1282,21 +1282,14 @@ export default function App() {
   const fetchPrice = useCallback(async () => {
     setLoading(true);
     try {
-      // BTC/USD von Binance (gratis, unlimitiert)
-      const [binanceRes, fxRes] = await Promise.all([
-        fetch("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"),
-        fetch("https://api.frankfurter.app/latest?from=USD&to=CHF,EUR"),
-      ]);
-      const binance = await binanceRes.json();
-      const fx = await fxRes.json();
-      if (binance.lastPrice && fx.rates) {
-        const btcUsdVal = parseFloat(binance.lastPrice);
-        const chfRate = fx.rates.CHF || 0.9;
-        const eurRate = fx.rates.EUR || 0.92;
-        setBtcUsd(Math.round(btcUsdVal));
-        setUsdChf(chfRate);
-        setEurUsd(eurRate);
-        setDayChangePct(parseFloat(binance.priceChangePercent) ?? 0);
+      // Eigener Proxy mit 60s Cache -- schützt vor Rate Limiting bei vielen Usern
+      const r = await fetch("/api/prices");
+      const d = await r.json();
+      if (d.usd) {
+        setBtcUsd(d.usd);
+        setUsdChf(d.usdChf);
+        setEurUsd(d.eurUsd);
+        setDayChangePct(d.usd_24h_change ?? 0);
         setLastUpdated(new Date());
       }
     } catch {}
