@@ -3,6 +3,16 @@
   publish   = "dist"
   functions = "netlify/functions"
 
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
   from = "/api/transactions/*"
   to   = "/.netlify/functions/transactions/:splat"
