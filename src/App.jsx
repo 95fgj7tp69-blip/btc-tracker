@@ -266,7 +266,20 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       if (prices.length < 2) return null;
       // BTC-Menge berechnen
       const sortedTx = [...transactions].sort((a, b) => (a.date||"").localeCompare(b.date||""));
-      const result = prices.map(([date, chfPrice]) => {
+      const firstTxDate = sortedTx.length ? sortedTx[0].date : todayStr;
+      // Nur Datenpunkte ab erster Transaktion zeigen
+      const relevantPrices = prices.filter(([d]) => d >= firstTxDate);
+      if (relevantPrices.length < 1) {
+        // Keine historischen Preise für Transaktionszeitraum — nur heutigen Wert zeigen
+        const totalBtc = sortedTx.reduce((s, tx) => {
+          if (tx.type === "buy") return s + +(tx.btc||0);
+          if (tx.type === "sell") return s - +(tx.btc||0);
+          if (tx.type === "transfer") return s - +(tx.fee||0);
+          return s;
+        }, 0);
+        return [{ t: "Kauf", v: Math.round(totalBtc * btcChfLive) }, { t: "Heute", v: Math.round(totalBtc * btcChfLive) }];
+      }
+      const result = relevantPrices.map(([date, chfPrice]) => {
         let btc = 0;
         for (const tx of sortedTx) {
           if ((tx.date||"") > date) break;
@@ -281,7 +294,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         else if (activeTab === "ALL") t = date.slice(0,7);
         return { t, v };
       });
-      return result.length >= 2 ? result : null;
+      return result.length >= 1 ? result : null;
     } catch { return null; }
   };
 
@@ -1403,13 +1416,9 @@ export default function App() {
     const filename = `btc-transaktionen-${sym}-${new Date().toISOString().slice(0, 10)}.csv`;
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
+      // iOS Safari: CSV in neuem Tab öffnen (Download nicht unterstützt)
       const encoded = encodeURIComponent("\uFEFF" + csv);
-      const a = document.createElement("a");
-      a.href = `data:text/csv;charset=utf-8,${encoded}`;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      window.open(`data:text/csv;charset=utf-8,${encoded}`, "_blank");
     } else {
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
