@@ -95,6 +95,22 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
     }
 
+    // Konto löschen: DELETE /api/transactions/account
+    if (event.httpMethod === "DELETE" && id === "account") {
+      // 1. Alle Transaktionen des Users löschen
+      const { error: txError } = await supabaseAdmin
+        .from("transactions")
+        .delete()
+        .eq("user_id", userId);
+      if (txError) throw txError;
+
+      // 2. User-Account löschen (benötigt Service Role Key)
+      const { error: userError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (userError) throw userError;
+
+      return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+    }
+
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
   } catch (err) {
