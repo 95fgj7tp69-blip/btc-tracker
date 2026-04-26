@@ -245,7 +245,7 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
       </div>
       <button onClick={onRefresh} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
         <span style={{ fontSize: 13, color: T.textMuted, display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>↻</span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: T.textSub }}>${fmtUsd(btcUsd)}</span>
+        <span style={{ fontSize: 13, color: T.textMuted }}>Aktualisieren</span>
       </button>
     </div>
   );
@@ -402,7 +402,8 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
           </div>
         </div>
         <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
-        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>
+        {currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
+        {currency === "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>CHF {fmtChf(btcDisplay * usdChf, 0)}</div>}
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(t => (
             <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("marketTab", t); } catch {} }} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
@@ -622,21 +623,35 @@ function BarChart({ portfolioChf, investedChf, T }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0 }) {
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const exportCSV = () => {
-    const header = "Datum,Typ,BTC,CHF,Gebühren,Notiz";
+    const sym = currency;
+    const conv = (chfVal) => {
+      if (currency === "CHF") return chfVal;
+      if (currency === "USD") return chfVal / usdChf;
+      return (chfVal / usdChf) * eurUsd;
+    };
+    const fmt2 = (v) => parseFloat(conv(v).toFixed(2));
+    const btcPrice = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : btcUsd * eurUsd;
+    const header = `Datum,Typ,BTC,${sym} Betrag,${sym} Gebühren,Portfoliowert heute (${sym}),Notiz`;
     const rows = [...transactions]
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(t => [t.date, t.type, t.btc, t.chf, t.fee || 0, `"${(t.note || "").replace(/"/g, '""')}"`].join(","));
+      .map(t => [
+        t.date, t.type, t.btc,
+        t.type === "transfer" ? 0 : fmt2(t.chf),
+        fmt2(t.fee || 0),
+        parseFloat((t.btc * btcPrice).toFixed(2)),
+        `"${(t.note || "").replace(/"/g, '""')}"`
+      ].join(","));
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `btc-transaktionen-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `btc-transaktionen-${sym}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -665,7 +680,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>WÄHRUNG</div>
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>PORTFOLIO-WÄHRUNG</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>Alle Beträge werden in dieser Währung angezeigt und erfasst</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
           {["CHF", "EUR", "USD"].map((c, i) => (
@@ -689,7 +705,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
 
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.3.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.3.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -803,9 +819,13 @@ function DeleteAccountModal({ onClose, onLogout, T }) {
 }
 
 // ── Transaction Modal ─────────────────────────────────────────────────────────
-function TransactionModal({ onClose, onSave, editTx, T }) {
+function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  // Wenn editTx, zeige gespeicherten CHF-Wert in gewählter Währung
+  const chfToDisplay = (v) => currency === "CHF" ? v : currency === "USD" ? v / usdChf : (v / usdChf) * eurUsd;
+  const displayToChf = (v) => currency === "CHF" ? v : currency === "USD" ? v * usdChf : (v / eurUsd) * usdChf;
   const blank = { date: new Date().toISOString().slice(0, 10), btc: "", chf: "", fee: "", type: "buy", note: "" };
-  const [form, setForm] = useState(editTx ? { ...editTx, btc: String(editTx.btc), chf: String(editTx.chf), fee: String(editTx.fee ?? "") } : blank);
+  const [form, setForm] = useState(editTx ? { ...editTx, btc: String(editTx.btc), chf: String(parseFloat(chfToDisplay(editTx.chf).toFixed(2))), fee: String(parseFloat(chfToDisplay(editTx.fee ?? 0).toFixed(2))) } : blank);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const isTransfer = form.type === "transfer";
@@ -813,7 +833,10 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
   const handleSave = async () => {
     if (!form.btc) return;
     setSaving(true);
-    await onSave({ ...form, btc: +form.btc, chf: isTransfer ? 0 : +form.chf || 0, fee: +form.fee || 0 });
+    // Immer in CHF speichern
+    const chfAmount = isTransfer ? 0 : displayToChf(+form.chf || 0);
+    const chfFee = displayToChf(+form.fee || 0);
+    await onSave({ ...form, btc: +form.btc, chf: chfAmount, fee: chfFee });
     setSaving(false);
     onClose();
   };
@@ -834,15 +857,15 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BTC MENGE</div><input type="number" placeholder="z.B. 0.005" inputMode="decimal" value={form.btc} onChange={e => set("btc", e.target.value)} style={iStyle} step="any" /></div>
-          {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="z.B. 0.00002" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BETRAG (CHF)</div><input type="number" placeholder="z.B. 3'500.00" inputMode="decimal" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
+          {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="z.B. 0.00002" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BETRAG ({sym})</div><input type="number" placeholder={currency === "CHF" ? "z.B. 3'500.00" : currency === "USD" ? "z.B. 3'800.00" : "z.B. 3'600.00"} inputMode="decimal" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
         </div>
         {!isTransfer && +form.btc > 0 && +form.chf > 0 && (
           <div style={{ marginTop: 10, marginBottom: 4, padding: "10px 14px", background: T.input, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ color: T.textMuted, fontSize: 13 }}>Preis pro BTC</span>
-            <span style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>CHF {new Intl.NumberFormat("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(+form.chf / +form.btc)}</span>
+            <span style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(+form.chf / +form.btc)}</span>
           </div>
         )}
-        {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF — gespeichert in CHF)</div><input type="number" placeholder="z.B. 5.50 (0 falls keine)" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
+        {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN ({sym})</div><input type="number" placeholder="z.B. 5.50 (0 falls keine)" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
         <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
@@ -856,8 +879,10 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
 }
 
 // ── Delete Confirm Modal ──────────────────────────────────────────────────────
-function DeleteConfirmModal({ tx, onConfirm, onCancel, T }) {
+function DeleteConfirmModal({ tx, onConfirm, onCancel, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
   const m = TYPE_META[tx.type];
+  const sym = CURRENCIES[currency].symbol;
+  const fmtTx = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:2,maximumFractionDigits:2}).format(toDisplay(v, currency, usdChf, eurUsd));
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onCancel}>
       <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
@@ -871,7 +896,7 @@ function DeleteConfirmModal({ tx, onConfirm, onCancel, T }) {
         <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 24 }}>
           <span style={{ color: m.color, fontWeight: 500 }}>{m.label}</span>
           {" · "}{fmtBtc(tx.btc)} BTC
-          {tx.type !== "transfer" && <> · CHF {fmtChf(tx.chf)}</>}
+          {tx.type !== "transfer" && <> · {sym} {fmtTx(tx.chf)}</>}
           <br />
           <span style={{ fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</span>
         </div>
@@ -889,9 +914,11 @@ function DeleteConfirmModal({ tx, onConfirm, onCancel, T }) {
 }
 
 // ── Transaction Row ───────────────────────────────────────────────────────────
-function TxRow({ tx, onDelete, onEdit, T }) {
+function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const m = TYPE_META[tx.type];
+  const sym = CURRENCIES[currency].symbol;
+  const fmtTx = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:2,maximumFractionDigits:2}).format(toDisplay(v, currency, usdChf, eurUsd));
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
@@ -899,11 +926,11 @@ function TxRow({ tx, onDelete, onEdit, T }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
-            <div style={{ color: m.color, fontSize: 15 }}>{tx.type === "transfer" ? (tx.fee > 0 ? `−${tx.fee} BTC` : "—") : `CHF ${fmtChf(tx.chf)}`}</div>
+            <div style={{ color: m.color, fontSize: 15 }}>{tx.type === "transfer" ? (tx.fee > 0 ? `−${tx.fee} BTC` : "—") : `${sym} ${fmtTx(tx.chf)}`}</div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
             <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-            {tx.fee > 0 && tx.type !== "transfer" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. CHF {fmtChf(tx.fee)}</div>}
+            {tx.fee > 0 && tx.type !== "transfer" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. {sym} {fmtTx(tx.fee)}</div>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -917,6 +944,9 @@ function TxRow({ tx, onDelete, onEdit, T }) {
           onConfirm={() => { setShowConfirm(false); onDelete(tx.id); }}
           onCancel={() => setShowConfirm(false)}
           T={T}
+          currency={currency}
+          usdChf={usdChf}
+          eurUsd={eurUsd}
         />
       )}
     </>
@@ -1149,16 +1179,16 @@ export default function App() {
                   <button onClick={() => { const h="Datum,Typ,BTC,CHF,Gebühren,Notiz"; const r=[...transactions].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.btc,t.chf,t.fee||0,`"${(t.note||"").replace(/"/g,'""')}"`].join(",")); const csv=[h,...r].join("\n"); const b=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`btc-transaktionen-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); }} title="CSV exportieren" style={{ background: "transparent", border: "1.5px solid #f7931a", color: "#f7931a", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: "auto" }}>↓</button>
                 </div>
                 {filteredTx.length === 0 && <div style={{ color: T.textFaint, textAlign: "center", padding: "40px 0", fontSize: 15 }}>Keine Transaktionen</div>}
-                {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
+                {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} />}
           </>
         )}
       </div>
 
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} />
-      {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} />}
+      {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />}
     </>
   );
 }
