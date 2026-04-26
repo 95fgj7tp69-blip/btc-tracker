@@ -687,7 +687,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       </div>
 
       {/* GEFAHRENZONE */}
-      <div style={{ color: "#ef4444", fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 32 }}>GEFAHRENZONE</div>
+      <div style={{ color: "#ef4444", fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 32 }}>KONTO LÖSCHEN</div>
       <div style={{ background: T.surface, border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
           <span style={{ color: "#ef4444", fontSize: 15 }}>Konto löschen</span>
