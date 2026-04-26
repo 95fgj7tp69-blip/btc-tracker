@@ -483,12 +483,8 @@ function BreakEvenCard({ avgChf, currentChf, T }) {
       <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>BREAK-EVEN ANALYSE</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <svg viewBox="0 0 160 88" style={{ width: 160, flexShrink: 0 }}>
-          <path d={arcPath(-90, 0, R)} fill="none" stroke="rgba(239,68,68,0.2)" strokeWidth="10" strokeLinecap="round" />
-          <path d={arcPath(0, 90, R)} fill="none" stroke="rgba(34,197,94,0.2)" strokeWidth="10" strokeLinecap="round" />
-          {isAbove
-            ? <path d={arcPath(0, Math.max(0.1, Math.min(90, ratio * 90)), R)} fill="none" stroke="#22c55e" strokeWidth="10" strokeLinecap="round" opacity="0.85" />
-            : <path d={arcPath(-90, Math.min(-0.1, ratio * 90), R)} fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" opacity="0.85" />
-          }
+          <path d={arcPath(-90, 0, R)} fill="none" stroke={isAbove ? "rgba(239,68,68,0.2)" : "#ef4444"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 1 : 0.85} />
+          <path d={arcPath(0, 90, R)} fill="none" stroke={isAbove ? "#22c55e" : "rgba(34,197,94,0.2)"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 0.85 : 1} />
           <line x1={cx} y1={cy - R + 5} x2={cx} y2={cy - R + 14} stroke={T.border} strokeWidth="1.5" />
           <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={T.text} strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
           <circle cx={cx} cy={cy} r="4" fill={T.surface} stroke={T.textFaint} strokeWidth="1.5" />
@@ -633,20 +629,9 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
-          <div>
-            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>Transaktionen exportieren</div>
-            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{transactions.length} Einträge als CSV</div>
-          </div>
-          <button onClick={exportCSV} style={{ background: "#f7931a", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>↓ Export</button>
-        </div>
-      </div>
-
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.1.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.1.3" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -691,6 +676,12 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
           <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BTC MENGE</div><input type="number" placeholder="z.B. 0.005" inputMode="decimal" value={form.btc} onChange={e => set("btc", e.target.value)} style={iStyle} step="any" /></div>
           {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="z.B. 0.00002" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>CHF BETRAG</div><input type="number" placeholder="z.B. 3'500.00" inputMode="decimal" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
         </div>
+        {!isTransfer && +form.btc > 0 && +form.chf > 0 && (
+          <div style={{ marginTop: 10, marginBottom: 4, padding: "10px 14px", background: T.input, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: T.textMuted, fontSize: 13 }}>Preis pro BTC</span>
+            <span style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>CHF {new Intl.NumberFormat("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(+form.chf / +form.btc)}</span>
+          </div>
+        )}
         {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF)</div><input type="number" placeholder="z.B. 5.50 (0 falls keine)" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
         <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
@@ -980,10 +971,13 @@ export default function App() {
             )}
             {view === "verlauf" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", paddingTop: 4 }}>
-                  {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
-                    <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
-                  ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingTop: 4 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
+                    {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
+                      <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
+                    ))}
+                  </div>
+                  <button onClick={() => { const h="Datum,Typ,BTC,CHF,Gebühren,Notiz"; const r=[...transactions].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.btc,t.chf,t.fee||0,`"${(t.note||"").replace(/"/g,'""')}"`].join(",")); const csv=[h,...r].join("\n"); const b=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`btc-transaktionen-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); }} title="CSV exportieren" style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "7px 10px", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>↓</button>
                 </div>
                 {filteredTx.length === 0 && <div style={{ color: T.textFaint, textAlign: "center", padding: "40px 0", fontSize: 15 }}>Keine Transaktionen</div>}
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
