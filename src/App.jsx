@@ -628,34 +628,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const exportCSV = () => {
-    const sym = currency;
-    const conv = (chfVal) => {
-      if (currency === "CHF") return chfVal;
-      if (currency === "USD") return chfVal / usdChf;
-      return (chfVal / usdChf) * eurUsd;
-    };
-    const fmt2 = (v) => parseFloat(conv(v).toFixed(2));
-    const btcPrice = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : btcUsd * eurUsd;
-    const header = `Datum,Typ,BTC,${sym} Betrag,${sym} Gebühren,Portfoliowert heute (${sym}),Notiz`;
-    const rows = [...transactions]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map(t => [
-        t.date, t.type, t.btc,
-        t.type === "transfer" ? 0 : fmt2(t.chf),
-        fmt2(t.fee || 0),
-        parseFloat((t.btc * btcPrice).toFixed(2)),
-        `"${(t.note || "").replace(/"/g, '""')}"`
-      ].join(","));
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `btc-transaktionen-${sym}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   return (
     <>
@@ -1113,6 +1086,35 @@ export default function App() {
     setTransactions([]);
   };
 
+  const exportCSV = () => {
+    const sym = currency;
+    const conv = (chfVal) => {
+      if (currency === "CHF") return chfVal;
+      if (currency === "USD") return chfVal / usdChf;
+      return (chfVal / usdChf) * eurUsd;
+    };
+    const fmt2 = (v) => parseFloat(conv(v).toFixed(2));
+    const btcPrice = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : btcUsd * eurUsd;
+    const header = `Datum,Typ,BTC,${sym} Betrag,${sym} Gebühren,Portfoliowert heute (${sym}),Notiz`;
+    const rows = [...transactions]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(t => [
+        t.date, t.type, t.btc,
+        t.type === "transfer" ? 0 : fmt2(t.chf),
+        fmt2(t.fee || 0),
+        parseFloat((t.btc * btcPrice).toFixed(2)),
+        `"${(t.note || "").replace(/"/g, '""')}"`
+      ].join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `btc-transaktionen-${sym}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
@@ -1177,7 +1179,7 @@ export default function App() {
                   {[["all", "Alle"], ...Object.entries(TYPE_META).map(([k, v]) => [k, v.label])].map(([id, label]) => (
                     <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
                   ))}
-                  <button onClick={() => { const h="Datum,Typ,BTC,CHF,Gebühren,Notiz"; const r=[...transactions].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date,t.type,t.btc,t.chf,t.fee||0,`"${(t.note||"").replace(/"/g,'""')}"`].join(",")); const csv=[h,...r].join("\n"); const b=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`btc-transaktionen-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); }} title="CSV exportieren" style={{ background: "transparent", border: "1.5px solid #f7931a", color: "#f7931a", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: "auto" }}>↓</button>
+                  <button onClick={exportCSV} title="CSV exportieren" style={{ background: "transparent", border: "1.5px solid #f7931a", color: "#f7931a", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: "auto" }}>↓</button>
                 </div>
                 {filteredTx.length === 0 && <div style={{ color: T.textFaint, textAlign: "center", padding: "40px 0", fontSize: 15 }}>Keine Transaktionen</div>}
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
