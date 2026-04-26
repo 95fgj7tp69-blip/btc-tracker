@@ -260,44 +260,47 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
 
   const realData = useMemo(() => {
     try {
-      if (!rawPriceData || !rawPriceData.length || !transactions || !transactions.length) return null;
+      if (!rawPriceData.length || !transactions.length) return null;
       const now = new Date();
-      const msPerDay = 86400000;
       const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
-      const cutoffStr = new Date(now - cutoffDays * msPerDay).toISOString().slice(0, 10);
-      const prices = rawPriceData.filter(([d]) => typeof d === "string" && d >= cutoffStr);
-      if (!prices.length) return null;
+      const cutoffStr = new Date(now.getTime() - cutoffDays * 86400000).toISOString().slice(0, 10);
+      const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
+      if (prices.length < 2) return null;
       const sortedTx = [...transactions].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
       const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
       const result = prices.map(([date, chfPrice]) => {
         let btcAmt = 0;
         for (const tx of sortedTx) {
-          if (!tx.date || tx.date > date) break;
+          if ((tx.date || "") > date) break;
           if (tx.type === "buy") btcAmt += +(tx.btc || 0);
           else if (tx.type === "sell") btcAmt -= +(tx.btc || 0);
           else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0);
         }
-        const v = Math.max(0, Math.round(btcAmt * (chfPrice || 0)));
+        const v = Math.max(0, Math.round(btcAmt * chfPrice));
         let t = date;
-        if (activeTab === "7D") { try { t = dayLabels[new Date(date).getDay()]; } catch {} }
-        else if (activeTab === "30D") t = (date.slice(8, 10) || "") + ".";
-        else if (activeTab === "ALL") t = date.slice(0, 7) || date;
+        if (activeTab === "7D") t = dayLabels[new Date(date + "T12:00:00").getDay()];
+        else if (activeTab === "30D") t = date.slice(8, 10) + ".";
+        else if (activeTab === "ALL") t = date.slice(0, 7);
         return { t, v };
-      });
-      const valid = result.filter(r => r && typeof r.v === "number" && !isNaN(r.v));
-      return valid.length > 1 ? valid : null;
-    } catch (e) {
-      return null;
-    }
+      }).filter(r => !isNaN(r.v));
+      return result.length >= 2 ? result : null;
+    } catch { return null; }
   }, [rawPriceData, transactions, activeTab]);
 
-  const data = realData || PORTFOLIO_CHART_DATA[activeTab];
+  const data = (realData && realData.length >= 2) ? realData : PORTFOLIO_CHART_DATA[activeTab];
+  const safeData = Array.isArray(data) && data.length >= 2 ? data : PORTFOLIO_CHART_DATA["7D"];
   const isNeg = pnlChf < 0;
+  const vals = safeData.map(d => d.v).filter(v => typeof v === "number" && !isNaN(v));
+  const mn = vals.length ? Math.min(...vals) : 0;
+  const mx = vals.length ? Math.max(...vals) : 0;
+  const mid = Math.round((mn + mx) / 2);
+  const fmtY = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd));
+
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
+          <div style={{ color: T.textMuted, fontSize: 13 }}>{realData ? "Gesamtwert" : "Gesamtwert (Demo)"}</div>
           <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
             {["1D", "7D", "30D", "ALL"].map(t => (
               <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none" }}>{t}</button>
@@ -317,7 +320,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       </div>
       <div style={{ height: 140, position: "relative" }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 50, left: 0, bottom: 0 }}>
+          <AreaChart data={safeData} margin={{ top: 5, right: 50, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity="0.3" />
@@ -325,19 +328,13 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               </linearGradient>
             </defs>
             <YAxis domain={["auto", "auto"]} hide />
-            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted, marginBottom: 2 }} itemStyle={{ color: T.text, fontWeight: 600 }} formatter={(v) => [`${CURRENCIES[currency].symbol} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`]} />
+            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted, marginBottom: 2 }} itemStyle={{ color: T.text, fontWeight: 600 }} formatter={(v) => [`${sym} ${fmtY(v)}`]} />
             <Area type="monotone" dataKey="v" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} fill="url(#portfolioGrad)" dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
           </AreaChart>
         </ResponsiveContainer>
-        {(() => {
-          const vals = data.map(d => d.v);
-          const mn = Math.min(...vals), mx = Math.max(...vals), mid = Math.round((mn + mx) / 2);
-          return (
-            <div style={{ position: "absolute", right: 8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none", padding: "8px 0" }}>
-              {[mx, mid, mn].map(v => (<span key={v} style={{ fontSize: 11, color: T.textMuted, textAlign: "right", fontWeight: 500 }}>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}</span>))}
-            </div>
-          );
-        })()}
+        <div style={{ position: "absolute", right: 8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none", padding: "8px 0" }}>
+          {[mx, mid, mn].map(v => (<span key={v} style={{ fontSize: 11, color: T.textMuted, textAlign: "right", fontWeight: 500 }}>{fmtY(v)}</span>))}
+        </div>
       </div>
     </div>
   );
