@@ -26,6 +26,35 @@ const fmtChf = (n, d = 2) => new Intl.NumberFormat("de-CH", { minimumFractionDig
 const fmtUsd = (n) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 const fmtBtc = (n) => { const s = n.toFixed(6); return parseFloat(s).toString(); };
 
+// ── Währungs-Konfiguration ────────────────────────────────────────────────────
+const CURRENCIES = {
+  CHF: { label: "CHF", symbol: "CHF", locale: "de-CH", rate: (usdChf) => usdChf },
+  EUR: { label: "EUR", symbol: "EUR", locale: "de-DE", rate: (usdChf) => usdChf * 0.92 },
+  USD: { label: "USD", symbol: "$",   locale: "en-US", rate: () => 1 },
+};
+
+const fmtCurrency = (n, currency, usdChf, d = 0) => {
+  const cfg = CURRENCIES[currency];
+  const rate = currency === "CHF" ? usdChf : currency === "EUR" ? usdChf * 0.92 : 1;
+  const converted = n * (currency === "USD" ? 1 / usdChf : currency === "EUR" ? usdChf / (usdChf * 0.92) * usdChf * 0.92 / usdChf : 1);
+  return new Intl.NumberFormat(cfg.locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+};
+
+// Konvertierung: CHF-Betrag in gewählte Währung
+const toDisplay = (chfAmount, currency, usdChf, eurUsd = 0.92) => {
+  if (currency === "CHF") return chfAmount;
+  if (currency === "USD") return chfAmount / usdChf;
+  if (currency === "EUR") return (chfAmount / usdChf) * eurUsd;
+  return chfAmount;
+};
+
+const fmtAmt = (chfAmount, currency, usdChf, d = 0) => {
+  const val = toDisplay(chfAmount, currency, usdChf, eurUsd);
+  const cfg = CURRENCIES[currency];
+  const formatted = new Intl.NumberFormat(cfg.locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(val);
+  return `${cfg.symbol} ${formatted}`;
+};
+
 const TYPE_META = {
   buy:      { label: "Kauf",     color: "#22c55e", bg: "rgba(34,197,94,0.1)",  icon: "↓" },
   sell:     { label: "Verkauf",  color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "↑" },
@@ -223,7 +252,8 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
   });
@@ -241,12 +271,12 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
           </div>
         </div>
         <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>CHF</span>
-          {fmtChf(portfolioChf)}
+          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
+          {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 20 }}>
           <span style={{ color: isNeg ? "#ef4444" : "#22c55e", fontSize: 14, fontWeight: 500 }}>
-            {isNeg ? "↓" : "↑"} {fmtChf(Math.abs(pnlChf))} CHF ({isNeg ? "" : "+"}{pnlPct.toFixed(2)}%)
+            {isNeg ? "↓" : "↑"} {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(Math.abs(pnlChf), currency, usdChf))} {sym} ({isNeg ? "" : "+"}{pnlPct.toFixed(2)}%)
           </span>
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
@@ -280,7 +310,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T }) {
 }
 
 // ── Position Card ─────────────────────────────────────────────────────────────
-function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T }) {
+function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "18px 20px" }}>
       <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 16 }}>Deine Position</div>
@@ -288,16 +319,16 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T }) {
         <div style={{ borderRight: `1px solid ${T.divider}`, paddingRight: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>Bestand</div>
           <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
-          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ CHF {fmtChf(portfolioChf, 0)}</div>
+          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ {sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}</div>
         </div>
         <div style={{ paddingLeft: 16 }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 2 }}>Investiert</div>
-            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>CHF {fmtChf(totalInvested, 0)}</div>
+            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(totalInvested, currency, usdChf, eurUsd))}</div>
           </div>
           <div>
             <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 2 }}>Einstandspreis</div>
-            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>CHF {fmtChf(avgChf, 0)}</div>
+            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(avgChf, currency, usdChf, eurUsd))}</div>
             <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>pro BTC</div>
           </div>
         </div>
@@ -307,7 +338,9 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T }) {
 }
 
 // ── Market Card mit Live Chart ────────────────────────────────────────────────
-function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
+function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const btcDisplay = toDisplay(btcChf, currency, usdChf, eurUsd);
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("marketTab") || "1T"; } catch { return "1T"; }
   });
@@ -368,8 +401,8 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T }) {
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>${fmtUsd(btcUsd)}</div>
-        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>CHF {fmtChf(btcChf, 0)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(t => (
             <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("marketTab", t); } catch {} }} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
@@ -466,7 +499,9 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T }) {
   );
 }
 
-function BreakEvenCard({ avgChf, currentChf, T }) {
+function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`;
   const diff = currentChf - avgChf;
   const diffPct = avgChf > 0 ? (diff / avgChf) * 100 : 0;
   const isAbove = diff >= 0;
@@ -494,23 +529,25 @@ function BreakEvenCard({ avgChf, currentChf, T }) {
         <div style={{ flex: 1 }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>AKTUELL VS. EINSTAND</div>
-            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 22, fontWeight: 300 }}>{isAbove ? "+" : ""}{fmtChf(diff, 0)}<span style={{ fontSize: 14, marginLeft: 4, opacity: 0.7 }}>CHF</span></div>
+            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 22, fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: 14, marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
             <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 14, opacity: 0.7, marginTop: 3 }}>{isAbove ? "+" : ""}{diffPct.toFixed(1)}%</div>
           </div>
           <div style={{ background: isAbove ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${isAbove ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "10px 12px" }}>
-            {isAbove ? (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>IM GEWINN SEIT</div><div style={{ color: "#22c55e", fontSize: 17 }}>CHF {fmtChf(avgChf, 0)}</div></>) : (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>BTC MUSS STEIGEN UM</div><div style={{ color: "#ef4444", fontSize: 17 }}>+{toBreakEvenPct.toFixed(1)}%</div><div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>auf CHF {fmtChf(avgChf, 0)}</div></>)}
+            {isAbove ? (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>IM GEWINN SEIT</div><div style={{ color: "#22c55e", fontSize: 17 }}>{fmt(avgChf)}</div></>) : (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>BTC MUSS STEIGEN UM</div><div style={{ color: "#ef4444", fontSize: 17 }}>+{toBreakEvenPct.toFixed(1)}%</div><div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>auf {fmt(avgChf)}</div></>)}
           </div>
         </div>
       </div>
       <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: T.textMuted, fontSize: 12 }}>Einstand CHF {fmtChf(avgChf, 0)}</span><span style={{ color: T.textMuted, fontSize: 12 }}>Aktuell CHF {fmtChf(currentChf, 0)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: T.textMuted, fontSize: 12 }}>Einstand {fmt(avgChf)}</span><span style={{ color: T.textMuted, fontSize: 12 }}>Aktuell {fmt(currentChf)}</span></div>
         <div style={{ height: 4, background: T.input, borderRadius: 2, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.min(100, Math.max(2, (currentChf / (avgChf * 1.5)) * 100))}%`, background: isAbove ? "linear-gradient(90deg,#15803d,#22c55e)" : "linear-gradient(90deg,#991b1b,#ef4444)", borderRadius: 2 }} /></div>
       </div>
     </div>
   );
 }
 
-function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T }) {
+function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T, currency = "CHF", eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`;
   const [input, setInput] = useState("");
   const [feeInput, setFeeInput] = useState("0");
   const [mode, setMode] = useState("chf");
@@ -527,23 +564,23 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T 
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
       <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>DCA-RECHNER</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
-        {[["chf", "Betrag (CHF)"], ["btc", "Menge (BTC)"]].map(([m, label]) => (
+        {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{mode === "chf" ? "KAUFBETRAG (CHF)" : "BTC MENGE"}</div><input type="number" step="any" placeholder={mode === "chf" ? "z.B. 500" : "z.B. 0.005"} inputMode="decimal" value={input} onChange={e => setInput(e.target.value)} style={iStyle} /></div>
-        <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>GEBÜHREN (CHF)</div><input type="number" step="any" placeholder="0" value={feeInput} onChange={e => setFeeInput(e.target.value)} style={iStyle} /></div>
+        <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{mode === "chf" ? `KAUFBETRAG (${sym})` : "BTC MENGE"}</div><input type="number" step="any" placeholder={mode === "chf" ? "z.B. 500" : "z.B. 0.005"} inputMode="decimal" value={input} onChange={e => setInput(e.target.value)} style={iStyle} /></div>
+        <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>GEBÜHREN ({sym})</div><input type="number" step="any" placeholder="0" value={feeInput} onChange={e => setFeeInput(e.target.value)} style={iStyle} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: hasInput ? 14 : 0 }}>
         <div style={{ background: T.input, borderRadius: 12, padding: "14px 12px" }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 6 }}>AKTUELLER EINSTAND</div>
-          <div style={{ color: T.text, fontSize: 18, fontWeight: 300 }}>CHF {fmtChf(avgChf, 0)}</div>
+          <div style={{ color: T.text, fontSize: 18, fontWeight: 300 }}>{fmt(avgChf)}</div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>${fmtChf(avgChf / usdChf, 0)}</div>
         </div>
         <div style={{ background: hasInput ? (newAvgChf < avgChf ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)") : T.input, border: hasInput ? `1px solid ${newAvgChf < avgChf ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` : `1px solid transparent`, borderRadius: 12, padding: "14px 12px" }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 6 }}>NEUER EINSTAND</div>
-          <div style={{ color: hasInput ? (newAvgChf < avgChf ? "#22c55e" : "#ef4444") : T.textFaint, fontSize: 18, fontWeight: 300 }}>{hasInput ? `CHF ${fmtChf(newAvgChf, 0)}` : "—"}</div>
+          <div style={{ color: hasInput ? (newAvgChf < avgChf ? "#22c55e" : "#ef4444") : T.textFaint, fontSize: 18, fontWeight: 300 }}>{hasInput ? fmt(newAvgChf) : "—"}</div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{hasInput ? `$${fmtChf(newAvgUsd, 0)}` : ""}</div>
         </div>
       </div>
@@ -585,7 +622,7 @@ function BarChart({ portfolioChf, investedChf, T }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency }) {
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -628,6 +665,15 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>WÄHRUNG</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
+          {["CHF", "EUR", "USD"].map((c, i) => (
+            <button key={c} onClick={() => setCurrency(c)} style={{ padding: "14px 0", background: currency === c ? "#f7931a" : "none", border: "none", borderRight: i < 2 ? `1px solid ${T.border}` : "none", color: currency === c ? "#000" : T.textMuted, fontSize: 15, fontWeight: currency === c ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{c}</button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
@@ -643,7 +689,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
 
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.2.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.3.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -788,7 +834,7 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BTC MENGE</div><input type="number" placeholder="z.B. 0.005" inputMode="decimal" value={form.btc} onChange={e => set("btc", e.target.value)} style={iStyle} step="any" /></div>
-          {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="z.B. 0.00002" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>CHF BETRAG</div><input type="number" placeholder="z.B. 3'500.00" inputMode="decimal" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
+          {isTransfer ? <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NETZWERKGEBÜHR (BTC)</div><input type="number" placeholder="z.B. 0.00002" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div> : <div><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>BETRAG (CHF)</div><input type="number" placeholder="z.B. 3'500.00" inputMode="decimal" value={form.chf} onChange={e => set("chf", e.target.value)} style={iStyle} step="any" /></div>}
         </div>
         {!isTransfer && +form.btc > 0 && +form.chf > 0 && (
           <div style={{ marginTop: 10, marginBottom: 4, padding: "10px 14px", background: T.input, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -796,7 +842,7 @@ function TransactionModal({ onClose, onSave, editTx, T }) {
             <span style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>CHF {new Intl.NumberFormat("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(+form.chf / +form.btc)}</span>
           </div>
         )}
-        {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF)</div><input type="number" placeholder="z.B. 5.50 (0 falls keine)" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
+        {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>HANDELSGEBÜHREN (CHF — gespeichert in CHF)</div><input type="number" placeholder="z.B. 5.50 (0 falls keine)" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
         <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>NOTIZ (OPTIONAL)</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
@@ -903,6 +949,7 @@ export default function App() {
   const [transactions, setTransactions]     = useState([]);
   const [btcUsd, setBtcUsd]                 = useState(77664);
   const [usdChf, setUsdChf]                 = useState(0.787);
+  const [eurUsd, setEurUsd]                 = useState(0.92);
   const [dayChangePct, setDayChangePct]     = useState(1.25);
   const [historicChartData, setHistoricChartData] = useState([]);
   const [lastUpdated, setLastUpdated]       = useState(null);
@@ -915,6 +962,10 @@ export default function App() {
   const [darkMode, setDarkMode]             = useState(() => {
     try { const v = localStorage.getItem("darkMode"); return v === null ? false : v !== "false"; } catch { return false; }
   });
+  const [currency, setCurrencyState]        = useState(() => {
+    try { return localStorage.getItem("currency") || "CHF"; } catch { return "CHF"; }
+  });
+  const setCurrency = (c) => { setCurrencyState(c); try { localStorage.setItem("currency", c); } catch {} };
 
   const T = darkMode ? DARK : LIGHT;
   const token = session?.access_token;
@@ -957,9 +1008,15 @@ export default function App() {
   const fetchPrice = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,chf&include_24hr_change=true");
+      const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,chf,eur&include_24hr_change=true");
       const d = await r.json();
-      if (d.bitcoin) { setBtcUsd(d.bitcoin.usd); setUsdChf(d.bitcoin.chf / d.bitcoin.usd); setDayChangePct(d.bitcoin.usd_24h_change ?? 0); setLastUpdated(new Date()); }
+      if (d.bitcoin) {
+        setBtcUsd(d.bitcoin.usd);
+        setUsdChf(d.bitcoin.chf / d.bitcoin.usd);
+        setEurUsd(d.bitcoin.eur / d.bitcoin.usd);
+        setDayChangePct(d.bitcoin.usd_24h_change ?? 0);
+        setLastUpdated(new Date());
+      }
     } catch {}
     setLoading(false);
   }, []);
@@ -1070,16 +1127,16 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} />
-                <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} />
-                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+                <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
             )}
             {view === "analyse" && (
               <div style={{ ...scrollStyle, padding: "0 12px" }}>
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
-                <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} />
-                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} />
+                <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
                 <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} T={T} />
               </div>
             )}
@@ -1095,7 +1152,7 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} />}
           </>
         )}
       </div>
