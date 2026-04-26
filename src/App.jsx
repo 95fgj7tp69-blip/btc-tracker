@@ -252,7 +252,7 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, rawPriceData = [], transactions = [] }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, rawPriceData = [], transactions = [], btcChfLive = 0 }) {
   const sym = CURRENCIES[currency].symbol;
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
@@ -268,6 +268,13 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       if (prices.length < 2) return null;
       const sortedTx = [...transactions].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
       const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+      // Füge heutigen Live-Kurs hinzu falls noch nicht vorhanden
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const lastDate = prices.length ? prices[prices.length - 1][0] : "";
+      if (lastDate < todayStr) {
+        prices.push([todayStr, btcChfLive]);
+      }
+
       const result = prices.map(([date, chfPrice]) => {
         let btcAmt = 0;
         for (const tx of sortedTx) {
@@ -287,7 +294,38 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
     } catch { return null; }
   }, [rawPriceData, transactions, activeTab]);
 
-  const data = (realData && realData.length >= 2) ? realData : PORTFOLIO_CHART_DATA[activeTab];
+  // Fallback: zeige BTC-Kursverlauf × aktuelle BTC-Menge wenn Transaktionen fehlen
+  const currentBtc = transactions.reduce((s, t) => {
+    if (t.type === "buy") return s + +(t.btc || 0);
+    if (t.type === "sell") return s - +(t.btc || 0);
+    if (t.type === "transfer") return s - +(t.fee || 0);
+    return s;
+  }, 0);
+
+  const priceBasedData = useMemo(() => {
+    if (!rawPriceData.length || currentBtc <= 0) return null;
+    const now = new Date();
+    const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
+    const cutoffStr = new Date(now.getTime() - cutoffDays * 86400000).toISOString().slice(0, 10);
+    const prices = [...rawPriceData.filter(([d]) => d >= cutoffStr)];
+    const todayStr = now.toISOString().slice(0, 10);
+    if (!prices.length || prices[prices.length-1][0] < todayStr) prices.push([todayStr, btcChfLive]);
+    if (prices.length < 2) return null;
+    const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+    return prices.map(([date, chfPrice]) => {
+      const v = Math.max(0, Math.round(currentBtc * chfPrice));
+      let t = date;
+      if (activeTab === "7D") t = dayLabels[new Date(date + "T12:00:00").getDay()];
+      else if (activeTab === "30D") t = date.slice(8, 10) + ".";
+      else if (activeTab === "ALL") t = date.slice(0, 7);
+      return { t, v };
+    });
+  }, [rawPriceData, currentBtc, activeTab, btcChfLive]);
+
+  const data = (realData && realData.length >= 2) ? realData
+             : (priceBasedData && priceBasedData.length >= 2) ? priceBasedData
+             : PORTFOLIO_CHART_DATA[activeTab];
+  const isRealChart = (realData && realData.length >= 2) || (priceBasedData && priceBasedData.length >= 2);
   const safeData = Array.isArray(data) && data.length >= 2 ? data : PORTFOLIO_CHART_DATA["7D"];
   const isNeg = pnlChf < 0;
   const vals = safeData.map(d => d.v).filter(v => typeof v === "number" && !isNaN(v));
@@ -300,7 +338,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>{realData ? "Gesamtwert" : "Gesamtwert (Demo)"}</div>
+          <div style={{ color: T.textMuted, fontSize: 13 }}>{isRealChart ? "Gesamtwert" : "Gesamtwert (Demo)"}</div>
           <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
             {["1D", "7D", "30D", "ALL"].map(t => (
               <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none" }}>{t}</button>
@@ -1455,7 +1493,7 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} rawPriceData={rawPriceData} transactions={transactions} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} rawPriceData={rawPriceData} transactions={transactions} btcChfLive={btcChf} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
