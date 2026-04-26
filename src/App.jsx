@@ -34,17 +34,17 @@ const TYPE_META = {
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const DARK = {
-  bg:        "#000",
-  surface:   "#0a0a0a",
-  border:    "#1a1a1a",
-  text:      "#fff",
-  textSub:   "#aaa",
-  textMuted: "#777",
-  textFaint: "#555",
-  input:     "#111",
-  inputBorder: "#222",
-  navBg:     "rgba(5,5,5,0.97)",
-  divider:   "#1a1a1a",
+  bg:        "#0f0f0f",
+  surface:   "#1c1c1e",
+  border:    "#3a3a3c",
+  text:      "#ffffff",
+  textSub:   "#d1d1d6",
+  textMuted: "#98989f",
+  textFaint: "#636366",
+  input:     "#2c2c2e",
+  inputBorder: "#48484a",
+  navBg:     "rgba(18,18,18,0.97)",
+  divider:   "#3a3a3c",
 };
 
 const LIGHT = {
@@ -913,7 +913,7 @@ export default function App() {
   const [dbLoading, setDbLoading]           = useState(true);
   const [txFilter, setTxFilter]             = useState("all");
   const [darkMode, setDarkMode]             = useState(() => {
-    try { return localStorage.getItem("darkMode") !== "false"; } catch { return true; }
+    try { const v = localStorage.getItem("darkMode"); return v === null ? false : v !== "false"; } catch { return false; }
   });
 
   const T = darkMode ? DARK : LIGHT;
