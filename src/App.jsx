@@ -626,6 +626,14 @@ function BarChart({ portfolioChf, investedChf, T }) {
 // ── Onboarding ───────────────────────────────────────────────────────────────
 function OnboardingScreen({ onFinish, T }) {
   const [slide, setSlide] = useState(0);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const privacyContent = [
+    { title: "Was gespeichert wird", text: "Deine E-Mail-Adresse (für Login) sowie deine erfassten Transaktionen: Datum, BTC-Menge, Betrag, Gebühren und Notiz." },
+    { title: "Wo", text: "Alle Daten werden verschlüsselt in der EU gespeichert — auf AWS-Servern in Irland (eu-west-1), betrieben über Supabase." },
+    { title: "Wer hat Zugriff", text: "Nur du. Dank Row-Level Security sieht ausschliesslich dein Account deine Daten." },
+    { title: "Löschen", text: "Du kannst dein Konto und alle Daten jederzeit unter Einstellungen → Konto löschen vollständig entfernen." },
+    { title: "Kontakt", text: "support [at] bluebubble [dot] ch" },
+  ];
   const slides = [
     {
       icon: "₿",
@@ -681,40 +689,47 @@ function OnboardingScreen({ onFinish, T }) {
             </svg>
           )}
           {slide === 1 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="90" y="5" width="100" height="110" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
-              <rect x="100" y="15" width="80" height="8" rx="4" fill={T.border}/>
-              <text x="140" y="45" textAnchor="middle" fontSize="9" fill={T.textFaint}>Portfolio</text>
-              <text x="140" y="63" textAnchor="middle" fontSize="18" fontWeight="700" fill={T.text}>CHF 61'200</text>
-              <text x="140" y="79" textAnchor="middle" fontSize="10" fill="#22c55e">↑ +28.4%</text>
-              <rect x="104" y="88" width="72" height="6" rx="3" fill="#22c55e" opacity="0.2"/>
-              <rect x="104" y="88" width="52" height="6" rx="3" fill="#22c55e" opacity="0.7"/>
-              <rect x="93" y="107" width="18" height="5" rx="2" fill={T.border}/>
-              <rect x="117" y="107" width="18" height="5" rx="2" fill="#f7931a" opacity="0.8"/>
-              <rect x="141" y="107" width="18" height="5" rx="2" fill={T.border}/>
-              <rect x="165" y="107" width="18" height="5" rx="2" fill={T.border}/>
-              <circle cx="44" cy="45" r="22" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="44" y="41" textAnchor="middle" fontSize="9" fill="#3B6D11">Kauf</text>
-              <text x="44" y="54" textAnchor="middle" fontSize="11" fontWeight="500" fill="#27500A">+0.25</text>
-              <text x="44" y="64" textAnchor="middle" fontSize="8" fill="#3B6D11">BTC</text>
-              <line x1="66" y1="47" x2="90" y2="58" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6"/>
-              <circle cx="236" cy="75" r="22" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1"/>
-              <text x="236" y="71" textAnchor="middle" fontSize="9" fill="#991b1b">Verkauf</text>
-              <text x="236" y="84" textAnchor="middle" fontSize="11" fontWeight="500" fill="#7f1d1d">−0.1</text>
-              <text x="236" y="94" textAnchor="middle" fontSize="8" fill="#991b1b">BTC</text>
-              <line x1="190" y1="76" x2="214" y2="76" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6"/>
+            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
+              <rect x="80" y="4" width="120" height="152" rx="20" fill={T.surface} stroke={T.border} strokeWidth="1"/>
+              <rect x="92" y="16" width="96" height="10" rx="5" fill={T.border}/>
+              <text x="140" y="52" textAnchor="middle" fontSize="11" fill={T.textFaint}>Portfolio</text>
+              <text x="140" y="74" textAnchor="middle" fontSize="22" fontWeight="700" fill={T.text}>61'200</text>
+              <text x="140" y="74" textAnchor="middle" fontSize="11" fill={T.textMuted} dy="-28">CHF</text>
+              <text x="140" y="92" textAnchor="middle" fontSize="12" fill="#22c55e">↑ +28.4%</text>
+              <rect x="96" y="106" width="88" height="8" rx="4" fill="#22c55e" opacity="0.15"/>
+              <rect x="96" y="106" width="64" height="8" rx="4" fill="#22c55e" opacity="0.75"/>
+              <rect x="88" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <rect x="116" y="130" width="22" height="7" rx="3" fill="#f7931a" opacity="0.85"/>
+              <rect x="144" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <rect x="172" y="130" width="22" height="7" rx="3" fill={T.border}/>
+              <circle cx="32" cy="60" r="26" fill="rgba(34,197,94,0.12)" stroke="#22c55e" strokeWidth="1.5"/>
+              <text x="32" y="54" textAnchor="middle" fontSize="10" fill="#3B6D11">Kauf</text>
+              <text x="32" y="68" textAnchor="middle" fontSize="13" fontWeight="600" fill="#27500A">+0.25</text>
+              <text x="32" y="80" textAnchor="middle" fontSize="9" fill="#3B6D11">BTC</text>
+              <line x1="58" y1="62" x2="80" y2="72" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
+              <circle cx="248" cy="100" r="26" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1.5"/>
+              <text x="248" y="94" textAnchor="middle" fontSize="10" fill="#991b1b">Verkauf</text>
+              <text x="248" y="108" textAnchor="middle" fontSize="13" fontWeight="600" fill="#7f1d1d">−0.1</text>
+              <text x="248" y="120" textAnchor="middle" fontSize="9" fill="#991b1b">BTC</text>
+              <line x1="200" y1="100" x2="222" y2="100" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
             </svg>
           )}
           {slide === 2 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="20" y="12" width="240" height="96" rx="14" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
-              <polyline points="38,88 68,72 98,78 128,52 158,58 188,32 218,38 250,18" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round"/>
-              <line x1="152" y1="12" x2="152" y2="108" stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.8"/>
-              <text x="158" y="28" fontSize="9" fill="#BA7517">Break-Even</text>
-              <circle cx="188" cy="32" r="4" fill="#22c55e"/>
-              <circle cx="250" cy="18" r="4" fill="#22c55e"/>
-              <rect x="28" y="18" width="50" height="18" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="0.5"/>
-              <text x="53" y="31" textAnchor="middle" fontSize="9" fill="#3B6D11">+28.4%</text>
+            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
+              <rect x="14" y="10" width="252" height="130" rx="18" fill={T.surface} stroke={T.border} strokeWidth="1"/>
+              <polyline points="30,120 65,100 100,108 135,75 168,82 202,45 235,52 262,24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+              <line x1="162" y1="10" x2="162" y2="140" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.8"/>
+              <text x="168" y="30" fontSize="11" fontWeight="500" fill="#BA7517">Break-Even</text>
+              <circle cx="202" cy="45" r="5" fill="#22c55e"/>
+              <circle cx="262" cy="24" r="5" fill="#22c55e"/>
+              <circle cx="262" cy="24" r="9" fill="#22c55e" opacity="0.2"/>
+              <rect x="22" y="16" width="70" height="24" rx="8" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="1"/>
+              <text x="57" y="32" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">+28.4%</text>
+              <rect x="22" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="64" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="106" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="148" y="118" width="36" height="14" rx="4" fill={T.input}/>
+              <rect x="22" y="118" width="36" height="14" rx="4" fill="#f7931a" opacity="0.8"/>
             </svg>
           )}
           {slide === 3 && (
@@ -748,6 +763,11 @@ function OnboardingScreen({ onFinish, T }) {
         <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
       </div>
       {/* Dots */}
+      {slide === 4 && (
+        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 14, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, textDecoration: "underline" }}>
+          Vollständige Datenschutzerklärung lesen
+        </button>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
         {slides.map((_, i) => (
           <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 24 : 8, height: 8, borderRadius: 4, background: i === slide ? "#f7931a" : T.border, cursor: "pointer", transition: "all 0.3s" }} />
@@ -762,6 +782,20 @@ function OnboardingScreen({ onFinish, T }) {
           {isLast ? "Loslegen 🚀" : "Weiter →"}
         </button>
       </div>
+    {showPrivacy && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Datenschutzerklärung</div>
+          {privacyContent.map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 16 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
