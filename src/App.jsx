@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Area, AreaChart, ResponsiveContainer, YAxis, XAxis, Tooltip } from "recharts";
+import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
@@ -245,107 +245,92 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, rawPriceData = [], transactions = [], btcChfLive = 0 }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0 }) {
   const sym = CURRENCIES[currency].symbol;
-  const [activeTab, setActiveTab] = useState(() => {
-    try { return localStorage.getItem("portfolioTab") || "7D"; } catch { return "7D"; }
-  });
-
-  // Berechne Chart-Daten direkt (kein useMemo um Hook-Probleme zu vermeiden)
-  const computeChartData = () => {
-    try {
-      if (!rawPriceData.length) return null;
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "ALL": 9999 }[activeTab] || 7;
-      const cutoffStr = new Date(now.getTime() - cutoffDays * 86400000).toISOString().slice(0, 10);
-      const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-      // Preise filtern + heutigen Preis anhängen
-      const prices = rawPriceData.filter(([d]) => d >= cutoffStr);
-      if (!prices.length || prices[prices.length-1][0] < todayStr) prices.push([todayStr, btcChfLive]);
-      if (prices.length < 2) return null;
-      // BTC-Menge berechnen
-      const sortedTx = [...transactions].sort((a, b) => (a.date||"").localeCompare(b.date||""));
-      const firstTxDate = sortedTx.length ? sortedTx[0].date : todayStr;
-      // Nur Datenpunkte ab erster Transaktion zeigen
-      const relevantPrices = prices.filter(([d]) => d >= firstTxDate);
-      if (relevantPrices.length < 1) {
-        // Keine historischen Preise für Transaktionszeitraum — nur heutigen Wert zeigen
-        const totalBtc = sortedTx.reduce((s, tx) => {
-          if (tx.type === "buy") return s + +(tx.btc||0);
-          if (tx.type === "sell") return s - +(tx.btc||0);
-          if (tx.type === "transfer") return s - +(tx.fee||0);
-          return s;
-        }, 0);
-        return [{ t: "Kauf", v: Math.round(totalBtc * btcChfLive) }, { t: "Heute", v: Math.round(totalBtc * btcChfLive) }];
-      }
-      const result = relevantPrices.map(([date, chfPrice]) => {
-        let btc = 0;
-        for (const tx of sortedTx) {
-          if ((tx.date||"") > date) break;
-          if (tx.type === "buy") btc += +(tx.btc||0);
-          else if (tx.type === "sell") btc -= +(tx.btc||0);
-          else if (tx.type === "transfer") btc -= +(tx.fee||0);
-        }
-        const v = Math.max(0, Math.round(btc * chfPrice));
-        let t = date;
-        if (activeTab === "7D") t = dayLabels[new Date(date+"T12:00:00").getDay()];
-        else if (activeTab === "30D") t = date.slice(8,10)+".";
-        else if (activeTab === "ALL") t = date.slice(0,7);
-        return { t, v };
-      });
-      return result.length >= 1 ? result : null;
-    } catch { return null; }
-  };
-
-  const chartData = computeChartData();
-  const isRealChart = chartData !== null;
-  const safeData = (isRealChart && chartData.length >= 2) ? chartData : PORTFOLIO_CHART_DATA[activeTab];
   const isNeg = pnlChf < 0;
-  const vals = safeData.map(d => d.v).filter(v => typeof v === "number" && !isNaN(v));
-  const mn = vals.length ? Math.min(...vals) : 0;
-  const mx = vals.length ? Math.max(...vals) : 0;
-  const mid = Math.round((mn + mx) / 2);
   const fmtY = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd));
+
+  // Berechne Chart aus Transaktionen -- kein API-Aufruf nötig
+  const chartData = (() => {
+    try {
+      if (!transactions.length) return null;
+      const sortedTx = [...transactions]
+        .filter(tx => tx.type === "buy" || tx.type === "sell" || tx.type === "transfer")
+        .sort((a, b) => (a.date||"").localeCompare(b.date||""));
+      if (!sortedTx.length) return null;
+
+      const points = [];
+      let cumInvested = 0;
+      let cumBtc = 0;
+
+      // Startpunkt: vor erster Transaktion
+      points.push({ t: sortedTx[0].date.slice(0,7), invested: 0, portfolio: 0 });
+
+      for (const tx of sortedTx) {
+        if (tx.type === "buy") {
+          cumInvested += +(tx.chf||0) + +(tx.fee||0);
+          cumBtc += +(tx.btc||0);
+        } else if (tx.type === "sell") {
+          cumInvested -= +(tx.chf||0) - +(tx.fee||0);
+          cumBtc -= +(tx.btc||0);
+        } else if (tx.type === "transfer") {
+          cumBtc -= +(tx.fee||0);
+        }
+        points.push({
+          t: tx.date.slice(0,7),
+          invested: Math.round(cumInvested),
+          portfolio: Math.round(cumBtc * btcChfLive),
+        });
+      }
+
+      // Heutigen Endpunkt hinzufügen
+      const today = new Date().toISOString().slice(0,7);
+      if (points[points.length-1].t !== today) {
+        points.push({ t: today, invested: Math.round(cumInvested), portfolio: Math.round(cumBtc * btcChfLive) });
+      }
+      return points.length >= 2 ? points : null;
+    } catch { return null; }
+  })();
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
-          <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3 }}>
-            {["1D", "7D", "30D", "ALL"].map(t => (
-              <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none" }}>{t}</button>
-            ))}
-          </div>
-        </div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>Gesamtwert</div>
         <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
           <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 16 }}>
           <span style={{ color: isNeg ? "#ef4444" : "#22c55e", fontSize: 14, fontWeight: 500 }}>
             {isNeg ? "↓" : "↑"} {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(Math.abs(pnlChf), currency, usdChf))} {sym} ({isNeg ? "" : "+"}{pnlPct.toFixed(2)}%)
           </span>
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
       </div>
-      <div style={{ height: 140, position: "relative" }}>
+      <div style={{ height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={safeData} margin={{ top: 5, right: 50, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity="0.3" />
-                <stop offset="100%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            <YAxis domain={["auto", "auto"]} hide />
-            <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 13, color: T.text }} labelStyle={{ color: T.textMuted, marginBottom: 2 }} itemStyle={{ color: T.text, fontWeight: 600 }} formatter={(v) => [`${sym} ${fmtY(v)}`]} />
-            <Area type="monotone" dataKey="v" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} fill="url(#portfolioGrad)" dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
-          </AreaChart>
+          <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
+            <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis hide domain={["auto", "auto"]} />
+            <Tooltip
+              contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: T.textMuted, marginBottom: 4 }}
+              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Portfoliowert"]}
+            />
+            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="0" />
+          </LineChart>
         </ResponsiveContainer>
-        <div style={{ position: "absolute", right: 8, top: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none", padding: "8px 0" }}>
-          {[mx, mid, mn].map(v => (<span key={v} style={{ fontSize: 11, color: T.textMuted, textAlign: "right", fontWeight: 500 }}>{fmtY(v)}</span>))}
+      </div>
+      {/* Legende */}
+      <div style={{ display: "flex", gap: 16, padding: "0 16px 16px", justifyContent: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span>
         </div>
       </div>
     </div>
@@ -899,7 +884,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.6.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.7.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1471,7 +1456,7 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} rawPriceData={rawPriceData.length ? rawPriceData : historicChartData.map(([k,v]) => [k+"-15", v])} transactions={transactions} btcChfLive={btcChf} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
