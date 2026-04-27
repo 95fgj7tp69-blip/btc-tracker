@@ -246,7 +246,7 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0 }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [] }) {
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
   const [activeTab, setActiveTab] = useState(() => {
@@ -260,7 +260,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
     try {
       if (!transactions.length) return null;
       const sortedTx = [...transactions]
-        .filter(tx => tx.type === "buy" || tx.type === "sell" || tx.type === "transfer")
+        .filter(tx => tx.type === "buy" || tx.type === "sell" || tx.type === "transfer_in" || tx.type === "transfer_out")
         .sort((a, b) => (a.date||"").localeCompare(b.date||""));
       if (!sortedTx.length) return null;
 
@@ -300,7 +300,56 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : cutoffStr;
       points.unshift({ t: fmtLabel(startDate), invested: startInvested });
 
-      // Heutigen Endpunkt (Portfoliowert) hinzufügen
+      // Portfolio-Wert Linie mit historischen Tageskursen
+      const pricesInRange = rawPriceData.length > 0
+        ? rawPriceData.filter(([d]) => d >= cutoffStr)
+        : [];
+
+      if (pricesInRange.length >= 2) {
+        // Erstelle einen Map von Datum -> kumuliertes BTC und Investiert
+        const txMap = {};
+        let runBtc = 0, runInv = 0;
+        for (const tx of sortedTx) {
+          if (tx.type === "buy")          { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
+          else if (tx.type === "sell")    { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
+          else if (tx.type === "transfer_in")  runBtc += +(tx.btc||0);
+          else if (tx.type === "transfer_out") runBtc -= +(tx.btc||0);
+          txMap[tx.date] = { btc: runBtc, inv: runInv };
+        }
+
+        // Fuer jeden Preispunkt: interpoliere BTC-Bestand und Investiert
+        const combined = [];
+        let lastBtc = 0, lastInv = 0;
+        for (const [date, usdPrice] of pricesInRange) {
+          // Update lastBtc/lastInv falls Transaktion an diesem Datum
+          if (txMap[date]) { lastBtc = txMap[date].btc; lastInv = txMap[date].inv; }
+          else {
+            // Finde letzten Stand vor diesem Datum
+            const txDates = Object.keys(txMap).filter(d => d <= date).sort();
+            if (txDates.length) {
+              const last = txDates[txDates.length-1];
+              lastBtc = txMap[last].btc;
+              lastInv = txMap[last].inv;
+            }
+          }
+          const chfPrice = usdPrice * usdChf;
+          let t = date;
+          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
+          else if (activeTab === "30D") t = date.slice(8,10)+".";
+          else if (activeTab === "ALL") t = date.slice(0,7);
+          combined.push({
+            t,
+            invested: Math.max(0, Math.round(lastInv)),
+            portfolio: Math.max(0, Math.round(lastBtc * chfPrice)),
+          });
+        }
+        // Heutiger Endpunkt
+        const todayD = now.toISOString().slice(0,10);
+        combined.push({ t: fmtLabel(todayD), invested: Math.max(0, Math.round(runInv)), portfolio: Math.round(portfolioChf) });
+        return combined.length >= 2 ? combined : null;
+      }
+
+      // Fallback: Investiert-Linie + Heute-Punkt
       const todayD = now.toISOString().slice(0,10);
       const lastBtc = sortedTx.reduce((btc, tx) => {
         if (tx.type === "buy") return btc + +(tx.btc||0);
@@ -346,17 +395,21 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Heute"]}
+              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : name === "portfolio" ? "Portfoliowert" : "Heute"]}
             />
-            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                if (!payload.today) return null;
-                return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
-              }}
-              activeDot={false}
-            />
+            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+            {chartData?.[0]?.portfolio !== undefined ? (
+              <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
+            ) : (
+              <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
+                dot={(props) => {
+                  const { cx, cy, payload } = props;
+                  if (!payload.today) return null;
+                  return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
+                }}
+                activeDot={false}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -367,8 +420,11 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>Heute</span>
+          {chartData?.[0]?.portfolio !== undefined ? (
+            <><div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span></>
+          ) : (
+            <><div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} /><span style={{ fontSize: 12, color: T.textMuted }}>Heute</span></>
+          )}
         </div>
       </div>
     </div>
@@ -994,7 +1050,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.10.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.11.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1223,7 +1279,7 @@ function DeleteConfirmModal({ tx, onConfirm, onCancel, T, currency = "CHF", usdC
         <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 24 }}>
           <span style={{ color: m.color, fontWeight: 500 }}>{m.label}</span>
           {" · "}{fmtBtc(tx.btc)} BTC
-          {tx.type !== "transfer" && <> · {sym} {fmtTx(tx.chf)}</>}
+          {tx.type !== "transfer_in" && tx.type !== "transfer_out" && <> · {sym} {fmtTx(tx.chf)}</>}
           <br />
           <span style={{ fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</span>
         </div>
@@ -1261,7 +1317,7 @@ function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
             <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-            {tx.fee > 0 && tx.type !== "transfer" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. {sym} {fmtTx(tx.fee)}</div>}
+            {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. {sym} {fmtTx(tx.fee)}</div>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -1313,7 +1369,7 @@ export default function App() {
   const [eurUsd, setEurUsd]                 = useState(0.92);
   const [dayChangePct, setDayChangePct]     = useState(1.25);
   const [historicChartData, setHistoricChartData] = useState([]);
-  const [rawPriceData, setRawPriceData]           = useState([]); // [[isoDate, chfPrice], ...]
+  const [rawPriceData, setRawPriceData] = useState([]); // [[YYYY-MM-DD, usdPrice], ...]
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
@@ -1395,6 +1451,15 @@ export default function App() {
     setLoading(false);
   }, []);
 
+  // Holt taegl. historische BTC/USD Kurse (24h gecacht via Netlify Function)
+  const fetchHistory = useCallback(async () => {
+    try {
+      const r = await fetch("/api/history");
+      const d = await r.json();
+      if (d.prices?.length) setRawPriceData(d.prices);
+    } catch {}
+  }, []);
+
   const fetchHistoricChart = useCallback(async () => {
     try {
       const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=730&interval=daily");
@@ -1415,7 +1480,7 @@ export default function App() {
     } catch {}
   }, []);
 
-  useEffect(() => { fetchPrice(); fetchHistoricChart(); }, [fetchPrice, fetchHistoricChart]);
+  useEffect(() => { fetchPrice(); fetchHistoricChart(); fetchHistory(); }, [fetchPrice, fetchHistoricChart, fetchHistory]);
   useEffect(() => { const id = setInterval(fetchPrice, 60_000); return () => clearInterval(id); }, [fetchPrice]);
 
   const btcChf = btcUsd * usdChf;
@@ -1612,7 +1677,7 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
