@@ -1321,7 +1321,6 @@ export default function App() {
   const [dayChangePct, setDayChangePct]     = useState(1.25);
   const [historicChartData, setHistoricChartData] = useState([]);
   const [rawPriceData, setRawPriceData] = useState([]); // [[YYYY-MM-DD, usdPrice], ...]
-  const [rawPriceData, setRawPriceData]           = useState([]); // [[isoDate, chfPrice], ...]
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
