@@ -1421,13 +1421,7 @@ export default function App() {
       d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
       const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
       if (data.length) setHistoricChartData(data);
-      // Für Portfolio-Chart: tägliche Preise speichern
-      const daily = d.prices.map(([ts, price]) => {
-        const dt = new Date(ts);
-        const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
-        return [iso, Math.round(price)];
-      });
-      setRawPriceData(daily);
+      // rawPriceData wird von fetchHistory (Netlify Proxy, 24h Cache) gesetzt
     } catch {}
   }, []);
 
