@@ -19,6 +19,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/history"
+  to   = "/.netlify/functions/history"
+  status = 200
+
+[[redirects]]
   from = "/api/transactions/*"
   to   = "/.netlify/functions/transactions/:splat"
   status = 200
