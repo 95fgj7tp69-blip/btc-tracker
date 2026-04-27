@@ -876,8 +876,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     reader.onload = async (ev) => {
       try {
         const text = ev.target.result.replace(/^﻿/, ""); // BOM entfernen
-        const lines = text.split("
-").filter(l => l.trim());
+        const lines = text.split("\n").filter(l => l.trim());
         if (lines.length < 2) { setImporting(false); return; }
         const rows = lines.slice(1).map(line => {
           const parts = line.split(",");
