@@ -292,7 +292,11 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         }
         return Math.round(inv);
       })();
-      points.unshift({ t: fmtLabel(cutoffStr), invested: startInvested });
+      // Für ALL-Tab: erstes Transaktionsdatum als Startpunkt, nicht 9999 Tage zurück
+      const startDate = activeTab === "ALL" && sortedTx.length
+        ? sortedTx[0].date
+        : cutoffStr;
+      points.unshift({ t: fmtLabel(startDate), invested: startInvested });
 
       // Heutigen Endpunkt (Portfoliowert) hinzufügen
       const todayD = now.toISOString().slice(0,10);
