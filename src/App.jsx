@@ -306,7 +306,22 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
+        const firstPriceDate = pricesInRange[0][0];
         const combined = [];
+
+        // Punkte VOR dem ersten Preisdatum: nur invested (keine portfolio-Linie)
+        const txBeforePrice = points.filter(p => {
+          // Konvertiere Label zurueck zu Datum ist schwierig, also zeige einfach
+          // alle invested-Punkte und ueberblende mit portfolio ab erstem Preis
+          return true;
+        });
+
+        // Investiert-Punkte bis zum ersten Preisdatum
+        for (const p of points) {
+          combined.push({ t: p.t, invested: p.invested });
+        }
+
+        // Portfolio-Linie ab erstem verfuegbarem Preis
         for (const [date, usdPrice] of pricesInRange) {
           const chfPrice = usdPrice * usdChf;
           let btcAmt = 0, inv = 0;
@@ -321,10 +336,18 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
           else if (activeTab === "30D") t = date.slice(8,10)+".";
           else if (activeTab === "ALL") t = date.slice(0,7);
-          combined.push({ t, invested: Math.max(0, Math.round(inv)), portfolio: Math.max(0, Math.round(btcAmt * chfPrice)) });
+          // Fuege portfolio-Wert zu existierendem Punkt hinzu oder neuen Punkt
+          const existing = combined.find(p => p.t === t);
+          if (existing) {
+            existing.portfolio = Math.max(0, Math.round(btcAmt * chfPrice));
+          } else {
+            combined.push({ t, invested: Math.max(0, Math.round(inv)), portfolio: Math.max(0, Math.round(btcAmt * chfPrice)) });
+          }
         }
+        // Heutiger Endpunkt
         const todayD = now.toISOString().slice(0,10);
-        combined.push({ t: fmtLabel(todayD), invested: combined[combined.length-1]?.invested, portfolio: Math.round(portfolioChf) });
+        const lastInv = combined[combined.length-1]?.invested || 0;
+        combined.push({ t: fmtLabel(todayD), invested: lastInv, portfolio: Math.round(portfolioChf) });
         return combined.length >= 2 ? combined : null;
       }
 
