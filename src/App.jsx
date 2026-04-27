@@ -49,10 +49,10 @@ const fmtAmt = (chfAmount, currency, usdChf, d = 0) => {
 };
 
 const TYPE_META = {
-  buy:          { label: "Kauf",          color: "#22c55e", bg: "rgba(34,197,94,0.1)",   icon: "↓" },
-  sell:         { label: "Verkauf",       color: "#ef4444", bg: "rgba(239,68,68,0.1)",   icon: "↑" },
-  transfer_in:  { label: "Einbuchung",   color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  icon: "→" },
-  transfer_out: { label: "Ausbuchung",   color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  icon: "←" },
+  buy:          { label: "Kauf",       color: "#22c55e", bg: "rgba(34,197,94,0.1)",  icon: "↓" },
+  sell:         { label: "Verkauf",    color: "#ef4444", bg: "rgba(239,68,68,0.1)",  icon: "↑" },
+  transfer_in:  { label: "Einbuchung", color: "#3b82f6", bg: "rgba(59,130,246,0.1)", icon: "→" },
+  transfer_out: { label: "Ausbuchung", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: "←" },
 };
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
@@ -278,8 +278,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         if (tx.type === "buy") { cumInvested += +(tx.chf||0) + +(tx.fee||0); cumBtc += +(tx.btc||0); }
         else if (tx.type === "sell") { cumInvested -= +(tx.chf||0) - +(tx.fee||0); cumBtc -= +(tx.btc||0); }
         else if (tx.type === "transfer_out") { cumBtc -= +(tx.btc||0); }
-        else if (tx.type === "transfer_in") { cumBtc += +(tx.btc||0); }
-        else if (tx.type === "transfer") { cumBtc -= +(tx.fee||0); } // legacy
+        else if (tx.type === "transfer_in")  { cumBtc += +(tx.btc||0); }
         if (tx.date >= cutoffStr) {
           points.push({ t: fmtLabel(tx.date), invested: Math.round(cumInvested) });
         }
@@ -306,9 +305,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       const lastBtc = sortedTx.reduce((btc, tx) => {
         if (tx.type === "buy") return btc + +(tx.btc||0);
         if (tx.type === "sell") return btc - +(tx.btc||0);
-        if (tx.type === "transfer_in") return btc + +(tx.btc||0);
+        if (tx.type === "transfer_in")  return btc + +(tx.btc||0);
         if (tx.type === "transfer_out") return btc - +(tx.btc||0);
-        if (tx.type === "transfer") return btc - +(tx.fee||0); // legacy
         return btc;
       }, 0);
       points.push({ t: fmtLabel(todayD), invested: points[points.length-1]?.invested, today: Math.round(lastBtc * btcChfLive) });
@@ -891,8 +889,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           const parts = line.split(",");
           const note = parts[5]?.trim().replace(/^"|"$/g, "") || "";
           let type = parts[1]?.trim();
-          // Unterstütze TransferIn/TransferOut aus Notiz-Feld
-          if (type === "transfer" && note === "TransferIn") type = "transfer_in";
+          // Notiz-basiertes Mapping für ältere CSVs
+          if (type === "transfer" && note === "TransferIn")  type = "transfer_in";
           if (type === "transfer" && note === "TransferOut") type = "transfer_out";
           return {
             date: parts[0]?.trim(),
@@ -900,7 +898,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
             btc:  parseFloat(parts[2]) || 0,
             chf:  parseFloat(parts[3]) || 0,
             fee:  parseFloat(parts[4]) || 0,
-            note: note === "TransferIn" || note === "TransferOut" ? "" : note,
+            note: (note === "TransferIn" || note === "TransferOut") ? "" : note,
           };
         }).filter(r => r.date && r.type && r.btc > 0);
 
@@ -1157,7 +1155,7 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
   const [form, setForm] = useState(editTx ? { ...editTx, btc: String(editTx.btc), chf: String(parseFloat(chfToDisplay(editTx.chf).toFixed(2))), fee: String(parseFloat(chfToDisplay(editTx.fee ?? 0).toFixed(2))) } : blank);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const isTransfer = form.type === "transfer_in" || form.type === "transfer_out" || form.type === "transfer";
+  const isTransfer = form.type === "transfer_in" || form.type === "transfer_out";
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   const handleSave = async () => {
     if (!form.btc) return;
@@ -1176,8 +1174,8 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
         <div style={{ color: T.text, fontSize: 19, fontWeight: 500, marginBottom: 20 }}>{editTx ? "Transaktion bearbeiten" : "Neue Transaktion"}</div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>TYP</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            {Object.entries(TYPE_META).map(([t, m]) => (<button key={t} onClick={() => set("type", t)} style={{ padding: "12px 0", borderRadius: 10, background: form.type === t ? m.bg : T.input, border: `1px solid ${form.type === t ? m.color + "55" : T.inputBorder}`, color: form.type === t ? m.color : T.textMuted, cursor: "pointer", fontSize: 15, fontWeight: 500, fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}><span style={{ fontSize: 19 }}>{m.icon}</span>{m.label}</button>))}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {Object.entries(TYPE_META).map(([t, m]) => (<button key={t} onClick={() => set("type", t)} style={{ padding: "10px 0", borderRadius: 10, background: form.type === t ? m.bg : T.input, border: `1px solid ${form.type === t ? m.color + "55" : T.inputBorder}`, color: form.type === t ? m.color : T.textMuted, cursor: "pointer", fontSize: 14, fontWeight: 500, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><span style={{ fontSize: 17 }}>{m.icon}</span>{m.label}</button>))}
           </div>
         </div>
         <div style={{ marginBottom: 16 }}>
@@ -1256,9 +1254,8 @@ function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
             <div style={{ color: m.color, fontSize: 15 }}>
-            {tx.type === "transfer_in" ? `+${tx.btc} BTC` :
+            {tx.type === "transfer_in"  ? `+${tx.btc} BTC` :
              tx.type === "transfer_out" ? `−${tx.btc} BTC` :
-             tx.type === "transfer" ? (tx.fee > 0 ? `−${tx.fee} BTC` : "—") :
              `${sym} ${fmtTx(tx.chf)}`}
           </div>
           </div>
@@ -1424,12 +1421,12 @@ export default function App() {
   const btcChf = btcUsd * usdChf;
   const buyTx  = transactions.filter(t => t.type === "buy");
   const sellTx = transactions.filter(t => t.type === "sell");
-  const trfTx  = transactions.filter(t => t.type === "transfer" || t.type === "transfer_out" || t.type === "transfer_in");
+  const trfTx  = transactions.filter(t => t.type === "transfer_in" || t.type === "transfer_out");
 
   // Total BTC bestand
   const totalBtc = buyTx.reduce((s, t) => s + +t.btc, 0)
                  - sellTx.reduce((s, t) => s + +t.btc, 0)
-                 + transactions.filter(t => t.type === "transfer_in").reduce((s, t) => s + +t.btc, 0)
+                 + transactions.filter(t => t.type === "transfer_in").reduce((s, t)  => s + +t.btc, 0)
                  - transactions.filter(t => t.type === "transfer_out").reduce((s, t) => s + +t.btc, 0);
 
   // Investiertes Kapital (nur Käufe bestimmen den Einstandspreis)
@@ -1500,9 +1497,8 @@ export default function App() {
         if (tx.date > date) break;
         if (tx.type === "buy") btcAmt += +tx.btc;
         else if (tx.type === "sell") btcAmt -= +tx.btc;
-        else if (tx.type === "transfer_in") btcAmt += +(tx.btc || 0);
+        else if (tx.type === "transfer_in")  btcAmt += +(tx.btc || 0);
         else if (tx.type === "transfer_out") btcAmt -= +(tx.btc || 0);
-        else if (tx.type === "transfer") btcAmt -= +(tx.fee || 0); // legacy
       }
       const v = Math.round(btcAmt * chfPrice);
       let t = date;
@@ -1527,7 +1523,7 @@ export default function App() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map(t => [
         t.date, t.type, t.btc,
-        (t.type === "transfer_in" || t.type === "transfer_out" || t.type === "transfer") ? 0 : fmt2(t.chf),
+        (t.type === "transfer_in" || t.type === "transfer_out") ? 0 : fmt2(t.chf),
         fmt2(t.fee || 0),
         parseFloat((t.btc * btcPrice).toFixed(2)),
         `"${(t.note || "").replace(/"/g, '""')}"`
