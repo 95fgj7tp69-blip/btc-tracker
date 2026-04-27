@@ -248,11 +248,7 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0 }) {
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
-  const [activeTab, setActiveTab] = useState(() => {
-    try { return localStorage.getItem("portfolioTab") || "ALL"; } catch { return "ALL"; }
-  });
   const fmtY = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd));
-  const fmtLabel = (d) => d.slice(8,10)+"."+d.slice(5,7)+"."+d.slice(2,4);
 
   // Berechne Chart aus Transaktionen -- kein API-Aufruf nötig
   const chartData = (() => {
@@ -263,47 +259,35 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         .sort((a, b) => (a.date||"").localeCompare(b.date||""));
       if (!sortedTx.length) return null;
 
-      // Cutoff je nach Tab
-      const now = new Date();
-      const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "1Y": 365, "ALL": 9999 }[activeTab] || 9999;
-      const cutoffStr = new Date(now.getTime() - cutoffDays * 86400000).toISOString().slice(0,10);
-
       const points = [];
       let cumInvested = 0;
       let cumBtc = 0;
 
-      // Alle Transaktionen verarbeiten um kumulierte Werte zu erhalten
+      // Startpunkt: vor erster Transaktion
+      points.push({ t: sortedTx[0].date.slice(0,7), invested: 0, portfolio: 0 });
+
       for (const tx of sortedTx) {
-        if (tx.type === "buy") { cumInvested += +(tx.chf||0) + +(tx.fee||0); cumBtc += +(tx.btc||0); }
-        else if (tx.type === "sell") { cumInvested -= +(tx.chf||0) - +(tx.fee||0); cumBtc -= +(tx.btc||0); }
-        else if (tx.type === "transfer") { cumBtc -= +(tx.fee||0); }
-        if (tx.date >= cutoffStr) {
-          points.push({ t: fmtLabel(tx.date), invested: Math.round(cumInvested) });
+        if (tx.type === "buy") {
+          cumInvested += +(tx.chf||0) + +(tx.fee||0);
+          cumBtc += +(tx.btc||0);
+        } else if (tx.type === "sell") {
+          cumInvested -= +(tx.chf||0) - +(tx.fee||0);
+          cumBtc -= +(tx.btc||0);
+        } else if (tx.type === "transfer") {
+          cumBtc -= +(tx.fee||0);
         }
+        points.push({
+          t: tx.date.slice(0,7),
+          invested: Math.round(cumInvested),
+          portfolio: Math.round(cumBtc * btcChfLive),
+        });
       }
 
-      // Startpunkt: Stand am Beginn des Zeitraums
-      const startInvested = (() => {
-        let inv = 0;
-        for (const tx of sortedTx) {
-          if (tx.date >= cutoffStr) break;
-          if (tx.type === "buy") inv += +(tx.chf||0) + +(tx.fee||0);
-          else if (tx.type === "sell") inv -= +(tx.chf||0) - +(tx.fee||0);
-        }
-        return Math.round(inv);
-      })();
-      points.unshift({ t: fmtLabel(cutoffStr), invested: startInvested });
-
-      // Heutigen Endpunkt (Portfoliowert) hinzufügen
-      const todayD = now.toISOString().slice(0,10);
-      const lastBtc = sortedTx.reduce((btc, tx) => {
-        if (tx.type === "buy") return btc + +(tx.btc||0);
-        if (tx.type === "sell") return btc - +(tx.btc||0);
-        if (tx.type === "transfer") return btc - +(tx.fee||0);
-        return btc;
-      }, 0);
-      points.push({ t: fmtLabel(todayD), invested: points[points.length-1]?.invested, today: Math.round(lastBtc * btcChfLive) });
-
+      // Heutigen Endpunkt hinzufügen
+      const today = new Date().toISOString().slice(0,7);
+      if (points[points.length-1].t !== today) {
+        points.push({ t: today, invested: Math.round(cumInvested), portfolio: Math.round(cumBtc * btcChfLive) });
+      }
       return points.length >= 2 ? points : null;
     } catch { return null; }
   })();
@@ -311,9 +295,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
-        </div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>Gesamtwert</div>
         <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
           <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
@@ -325,13 +307,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
       </div>
-      {/* Tab-Auswahl */}
-      <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px", alignSelf: "flex-start" }}>
-        {["1D","7D","30D","1Y","ALL"].map(t => (
-          <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none", fontFamily: "inherit" }}>{t}</button>
-        ))}
-      </div>
-      <div style={{ height: 150 }}>
+      <div style={{ height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -339,17 +315,10 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Heute"]}
+              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Portfoliowert"]}
             />
             <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                if (!payload.today) return null;
-                return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
-              }}
-              activeDot={false}
-            />
+            <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="0" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -360,8 +329,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>Heute</span>
+          <div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span>
         </div>
       </div>
     </div>
