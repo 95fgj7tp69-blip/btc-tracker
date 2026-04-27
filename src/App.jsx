@@ -264,7 +264,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       let cumBtc = 0;
 
       // Startpunkt: vor erster Transaktion
-      points.push({ t: sortedTx[0].date.slice(0,7), invested: 0, portfolio: 0 });
+      const firstD = sortedTx[0].date;
+      points.push({ t: firstD.slice(8,10)+"."+firstD.slice(5,7)+"."+firstD.slice(2,4), invested: 0, portfolio: 0 });
 
       for (const tx of sortedTx) {
         if (tx.type === "buy") {
@@ -276,17 +277,20 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         } else if (tx.type === "transfer") {
           cumBtc -= +(tx.fee||0);
         }
+        const d = tx.date; // YYYY-MM-DD
+        const label = d.slice(8,10)+"."+d.slice(5,7)+"."+d.slice(2,4);
         points.push({
-          t: tx.date.slice(0,7),
+          t: label,
           invested: Math.round(cumInvested),
           portfolio: Math.round(cumBtc * btcChfLive),
         });
       }
 
       // Heutigen Endpunkt hinzufügen
-      const today = new Date().toISOString().slice(0,7);
-      if (points[points.length-1].t !== today) {
-        points.push({ t: today, invested: Math.round(cumInvested), portfolio: Math.round(cumBtc * btcChfLive) });
+      const todayD = new Date().toISOString().slice(0,10);
+      const todayLabel = todayD.slice(8,10)+"."+todayD.slice(5,7)+"."+todayD.slice(2,4);
+      if (points[points.length-1].t !== todayLabel) {
+        points.push({ t: todayLabel, invested: Math.round(cumInvested), portfolio: Math.round(cumBtc * btcChfLive) });
       }
       return points.length >= 2 ? points : null;
     } catch { return null; }
