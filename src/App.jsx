@@ -306,48 +306,46 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
-        const firstPriceDate = pricesInRange[0][0];
-        const combined = [];
-
-        // Punkte VOR dem ersten Preisdatum: nur invested (keine portfolio-Linie)
-        const txBeforePrice = points.filter(p => {
-          // Konvertiere Label zurueck zu Datum ist schwierig, also zeige einfach
-          // alle invested-Punkte und ueberblende mit portfolio ab erstem Preis
-          return true;
-        });
-
-        // Investiert-Punkte bis zum ersten Preisdatum
-        for (const p of points) {
-          combined.push({ t: p.t, invested: p.invested });
+        // Erstelle einen Map von Datum -> kumuliertes BTC und Investiert
+        const txMap = {};
+        let runBtc = 0, runInv = 0;
+        for (const tx of sortedTx) {
+          if (tx.type === "buy")          { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
+          else if (tx.type === "sell")    { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
+          else if (tx.type === "transfer_in")  runBtc += +(tx.btc||0);
+          else if (tx.type === "transfer_out") runBtc -= +(tx.btc||0);
+          txMap[tx.date] = { btc: runBtc, inv: runInv };
         }
 
-        // Portfolio-Linie ab erstem verfuegbarem Preis
+        // Fuer jeden Preispunkt: interpoliere BTC-Bestand und Investiert
+        const combined = [];
+        let lastBtc = 0, lastInv = 0;
         for (const [date, usdPrice] of pricesInRange) {
-          const chfPrice = usdPrice * usdChf;
-          let btcAmt = 0, inv = 0;
-          for (const tx of sortedTx) {
-            if ((tx.date||"") > date) break;
-            if (tx.type === "buy")          { btcAmt += +(tx.btc||0); inv += +(tx.chf||0) + +(tx.fee||0); }
-            else if (tx.type === "sell")    { btcAmt -= +(tx.btc||0); inv -= +(tx.chf||0); }
-            else if (tx.type === "transfer_in")  btcAmt += +(tx.btc||0);
-            else if (tx.type === "transfer_out") btcAmt -= +(tx.btc||0);
+          // Update lastBtc/lastInv falls Transaktion an diesem Datum
+          if (txMap[date]) { lastBtc = txMap[date].btc; lastInv = txMap[date].inv; }
+          else {
+            // Finde letzten Stand vor diesem Datum
+            const txDates = Object.keys(txMap).filter(d => d <= date).sort();
+            if (txDates.length) {
+              const last = txDates[txDates.length-1];
+              lastBtc = txMap[last].btc;
+              lastInv = txMap[last].inv;
+            }
           }
+          const chfPrice = usdPrice * usdChf;
           let t = date;
           if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
           else if (activeTab === "30D") t = date.slice(8,10)+".";
           else if (activeTab === "ALL") t = date.slice(0,7);
-          // Fuege portfolio-Wert zu existierendem Punkt hinzu oder neuen Punkt
-          const existing = combined.find(p => p.t === t);
-          if (existing) {
-            existing.portfolio = Math.max(0, Math.round(btcAmt * chfPrice));
-          } else {
-            combined.push({ t, invested: Math.max(0, Math.round(inv)), portfolio: Math.max(0, Math.round(btcAmt * chfPrice)) });
-          }
+          combined.push({
+            t,
+            invested: Math.max(0, Math.round(lastInv)),
+            portfolio: Math.max(0, Math.round(lastBtc * chfPrice)),
+          });
         }
         // Heutiger Endpunkt
         const todayD = now.toISOString().slice(0,10);
-        const lastInv = combined[combined.length-1]?.invested || 0;
-        combined.push({ t: fmtLabel(todayD), invested: lastInv, portfolio: Math.round(portfolioChf) });
+        combined.push({ t: fmtLabel(todayD), invested: Math.max(0, Math.round(runInv)), portfolio: Math.round(portfolioChf) });
         return combined.length >= 2 ? combined : null;
       }
 
