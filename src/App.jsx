@@ -319,10 +319,17 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Portfoliowert"]}
+              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Heute"]}
             />
             <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="0" />
+            <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2}
+              dot={(props) => {
+                const { cx, cy, index, payload } = props;
+                if (!chartData || index !== chartData.length - 1) return null;
+                return <circle key="today" cx={cx} cy={cy} r={6} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
+              }}
+              activeDot={{ r: 5 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -333,8 +340,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Heute</span>
         </div>
       </div>
     </div>
