@@ -994,7 +994,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.9.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.10.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1430,19 +1430,45 @@ export default function App() {
                  - transactions.filter(t => t.type === "transfer_out").reduce((s, t) => s + +t.btc, 0);
 
   // Investiertes Kapital (nur Käufe bestimmen den Einstandspreis)
-  const buyBtc     = buyTx.reduce((s, t) => s + +t.btc, 0);
+  const buyBtc      = buyTx.reduce((s, t) => s + +t.btc, 0);
   const buyInvested = buyTx.reduce((s, t) => s + +t.chf + +(t.fee || 0), 0);
 
   // P&L: Einnahmen aus Verkäufen werden angerechnet
-  const sellProceeds = sellTx.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
+  const sellProceeds  = sellTx.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
   const totalInvested = buyInvested - sellProceeds;
 
-  const portfolioChf  = totalBtc * btcChf;
-  const pnlChf        = portfolioChf - totalInvested;
-  const pnlPct        = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
+  const portfolioChf = totalBtc * btcChf;
+  const pnlChf       = portfolioChf - totalInvested;
+  const pnlPct       = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
 
-  // Einstandspreis: nur aus Käufen berechnet, unabhängig von Verkäufen
-  const avgChf = buyBtc > 0 ? buyInvested / buyBtc : 0;
+  // AVCO-Methode (Weighted Average Cost)
+  // Einstandspreis pro BTC bleibt beim Verkauf gleich
+  // Nur Bestand und Gesamtkostenbasis reduzieren sich
+  const avgChf = (() => {
+    const sorted = [...transactions]
+      .filter(t => t.type === "buy" || t.type === "sell" || t.type === "transfer_in" || t.type === "transfer_out")
+      .sort((a, b) => a.date.localeCompare(b.date));
+    let poolBtc = 0;  // aktueller BTC-Bestand
+    let avco = 0;     // aktueller Einstandspreis pro BTC
+    for (const tx of sorted) {
+      if (tx.type === "buy") {
+        // Neuer AVCO = (alter Bestand × alter AVCO + neue Kosten) / neuer Bestand
+        const kosten = +tx.chf + +(tx.fee || 0);
+        avco = (poolBtc * avco + kosten) / (poolBtc + +tx.btc);
+        poolBtc += +tx.btc;
+      } else if (tx.type === "sell") {
+        // AVCO bleibt gleich, nur Bestand reduziert sich
+        poolBtc -= +tx.btc;
+      } else if (tx.type === "transfer_in") {
+        // Einbuchung: AVCO bleibt gleich, nur Bestand steigt
+        poolBtc += +tx.btc;
+      } else if (tx.type === "transfer_out") {
+        // Ausbuchung: AVCO bleibt gleich, Bestand reduziert sich
+        poolBtc -= +tx.btc;
+      }
+    }
+    return avco;
+  })();
   const avgUsd = avgChf / usdChf;
 
   const handleSave = async (form) => {
