@@ -248,7 +248,11 @@ function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
 function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0 }) {
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return localStorage.getItem("portfolioTab") || "ALL"; } catch { return "ALL"; }
+  });
   const fmtY = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd));
+  const fmtLabel = (d) => d.slice(8,10)+"."+d.slice(5,7)+"."+d.slice(2,4);
 
   // Berechne Chart aus Transaktionen -- kein API-Aufruf nötig
   const chartData = (() => {
@@ -259,35 +263,47 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         .sort((a, b) => (a.date||"").localeCompare(b.date||""));
       if (!sortedTx.length) return null;
 
+      // Cutoff je nach Tab
+      const now = new Date();
+      const cutoffDays = { "1D": 1, "7D": 7, "30D": 30, "1Y": 365, "ALL": 9999 }[activeTab] || 9999;
+      const cutoffStr = new Date(now.getTime() - cutoffDays * 86400000).toISOString().slice(0,10);
+
       const points = [];
       let cumInvested = 0;
       let cumBtc = 0;
 
-      // Startpunkt: vor erster Transaktion
-      points.push({ t: sortedTx[0].date.slice(0,7), invested: 0, portfolio: 0 });
-
+      // Alle Transaktionen verarbeiten um kumulierte Werte zu erhalten
       for (const tx of sortedTx) {
-        if (tx.type === "buy") {
-          cumInvested += +(tx.chf||0) + +(tx.fee||0);
-          cumBtc += +(tx.btc||0);
-        } else if (tx.type === "sell") {
-          cumInvested -= +(tx.chf||0) - +(tx.fee||0);
-          cumBtc -= +(tx.btc||0);
-        } else if (tx.type === "transfer") {
-          cumBtc -= +(tx.fee||0);
+        if (tx.type === "buy") { cumInvested += +(tx.chf||0) + +(tx.fee||0); cumBtc += +(tx.btc||0); }
+        else if (tx.type === "sell") { cumInvested -= +(tx.chf||0) - +(tx.fee||0); cumBtc -= +(tx.btc||0); }
+        else if (tx.type === "transfer") { cumBtc -= +(tx.fee||0); }
+        if (tx.date >= cutoffStr) {
+          points.push({ t: fmtLabel(tx.date), invested: Math.round(cumInvested) });
         }
-        points.push({
-          t: tx.date.slice(0,7),
-          invested: Math.round(cumInvested),
-          portfolio: Math.round(cumBtc * btcChfLive),
-        });
       }
 
-      // Heutigen Endpunkt hinzufügen
-      const today = new Date().toISOString().slice(0,7);
-      if (points[points.length-1].t !== today) {
-        points.push({ t: today, invested: Math.round(cumInvested), portfolio: Math.round(cumBtc * btcChfLive) });
-      }
+      // Startpunkt: Stand am Beginn des Zeitraums
+      const startInvested = (() => {
+        let inv = 0;
+        for (const tx of sortedTx) {
+          if (tx.date >= cutoffStr) break;
+          if (tx.type === "buy") inv += +(tx.chf||0) + +(tx.fee||0);
+          else if (tx.type === "sell") inv -= +(tx.chf||0) - +(tx.fee||0);
+        }
+        return Math.round(inv);
+      })();
+      points.unshift({ t: fmtLabel(cutoffStr), invested: startInvested });
+
+      // Heutigen Endpunkt (Portfoliowert) hinzufügen
+      const todayD = now.toISOString().slice(0,10);
+      const lastBtc = sortedTx.reduce((btc, tx) => {
+        if (tx.type === "buy") return btc + +(tx.btc||0);
+        if (tx.type === "sell") return btc - +(tx.btc||0);
+        if (tx.type === "transfer") return btc - +(tx.fee||0);
+        return btc;
+      }, 0);
+      points.push({ t: fmtLabel(todayD), invested: points[points.length-1]?.invested, today: Math.round(lastBtc * btcChfLive) });
+
       return points.length >= 2 ? points : null;
     } catch { return null; }
   })();
@@ -295,7 +311,9 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
-        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>Gesamtwert</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ color: T.textMuted, fontSize: 13 }}>Gesamtwert</div>
+        </div>
         <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
           <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
@@ -307,7 +325,13 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
       </div>
-      <div style={{ height: 160 }}>
+      {/* Tab-Auswahl */}
+      <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px", alignSelf: "flex-start" }}>
+        {["1D","7D","30D","1Y","ALL"].map(t => (
+          <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none", fontFamily: "inherit" }}>{t}</button>
+        ))}
+      </div>
+      <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -315,10 +339,17 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Portfoliowert"]}
+              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : "Heute"]}
             />
             <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="0" />
+            <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                if (!payload.today) return null;
+                return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
+              }}
+              activeDot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -329,8 +360,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Heute</span>
         </div>
       </div>
     </div>
@@ -829,10 +860,52 @@ function OnboardingScreen({ onFinish, T }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [importResult, setImportResult] = useState(null); // {imported, skipped}
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target.result.replace(/^﻿/, ""); // BOM entfernen
+        const lines = text.split("
+").filter(l => l.trim());
+        if (lines.length < 2) { setImporting(false); return; }
+        const rows = lines.slice(1).map(line => {
+          const parts = line.split(",");
+          return {
+            date: parts[0]?.trim(),
+            type: parts[1]?.trim(),
+            btc:  parseFloat(parts[2]) || 0,
+            chf:  parseFloat(parts[3]) || 0,
+            fee:  parseFloat(parts[4]) || 0,
+            note: parts[5]?.trim().replace(/^"|"$/g, "") || "",
+          };
+        }).filter(r => r.date && r.type && r.btc > 0);
+
+        // Duplikate prüfen: gleiche date + type + btc bereits vorhanden?
+        const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
+        const toImport = rows.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
+        const skipped = rows.length - toImport.length;
+
+        const result = await onImport(toImport);
+        setImportResult({ imported: result, skipped });
+      } catch (err) {
+        setImportResult({ error: err.message });
+      }
+      setImporting(false);
+    };
+    reader.readAsText(file, "utf-8");
+    e.target.value = ""; // Reset input
+  };
 
 
 
@@ -881,10 +954,36 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* DATEN */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 15 }}>Transaktionen importieren</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>CSV-Datei im App-Format</div>
+          </div>
+          <label style={{ background: "#f7931a", border: "none", color: "#000", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+            {importing ? "Lädt..." : "↑ Import"}
+            <input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} disabled={importing} />
+          </label>
+        </div>
+        {importResult && !importResult.error && (
+          <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}`, background: "rgba(34,197,94,0.06)" }}>
+            <span style={{ color: "#22c55e", fontSize: 13 }}>✓ {importResult.imported} importiert</span>
+            {importResult.skipped > 0 && <span style={{ color: T.textFaint, fontSize: 13 }}> · {importResult.skipped} übersprungen</span>}
+          </div>
+        )}
+        {importResult?.error && (
+          <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}` }}>
+            <span style={{ color: "#ef4444", fontSize: 13 }}>Fehler: {importResult.error}</span>
+          </div>
+        )}
+      </div>
+
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.7.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.8.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1350,6 +1449,20 @@ export default function App() {
     setTransactions([]);
   };
 
+  const handleImportTransactions = async (rows) => {
+    let count = 0;
+    for (const row of rows) {
+      try {
+        const created = await api.create(row, token);
+        if (created?.id) {
+          setTransactions(prev => [...prev, created]);
+          count++;
+        }
+      } catch {}
+    }
+    return count;
+  };
+
   // Berechnet echten Portfolio-Verlauf aus Transaktionen + historischen Kursen
   const buildPortfolioChart = useCallback((tab) => {
     if (!rawPriceData.length || !transactions.length) return [];
@@ -1481,7 +1594,7 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} onImport={handleImportTransactions} />}
           </>
         )}
       </div>
