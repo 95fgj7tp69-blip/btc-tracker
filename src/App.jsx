@@ -260,7 +260,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
     try {
       if (!transactions.length) return null;
       const sortedTx = [...transactions]
-        .filter(tx => tx.type === "buy" || tx.type === "sell" || tx.type === "transfer")
+        .filter(tx => tx.type === "buy" || tx.type === "sell" || tx.type === "transfer_in" || tx.type === "transfer_out")
         .sort((a, b) => (a.date||"").localeCompare(b.date||""));
       if (!sortedTx.length) return null;
 
@@ -300,7 +300,35 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : cutoffStr;
       points.unshift({ t: fmtLabel(startDate), invested: startInvested });
 
-      // Heutigen Endpunkt (Portfoliowert) hinzufügen
+      // Portfolio-Wert Linie mit historischen Tageskursen
+      const pricesInRange = rawPriceData.length > 0
+        ? rawPriceData.filter(([d]) => d >= cutoffStr)
+        : [];
+
+      if (pricesInRange.length >= 2) {
+        const combined = [];
+        for (const [date, usdPrice] of pricesInRange) {
+          const chfPrice = usdPrice * usdChf;
+          let btcAmt = 0, inv = 0;
+          for (const tx of sortedTx) {
+            if ((tx.date||"") > date) break;
+            if (tx.type === "buy")          { btcAmt += +(tx.btc||0); inv += +(tx.chf||0) + +(tx.fee||0); }
+            else if (tx.type === "sell")    { btcAmt -= +(tx.btc||0); inv -= +(tx.chf||0); }
+            else if (tx.type === "transfer_in")  btcAmt += +(tx.btc||0);
+            else if (tx.type === "transfer_out") btcAmt -= +(tx.btc||0);
+          }
+          let t = date;
+          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
+          else if (activeTab === "30D") t = date.slice(8,10)+".";
+          else if (activeTab === "ALL") t = date.slice(0,7);
+          combined.push({ t, invested: Math.max(0, Math.round(inv)), portfolio: Math.max(0, Math.round(btcAmt * chfPrice)) });
+        }
+        const todayD = now.toISOString().slice(0,10);
+        combined.push({ t: fmtLabel(todayD), invested: combined[combined.length-1]?.invested, portfolio: Math.round(portfolioChf) });
+        return combined.length >= 2 ? combined : null;
+      }
+
+      // Fallback: Investiert-Linie + Heute-Punkt
       const todayD = now.toISOString().slice(0,10);
       const lastBtc = sortedTx.reduce((btc, tx) => {
         if (tx.type === "buy") return btc + +(tx.btc||0);
@@ -349,7 +377,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : name === "portfolio" ? "Portfoliowert" : "Heute"]}
             />
             <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
-            {safeData[0]?.portfolio !== undefined ? (
+            {chartData?.[0]?.portfolio !== undefined ? (
               <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
             ) : (
               <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
@@ -371,7 +399,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {safeData[0]?.portfolio !== undefined ? (
+          {chartData?.[0]?.portfolio !== undefined ? (
             <><div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span></>
           ) : (
             <><div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} /><span style={{ fontSize: 12, color: T.textMuted }}>Heute</span></>
@@ -1230,7 +1258,7 @@ function DeleteConfirmModal({ tx, onConfirm, onCancel, T, currency = "CHF", usdC
         <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 24 }}>
           <span style={{ color: m.color, fontWeight: 500 }}>{m.label}</span>
           {" · "}{fmtBtc(tx.btc)} BTC
-          {tx.type !== "transfer" && <> · {sym} {fmtTx(tx.chf)}</>}
+          {tx.type !== "transfer_in" && tx.type !== "transfer_out" && <> · {sym} {fmtTx(tx.chf)}</>}
           <br />
           <span style={{ fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</span>
         </div>
@@ -1268,7 +1296,7 @@ function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
             <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-            {tx.fee > 0 && tx.type !== "transfer" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. {sym} {fmtTx(tx.fee)}</div>}
+            {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>Geb. {sym} {fmtTx(tx.fee)}</div>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -1421,7 +1449,13 @@ export default function App() {
       d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
       const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
       if (data.length) setHistoricChartData(data);
-      // rawPriceData wird von fetchHistory (Netlify Proxy, 24h Cache) gesetzt
+      // Für Portfolio-Chart: tägliche Preise speichern
+      const daily = d.prices.map(([ts, price]) => {
+        const dt = new Date(ts);
+        const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+        return [iso, Math.round(price)];
+      });
+      setRawPriceData(daily);
     } catch {}
   }, []);
 
