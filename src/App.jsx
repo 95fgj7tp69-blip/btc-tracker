@@ -927,6 +927,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCostInfo, setShowCostInfo] = useState(false);
   const [importResult, setImportResult] = useState(null); // {imported, skipped}
   const [importing, setImporting] = useState(false);
 
@@ -1008,23 +1009,33 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       </div>
 
       {/* EINSTANDSPREIS-METHODE */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>EINSTANDSPREIS-METHODE</div>
-      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>Bestimmt, wie der Einstandspreis bei Verkäufen berechnet wird</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, marginTop: 24 }}>
+        <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em" }}>EINSTANDSPREIS-METHODE</div>
+        <button onClick={() => setShowCostInfo(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textFaint, borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0 }}>?</button>
+      </div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {[["FIFO", "First In First Out"], ["AVCO", "Weighted Average"]].map(([key, desc], i) => (
-            <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "14px 12px", background: costMethod === key ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: costMethod === key ? "#000" : T.textMuted, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: costMethod === key ? 700 : 400 }}>{key}</div>
-              <div style={{ fontSize: 11, marginTop: 2, opacity: 0.75 }}>{desc}</div>
-            </button>
+          {["FIFO", "AVCO"].map((key, i) => (
+            <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "14px 0", background: costMethod === key ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: costMethod === key ? "#000" : T.textMuted, fontSize: 15, fontWeight: costMethod === key ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{key}</button>
           ))}
         </div>
-        <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}` }}>
-          <span style={{ color: T.textFaint, fontSize: 12 }}>
-            {costMethod === "FIFO" ? "Standard · kompatibel mit Parqet" : "Gleicher Einstand für alle BTC im Portfolio"}
-          </span>
-        </div>
       </div>
+      {showCostInfo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowCostInfo(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+            <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Einstandspreis-Methode</div>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>FIFO – First In, First Out</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.55 }}>Die zuerst gekauften BTC gelten als zuerst verkauft. Jeder Kauf wird als einzelnes Lot gespeichert. Beim Verkauf werden die ältesten Lots zuerst aufgebraucht. Der verbleibende Einstandspreis entspricht den neueren, oft teureren Käufen.</div>
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>AVCO – Weighted Average Cost</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.55 }}>Bei jedem Kauf wird der gewichtete Durchschnittspreis aller BTC neu berechnet. Verkäufe verändern den Einstandspreis nicht, nur den Bestand. Alle gehaltenen BTC haben immer denselben Einstandspreis.</div>
+            </div>
+            <button onClick={() => setShowCostInfo(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Schliessen</button>
+          </div>
+        </div>
+      )}
 
       {/* DARSTELLUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
@@ -1069,7 +1080,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.12.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.12.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
