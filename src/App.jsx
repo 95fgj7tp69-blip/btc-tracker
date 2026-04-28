@@ -923,7 +923,7 @@ function OnboardingScreen({ onFinish, T }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1007,6 +1007,25 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* EINSTANDSPREIS-METHODE */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>EINSTANDSPREIS-METHODE</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>Bestimmt, wie der Einstandspreis bei Verkäufen berechnet wird</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+          {[["FIFO", "First In First Out"], ["AVCO", "Weighted Average"]].map(([key, desc], i) => (
+            <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "14px 12px", background: costMethod === key ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: costMethod === key ? "#000" : T.textMuted, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: costMethod === key ? 700 : 400 }}>{key}</div>
+              <div style={{ fontSize: 11, marginTop: 2, opacity: 0.75 }}>{desc}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}` }}>
+          <span style={{ color: T.textFaint, fontSize: 12 }}>
+            {costMethod === "FIFO" ? "Standard · kompatibel mit Parqet" : "Gleicher Einstand für alle BTC im Portfolio"}
+          </span>
+        </div>
+      </div>
+
       {/* DARSTELLUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1050,7 +1069,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.11.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.12.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1506,34 +1525,65 @@ export default function App() {
   const pnlChf       = portfolioChf - totalInvested;
   const pnlPct       = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
 
-  // AVCO-Methode (Weighted Average Cost)
-  // Einstandspreis pro BTC bleibt beim Verkauf gleich
-  // Nur Bestand und Gesamtkostenbasis reduzieren sich
-  const avgChf = (() => {
-    const sorted = [...transactions]
-      .filter(t => t.type === "buy" || t.type === "sell" || t.type === "transfer_in" || t.type === "transfer_out")
-      .sort((a, b) => a.date.localeCompare(b.date));
-    let poolBtc = 0;  // aktueller BTC-Bestand
-    let avco = 0;     // aktueller Einstandspreis pro BTC
+  // ── Einstandspreis-Methode ────────────────────────────────────────────────────
+  const [costMethod, setCostMethodState] = useState(() => {
+    try { return localStorage.getItem("costMethod") || "FIFO"; } catch { return "FIFO"; }
+  });
+  const setCostMethod = (m) => { setCostMethodState(m); try { localStorage.setItem("costMethod", m); } catch {} };
+
+  // FIFO-Methode: Lots werden nach Kaufdatum verwaltet
+  const calcFifo = (txList) => {
+    const sorted = [...txList].sort((a, b) => a.date.localeCompare(b.date));
+    const lots = []; // { btc, costPerBtc }
     for (const tx of sorted) {
       if (tx.type === "buy") {
-        // Neuer AVCO = (alter Bestand × alter AVCO + neue Kosten) / neuer Bestand
+        const costPerBtc = (+tx.chf + +(tx.fee || 0)) / +tx.btc;
+        lots.push({ btc: +tx.btc, costPerBtc });
+      } else if (tx.type === "sell") {
+        let toSell = +tx.btc;
+        while (toSell > 1e-10 && lots.length) {
+          if (lots[0].btc <= toSell) { toSell -= lots[0].btc; lots.shift(); }
+          else { lots[0].btc -= toSell; toSell = 0; }
+        }
+      } else if (tx.type === "transfer_in") {
+        // Einbuchung ohne Kostenbasis: zum aktuellen FIFO-Durchschnitt einbuchen
+        const curAvg = lots.length ? lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0) / lots.reduce((s, l) => s + l.btc, 0) : 0;
+        lots.push({ btc: +tx.btc, costPerBtc: curAvg });
+      } else if (tx.type === "transfer_out") {
+        let toRemove = +tx.btc;
+        while (toRemove > 1e-10 && lots.length) {
+          if (lots[0].btc <= toRemove) { toRemove -= lots[0].btc; lots.shift(); }
+          else { lots[0].btc -= toRemove; toRemove = 0; }
+        }
+      }
+    }
+    const remBtc = lots.reduce((s, l) => s + l.btc, 0);
+    const remCost = lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0);
+    return remBtc > 0 ? remCost / remBtc : 0;
+  };
+
+  // AVCO-Methode (Weighted Average Cost)
+  const calcAvco = (txList) => {
+    const sorted = [...txList].sort((a, b) => a.date.localeCompare(b.date));
+    let poolBtc = 0;
+    let avco = 0;
+    for (const tx of sorted) {
+      if (tx.type === "buy") {
         const kosten = +tx.chf + +(tx.fee || 0);
         avco = (poolBtc * avco + kosten) / (poolBtc + +tx.btc);
         poolBtc += +tx.btc;
       } else if (tx.type === "sell") {
-        // AVCO bleibt gleich, nur Bestand reduziert sich
         poolBtc -= +tx.btc;
       } else if (tx.type === "transfer_in") {
-        // Einbuchung: AVCO bleibt gleich, nur Bestand steigt
         poolBtc += +tx.btc;
       } else if (tx.type === "transfer_out") {
-        // Ausbuchung: AVCO bleibt gleich, Bestand reduziert sich
         poolBtc -= +tx.btc;
       }
     }
     return avco;
-  })();
+  };
+
+  const avgChf = costMethod === "FIFO" ? calcFifo(transactions) : calcAvco(transactions);
   const avgUsd = avgChf / usdChf;
 
   const handleSave = async (form) => {
@@ -1702,7 +1752,7 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} onImport={handleImportTransactions} />}
+            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} />}
           </>
         )}
       </div>
