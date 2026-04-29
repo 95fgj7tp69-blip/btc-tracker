@@ -759,9 +759,13 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const [feeInput, setFeeInput] = useState("0");
   const [mode, setMode] = useState("chf");
   const val = parseFloat(input) || 0, fee = parseFloat(feeInput) || 0;
-  const newBtc = mode === "chf" ? (val - fee) / currentChf : val;
-  const newChf = mode === "chf" ? val : val * currentChf + fee;
-  const newTotalBtc = totalBtc + newBtc, newTotalInvested = totalInvested + newChf;
+  // newBtc: Gebühren kaufen keine BTC, also val / kurs (ohne fee abzug)
+  const newBtc = mode === "chf" ? val / currentChf : val;
+  // newChf: Gesamtkosten = Kaufbetrag + Gebühren
+  const newChf = mode === "chf" ? val + fee : val * currentChf + fee;
+  const costBasis = avgChf * totalBtc; // Kostenbasis der gehaltenen BTC
+  const newTotalBtc = totalBtc + newBtc;
+  const newTotalInvested = costBasis + newChf;
   const newAvgChf = newTotalBtc > 0 ? newTotalInvested / newTotalBtc : 0;
   const newAvgUsd = newAvgChf / usdChf;
   const avgDrop = avgChf > 0 ? ((newAvgChf - avgChf) / avgChf) * 100 : 0;
@@ -1266,7 +1270,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.16.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.16.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
