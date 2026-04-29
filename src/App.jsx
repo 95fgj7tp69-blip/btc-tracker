@@ -306,46 +306,62 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
-        // Erstelle einen Map von Datum -> kumuliertes BTC und Investiert
+        // txMap: kumuliertes BTC und Investiert pro Transaktionsdatum
         const txMap = {};
         let runBtc = 0, runInv = 0;
         for (const tx of sortedTx) {
-          if (tx.type === "buy")          { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
-          else if (tx.type === "sell")    { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
-          else if (tx.type === "transfer_in")  runBtc += +(tx.btc||0);
-          else if (tx.type === "transfer_out") runBtc -= +(tx.btc||0);
+          if (tx.type === "buy")               { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
+          else if (tx.type === "sell")         { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
+          else if (tx.type === "transfer_in")  { runBtc += +(tx.btc||0); }
+          else if (tx.type === "transfer_out") { runBtc -= +(tx.btc||0); }
           txMap[tx.date] = { btc: runBtc, inv: runInv };
         }
+        const txDatesSorted = Object.keys(txMap).sort();
 
-        // Fuer jeden Preispunkt: interpoliere BTC-Bestand und Investiert
-        const combined = [];
+        // Investiert-Linie: alle Transaktionsdaten als Datenpunkte (unabhängig von rawPriceData)
+        // So ist die Linie immer vollständig, auch wenn Preishistorie nur 1 Jahr zurückgeht
+        const investedPoints = txDatesSorted.map(date => {
+          let t = date;
+          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
+          else if (activeTab === "30D") t = date.slice(8,10)+".";
+          else if (activeTab === "ALL") t = date.slice(0,7);
+          return { t, invested: Math.max(0, Math.round(txMap[date].inv)), portfolio: undefined };
+        });
+
+        // Portfolio-Wert-Linie: aus Preisdaten
         let lastBtc = 0, lastInv = 0;
-        for (const [date, usdPrice] of pricesInRange) {
-          // Update lastBtc/lastInv falls Transaktion an diesem Datum
+        const portfolioPoints = pricesInRange.map(([date, usdPrice]) => {
           if (txMap[date]) { lastBtc = txMap[date].btc; lastInv = txMap[date].inv; }
           else {
-            // Finde letzten Stand vor diesem Datum
-            const txDates = Object.keys(txMap).filter(d => d <= date).sort();
-            if (txDates.length) {
-              const last = txDates[txDates.length-1];
-              lastBtc = txMap[last].btc;
-              lastInv = txMap[last].inv;
-            }
+            const prev = txDatesSorted.filter(d => d <= date);
+            if (prev.length) { lastBtc = txMap[prev[prev.length-1]].btc; lastInv = txMap[prev[prev.length-1]].inv; }
           }
           const chfPrice = usdPrice * usdChf;
           let t = date;
           if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
           else if (activeTab === "30D") t = date.slice(8,10)+".";
           else if (activeTab === "ALL") t = date.slice(0,7);
-          combined.push({
-            t,
-            invested: Math.max(0, Math.round(lastInv)),
-            portfolio: Math.max(0, Math.round(lastBtc * chfPrice)),
-          });
-        }
+          return { t, portfolio: Math.max(0, Math.round(lastBtc * chfPrice)) };
+        });
+
+        // Merge: für ALL-Tab kombiniere beide Linien nach Datum
+        // Investiert-Punkte haben alle TX-Daten, Portfolio-Punkte haben alle Preis-Daten
+        // Wir bauen eine gemeinsame Zeitlinie
+        const merged = new Map();
+        investedPoints.forEach(p => {
+          merged.set(p.t, { t: p.t, invested: p.invested });
+        });
+        portfolioPoints.forEach(p => {
+          const existing = merged.get(p.t) || { t: p.t };
+          merged.set(p.t, { ...existing, portfolio: p.portfolio });
+        });
         // Heutiger Endpunkt
-        const todayD = now.toISOString().slice(0,10);
-        combined.push({ t: fmtLabel(todayD), invested: Math.max(0, Math.round(runInv)), portfolio: Math.round(portfolioChf) });
+        const todayT = activeTab === "ALL" ? now.toISOString().slice(0,7)
+          : activeTab === "30D" ? now.toISOString().slice(8,10)+"."
+          : fmtLabel(now.toISOString().slice(0,10));
+        merged.set(todayT, { ...(merged.get(todayT)||{t:todayT}), invested: Math.round(runInv), portfolio: Math.round(portfolioChf) });
+
+        const combined = Array.from(merged.values()).sort((a,b) => a.t.localeCompare(b.t));
         return combined.length >= 2 ? combined : null;
       }
 
@@ -1093,7 +1109,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
           <div>
             <div style={{ color: T.text, fontSize: 15 }}>Demo-Daten laden</div>
-            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>20 Beispiel-Transaktionen importieren</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>Beispiel-Transaktionen importieren</div>
           </div>
           <button onClick={() => setShowDemoModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Laden</button>
         </div>
@@ -1120,7 +1136,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.7" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1420,7 +1436,7 @@ function DemoImportModal({ onClose, onImport, transactions, T }) {
         </div>
         <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Demo-Daten laden?</div>
         <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 1.55 }}>
-          20 Beispiel-Transaktionen von 2022–2025 werden importiert. Bestehende Transaktionen bleiben erhalten.
+          Beispiel-Transaktionen von 2022–2026 werden importiert. Bestehende Transaktionen bleiben erhalten.
         </div>
 
         {isSaving && (
