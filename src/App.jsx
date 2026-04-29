@@ -1270,7 +1270,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.16.3" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.17.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2074,33 +2074,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // Pull-to-Refresh
-  const pullRef = useRef(null);
-  const pullStartY = useRef(0);
-  const pullDist = useRef(0);
-  const [pullRefreshing, setPullRefreshing] = useState(false);
 
-  const handleTouchStart = useCallback((e) => {
-    pullStartY.current = e.touches[0].clientY;
-    pullDist.current = 0;
-  }, []);
-
-  const handleTouchEnd = useCallback(async () => {
-    if (pullDist.current > 70 && !pullRefreshing) {
-      setPullRefreshing(true);
-      await Promise.all([fetchPrice(), fetchHistoricChart()]);
-      setPullRefreshing(false);
-    }
-    pullDist.current = 0;
-  }, [pullRefreshing, fetchPrice, fetchHistoricChart]);
-
-  const handleTouchMove = useCallback((e) => {
-    const el = pullRef.current;
-    if (!el) return;
-    const scrollTop = el.scrollTop;
-    if (scrollTop > 0) return;
-    pullDist.current = Math.max(0, e.touches[0].clientY - pullStartY.current);
-  }, []);
 
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
@@ -2157,16 +2131,14 @@ export default function App() {
         ) : (
           <>
             {view === "dashboard" && (
-              <div ref={pullRef} style={scrollStyle} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
+              <div style={scrollStyle}>
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
             )}
             {view === "analyse" && (
-              <div ref={pullRef} style={{ ...scrollStyle, padding: "0 12px" }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
+              <div style={{ ...scrollStyle, padding: "0 12px" }}>
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} />
