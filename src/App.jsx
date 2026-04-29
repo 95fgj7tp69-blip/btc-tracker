@@ -1071,7 +1071,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
             <div style={{ color: T.text, fontSize: 15 }}>Demo-Daten laden</div>
             <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>20 Beispiel-Transaktionen importieren</div>
           </div>
-          <button onClick={() => setShowDemoModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Demo</button>
+          <button onClick={() => setShowDemoModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Laden</button>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
           <div>
@@ -1096,7 +1096,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1125,7 +1125,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
     {showClearModal && <ClearDataModal onClose={() => setShowClearModal(false)} onImport={onImport} T={T} />}
-    {showDemoModal && <DemoImportModal onClose={() => setShowDemoModal(false)} onImport={onImport} transactions={transactions} T={T} />}
+    {showDemoModal && <DemoImportModal key={String(showDemoModal)} onClose={() => setShowDemoModal(false)} onImport={onImport} transactions={transactions} T={T} />}
     {showPrivacy && (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
         <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
@@ -1254,21 +1254,28 @@ function ClearDataModal({ onClose, onImport, T }) {
   const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState(null);
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0); // 0-100
+  const [progressLabel, setProgressLabel] = useState("");
   const confirmed = confirm === "LÖSCHEN";
 
   const handleClear = async () => {
     if (!confirmed) return;
-    setStatus("saving"); setError("");
+    setStatus("saving"); setError(""); setProgress(0);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      // Alle Transaktionen einzeln löschen via bestehende API
       const { data: rows } = await supabase
         .from("transactions")
         .select("id")
         .eq("user_id", session.user.id);
-      for (const row of rows || []) {
-        await fetch(`/api/transactions/${row.id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+      const total = (rows || []).length;
+      if (total === 0) { setStatus("ok"); setTimeout(() => { onClose(); window.location.reload(); }, 1000); return; }
+      setProgressLabel(`0 / ${total} gelöscht`);
+      for (let i = 0; i < rows.length; i++) {
+        await fetch(`/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+        const pct = Math.round(((i + 1) / total) * 100);
+        setProgress(pct);
+        setProgressLabel(`${i + 1} / ${total} gelöscht`);
       }
       setStatus("ok");
       setTimeout(() => { onClose(); window.location.reload(); }, 1200);
@@ -1277,8 +1284,10 @@ function ClearDataModal({ onClose, onImport, T }) {
     }
   };
 
+  const isSaving = status === "saving";
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={isSaving ? undefined : onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>🗑️</div>
@@ -1288,18 +1297,34 @@ function ClearDataModal({ onClose, onImport, T }) {
         <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 20, padding: "10px 16px", background: "rgba(239,68,68,0.08)", borderRadius: 10 }}>
           Diese Aktion kann nicht rückgängig gemacht werden.
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>Tippe <strong style={{ color: "#ef4444" }}>LÖSCHEN</strong> zur Bestätigung</div>
-          <input type="text" placeholder="LÖSCHEN" value={confirm} onChange={e => setConfirm(e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${confirmed ? "#ef4444" : T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-        </div>
+        {!isSaving && status !== "ok" && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>Tippe <strong style={{ color: "#ef4444" }}>LÖSCHEN</strong> zur Bestätigung</div>
+            <input type="text" placeholder="LÖSCHEN" value={confirm} onChange={e => setConfirm(e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${confirmed ? "#ef4444" : T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+        )}
+        {isSaving && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ color: T.textMuted, fontSize: 13 }}>Wird gelöscht...</span>
+              <span style={{ color: T.textMuted, fontSize: 13 }}>{progressLabel}</span>
+            </div>
+            <div style={{ height: 8, background: T.input, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "#ef4444", borderRadius: 4, transition: "width 0.2s ease" }} />
+            </div>
+            <div style={{ color: T.textFaint, fontSize: 12, textAlign: "center", marginTop: 8 }}>Bitte warten — App nicht schliessen</div>
+          </div>
+        )}
         {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{error}</div>}
-        {status === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14 }}>✓ Alle Transaktionen gelöscht</div>}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
-          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
-          <button onClick={handleClear} disabled={!confirmed || status === "saving"} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-            {status === "saving" ? "Wird gelöscht..." : "Alles löschen"}
-          </button>
-        </div>
+        {status === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14, textAlign: "center" }}>✓ Alle Transaktionen gelöscht</div>}
+        {!isSaving && status !== "ok" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+            <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+            <button onClick={handleClear} disabled={!confirmed} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+              Alles löschen
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1361,8 +1386,11 @@ function DemoImportModal({ onClose, onImport, transactions, T }) {
         )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
-          <button onClick={handleImport} disabled={status === "saving" || (typeof status === "object")} style={{ padding: "15px 0", background: status === "saving" || typeof status === "object" ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-            {status === "saving" ? "Wird geladen..." : typeof status === "object" ? "Fertig" : "Demo laden"}
+          <button
+            onClick={typeof status === "object" ? onClose : handleImport}
+            disabled={status === "saving"}
+            style={{ padding: "15px 0", background: status === "saving" ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: status === "saving" ? "default" : "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {status === "saving" ? "Wird geladen..." : typeof status === "object" ? "Schliessen" : "Demo laden"}
           </button>
         </div>
       </div>
