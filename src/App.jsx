@@ -788,23 +788,110 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   );
 }
 
-function BarChart({ portfolioChf, investedChf, T }) {
-  const max = Math.max(portfolioChf, investedChf, 1) * 1.2;
-  const steps = [0, 25000, 50000, 75000, 100000].filter(v => v <= max);
-  const bars = [{ label: "Portfolio", value: portfolioChf, color: "#ef4444" }, { label: "Investiert", value: investedChf, color: "#3b82f6" }];
+// ── Realized P&L Card ─────────────────────────────────────────────────────────
+function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, avgChf = 0 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toDisplay(v, currency, usdChf, eurUsd))}`;
+
+  // Realisierter Gewinn = Verkaufserlös - Einstandswert der verkauften BTC (nach FIFO/AVCO = avgChf)
+  const sells = transactions.filter(t => t.type === "sell");
+  const totalProceeds = sells.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
+  const totalCostBasis = sells.reduce((s, t) => s + +t.btc * avgChf, 0);
+  const realizedPnl = totalProceeds - totalCostBasis;
+  const isPos = realizedPnl >= 0;
+
+  if (sells.length === 0) {
+    return (
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
+        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 12 }}>REALISIERTER GEWINN / VERLUST</div>
+        <div style={{ color: T.textFaint, fontSize: 14, textAlign: "center", padding: "16px 0" }}>Noch keine Verkäufe erfasst</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>REALISIERTER GEWINN / VERLUST</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
+            {isPos ? "+" : ""}{fmt(realizedPnl)}
+          </div>
+          <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>aus {sells.length} Verkauf{sells.length > 1 ? "en" : ""}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>Verkaufserlös</div>
+          <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{fmt(totalProceeds)}</div>
+          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8, marginBottom: 4 }}>Einstandswert</div>
+          <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{fmt(totalCostBasis)}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 16, padding: "10px 14px", background: isPos ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${isPos ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10 }}>
+        <span style={{ color: T.textMuted, fontSize: 13 }}>Basierend auf aktuellem Einstandspreis von {fmt(avgChf)} / BTC</span>
+      </div>
+    </div>
+  );
+}
+
+// ── DCA Effizienz Chart ────────────────────────────────────────────────────────
+function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt0 = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toDisplay(v, currency, usdChf, eurUsd));
+
+  // Durchschnittlicher Kaufpreis pro Jahr
+  const byYear = {};
+  transactions.filter(t => t.type === "buy").forEach(t => {
+    const year = t.date.slice(0, 4);
+    if (!byYear[year]) byYear[year] = { totalChf: 0, totalBtc: 0 };
+    byYear[year].totalChf += +t.chf + +(t.fee || 0);
+    byYear[year].totalBtc += +t.btc;
+  });
+
+  const years = Object.keys(byYear).sort();
+  if (years.length === 0) return null;
+
+  const bars = years.map(year => ({
+    year,
+    avgPrice: byYear[year].totalBtc > 0 ? byYear[year].totalChf / byYear[year].totalBtc : 0,
+    invested: byYear[year].totalChf,
+  }));
+
+  const maxPrice = Math.max(...bars.map(b => b.avgPrice)) * 1.15;
+  const barH = 140;
+
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 20 }}>VERGLEICH</div>
-      <div style={{ display: "flex", alignItems: "flex-end", height: 180, position: "relative" }}>
-        {steps.map(v => (<div key={v} style={{ position: "absolute", left: 32, right: 0, bottom: `${(v / max) * 100}%`, borderTop: `1px solid ${T.border}` }}><span style={{ position: "absolute", left: -30, bottom: 2, color: T.textMuted, fontSize: 10 }}>{v >= 1000 ? `${v / 1000}k` : v}</span></div>))}
-        <div style={{ flex: 1, display: "flex", gap: 16, alignItems: "flex-end", paddingLeft: 36, height: "100%" }}>
-          {bars.map(({ label, value, color }) => (
-            <div key={label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, height: "100%", justifyContent: "flex-end" }}>
-              <div style={{ color: T.textMuted, fontSize: 11 }}>{fmtChf(value, 0)}</div>
-              <div style={{ width: "100%", height: `${Math.max((value / max) * 148, 2)}px`, background: color, borderRadius: "6px 6px 2px 2px", opacity: 0.8 }} />
-              <div style={{ color: T.textSub, fontSize: 12 }}>{label}</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>DCA-EFFIZIENZ</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 16 }}>Ø Kaufpreis pro Jahr in {sym}</div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, position: "relative" }}>
+        {/* Gridlines */}
+        {[0.25, 0.5, 0.75, 1].map(f => (
+          <div key={f} style={{ position: "absolute", left: 0, right: 0, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
+            <span style={{ position: "absolute", right: 0, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}k</span>
+          </div>
+        ))}
+        {bars.map(({ year, avgPrice, invested }) => {
+          const h = Math.max(4, (avgPrice / maxPrice) * barH);
+          // Farbe: günstiger als Durchschnitt = grün, teurer = rot
+          const avgAll = bars.reduce((s, b) => s + b.avgPrice, 0) / bars.length;
+          const color = avgPrice <= avgAll ? "#22c55e" : "#ef4444";
+          return (
+            <div key={year} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 4 }}>
+              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(avgPrice)}</div>
+              <div style={{ width: "100%", height: h, background: color, borderRadius: "4px 4px 2px 2px", opacity: 0.8 }} />
+              <div style={{ color: T.textMuted, fontSize: 10, textAlign: "center" }}>{year.slice(2)}</div>
             </div>
-          ))}
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: "#22c55e", opacity: 0.8 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Unter Ø</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: "#ef4444", opacity: 0.8 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Über Ø</span>
         </div>
       </div>
     </div>
@@ -1162,7 +1249,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.14.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.15.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2019,7 +2106,8 @@ export default function App() {
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
-                <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} T={T} />
+                <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} />
+                <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
             )}
             {view === "verlauf" && (
