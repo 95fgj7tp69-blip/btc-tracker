@@ -306,7 +306,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
-        // txMap: kumuliertes BTC und Investiert pro Transaktionsdatum (alle Transaktionen)
+        // txMap aufbauen
         const txMap = {};
         let runBtc = 0, runInv = 0;
         for (const tx of sortedTx) {
@@ -325,46 +325,24 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           return fmtLabel(date);
         };
 
-        // Portfolio-Wert-Linie: aus Preisdaten (nur im Preishistorie-Zeitraum)
+        // Portfolio-Wert aus Preisdaten (alle Tabs)
         let lastBtc = 0;
+        // Initialisiere lastBtc mit Stand vor erstem Preispunkt
+        const prevTx = txDatesSorted.filter(d => d < pricesInRange[0][0]);
+        if (prevTx.length) lastBtc = txMap[prevTx[prevTx.length-1]].btc;
+
         const combined = pricesInRange.map(([date, usdPrice]) => {
-          // BTC-Bestand zum jeweiligen Datum interpolieren
-          if (txMap[date]) {
-            lastBtc = txMap[date].btc;
-          } else {
+          if (txMap[date]) lastBtc = txMap[date].btc;
+          else {
             const prev = txDatesSorted.filter(d => d <= date);
             if (prev.length) lastBtc = txMap[prev[prev.length-1]].btc;
           }
           return { t: fmtT(date), portfolio: Math.max(0, Math.round(lastBtc * usdPrice * usdChf)) };
         });
 
-        // Investiert-Linie: TX-Punkte die im sichtbaren Zeitraum liegen
-        // Für ALL-Tab: alle TX-Punkte + Startpunkt mit Stand vor erstem Preispunkt
-        const firstPriceDate = pricesInRange[0][0];
-        const lastPriceDate  = pricesInRange[pricesInRange.length-1][0];
-
+        // Investiert-Linie NUR für ALL-Tab (sonst Skalenproblem)
         if (activeTab === "ALL") {
-          // Für ALL: Investiert-Linie aus ALLEN Transaktionen (unabhängig von Preisdaten)
-          // Startpunkt = erste Transaktion, Endpunkt = heute
-          const allTxDates = txDatesSorted;
-          allTxDates.forEach(date => {
-            const t = fmtT(date);
-            const existing = combined.find(p => p.t === t);
-            if (existing) existing.invested = Math.max(0, Math.round(txMap[date].inv));
-            else combined.push({ t, invested: Math.max(0, Math.round(txMap[date].inv)) });
-          });
-        } else {
-          // Für 1D/7D/30D: Investiert-Linie nur aus TX im Zeitraum
-          // Plus Startpunkt mit dem Stand KURZ VOR dem Cutoff
-          const prevTx = txDatesSorted.filter(d => d < cutoffStr);
-          const startInv = prevTx.length ? txMap[prevTx[prevTx.length-1]].inv : 0;
-          // Startpunkt einfügen
-          const startT = fmtT(cutoffStr);
-          const startExisting = combined.find(p => p.t === startT);
-          if (startExisting) startExisting.invested = Math.round(startInv);
-          else combined.unshift({ t: startT, invested: Math.round(startInv) });
-          // TX-Punkte im Zeitraum
-          txDatesSorted.filter(d => d >= cutoffStr && d <= lastPriceDate).forEach(date => {
+          txDatesSorted.forEach(date => {
             const t = fmtT(date);
             const existing = combined.find(p => p.t === t);
             if (existing) existing.invested = Math.max(0, Math.round(txMap[date].inv));
@@ -374,11 +352,16 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
 
         // Heutiger Endpunkt
         const todayT = fmtT(now.toISOString().slice(0,10));
-        const todayExisting = combined.find(p => p.t === todayT);
-        if (todayExisting) { todayExisting.invested = Math.round(runInv); todayExisting.portfolio = Math.round(portfolioChf); }
-        else combined.push({ t: todayT, invested: Math.round(runInv), portfolio: Math.round(portfolioChf) });
+        const todayEx = combined.find(p => p.t === todayT);
+        if (todayEx) {
+          todayEx.portfolio = Math.round(portfolioChf);
+          if (activeTab === "ALL") todayEx.invested = Math.round(runInv);
+        } else {
+          const pt = { t: todayT, portfolio: Math.round(portfolioChf) };
+          if (activeTab === "ALL") pt.invested = Math.round(runInv);
+          combined.push(pt);
+        }
 
-        // Sortieren
         combined.sort((a,b) => a.t.localeCompare(b.t));
         return combined.length >= 2 ? combined : null;
       }
@@ -455,7 +438,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
               formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : name === "portfolio" ? "Portfoliowert" : "Heute"]}
             />
-            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={activeTab === "ALL" ? 2 : 0} dot={false} activeDot={activeTab === "ALL" ? { r: 3 } : false} />
             {chartData?.[0]?.portfolio !== undefined ? (
               <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
             ) : (
@@ -473,10 +456,12 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       </div>
       {/* Legende */}
       <div style={{ display: "flex", gap: 16, padding: "0 16px 16px", justifyContent: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
-        </div>
+        {activeTab === "ALL" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
+            <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {chartData?.[0]?.portfolio !== undefined ? (
             <><div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span></>
@@ -1154,7 +1139,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.8" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.9" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
