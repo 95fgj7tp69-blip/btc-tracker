@@ -340,13 +340,24 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           return { t: fmtT(date), portfolio: Math.max(0, Math.round(lastBtc * usdPrice * usdChf)) };
         });
 
-        // Investiert-Linie NUR für ALL-Tab (sonst Skalenproblem)
+        // Investiert-Linie NUR für ALL-Tab
         if (activeTab === "ALL") {
-          txDatesSorted.forEach(date => {
-            const t = fmtT(date);
-            const existing = combined.find(p => p.t === t);
-            if (existing) existing.invested = Math.max(0, Math.round(txMap[date].inv));
-            else combined.push({ t, invested: Math.max(0, Math.round(txMap[date].inv)) });
+          // Füge invested-Werte nur dort ein wo auch portfolio-Daten vorhanden sind
+          // Startpunkt: Stand kurz vor dem ersten Preispunkt
+          const firstPriceDate = pricesInRange[0][0];
+          const prevTx = txDatesSorted.filter(d => d <= firstPriceDate);
+          const startInv = prevTx.length ? txMap[prevTx[prevTx.length-1]].inv : 0;
+
+          // Setze invested für alle combined-Punkte durch Interpolation
+          let lastInv = startInv;
+          combined.forEach(p => {
+            // Finde TX an oder vor diesem Datum
+            const t = p.t; // Format: "2025-06"
+            const txAtOrBefore = txDatesSorted.filter(d => d.slice(0,7) <= t);
+            if (txAtOrBefore.length) {
+              lastInv = txMap[txAtOrBefore[txAtOrBefore.length-1]].inv;
+            }
+            p.invested = Math.max(0, Math.round(lastInv));
           });
         }
 
@@ -1139,7 +1150,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.9" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.14.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
