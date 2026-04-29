@@ -306,7 +306,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
-        // txMap: kumuliertes BTC und Investiert pro Transaktionsdatum
+        // txMap: kumuliertes BTC und Investiert pro Transaktionsdatum (alle Transaktionen)
         const txMap = {};
         let runBtc = 0, runInv = 0;
         for (const tx of sortedTx) {
@@ -318,50 +318,68 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         }
         const txDatesSorted = Object.keys(txMap).sort();
 
-        // Investiert-Linie: alle Transaktionsdaten als Datenpunkte (unabhängig von rawPriceData)
-        // So ist die Linie immer vollständig, auch wenn Preishistorie nur 1 Jahr zurückgeht
-        const investedPoints = txDatesSorted.map(date => {
-          let t = date;
-          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
-          else if (activeTab === "30D") t = date.slice(8,10)+".";
-          else if (activeTab === "ALL") t = date.slice(0,7);
-          return { t, invested: Math.max(0, Math.round(txMap[date].inv)), portfolio: undefined };
-        });
+        const fmtT = (date) => {
+          if (activeTab === "7D")  return ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
+          if (activeTab === "30D") return date.slice(8,10)+".";
+          if (activeTab === "ALL") return date.slice(0,7);
+          return fmtLabel(date);
+        };
 
-        // Portfolio-Wert-Linie: aus Preisdaten
-        let lastBtc = 0, lastInv = 0;
-        const portfolioPoints = pricesInRange.map(([date, usdPrice]) => {
-          if (txMap[date]) { lastBtc = txMap[date].btc; lastInv = txMap[date].inv; }
-          else {
+        // Portfolio-Wert-Linie: aus Preisdaten (nur im Preishistorie-Zeitraum)
+        let lastBtc = 0;
+        const combined = pricesInRange.map(([date, usdPrice]) => {
+          // BTC-Bestand zum jeweiligen Datum interpolieren
+          if (txMap[date]) {
+            lastBtc = txMap[date].btc;
+          } else {
             const prev = txDatesSorted.filter(d => d <= date);
-            if (prev.length) { lastBtc = txMap[prev[prev.length-1]].btc; lastInv = txMap[prev[prev.length-1]].inv; }
+            if (prev.length) lastBtc = txMap[prev[prev.length-1]].btc;
           }
-          const chfPrice = usdPrice * usdChf;
-          let t = date;
-          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
-          else if (activeTab === "30D") t = date.slice(8,10)+".";
-          else if (activeTab === "ALL") t = date.slice(0,7);
-          return { t, portfolio: Math.max(0, Math.round(lastBtc * chfPrice)) };
+          return { t: fmtT(date), portfolio: Math.max(0, Math.round(lastBtc * usdPrice * usdChf)) };
         });
 
-        // Merge: für ALL-Tab kombiniere beide Linien nach Datum
-        // Investiert-Punkte haben alle TX-Daten, Portfolio-Punkte haben alle Preis-Daten
-        // Wir bauen eine gemeinsame Zeitlinie
-        const merged = new Map();
-        investedPoints.forEach(p => {
-          merged.set(p.t, { t: p.t, invested: p.invested });
-        });
-        portfolioPoints.forEach(p => {
-          const existing = merged.get(p.t) || { t: p.t };
-          merged.set(p.t, { ...existing, portfolio: p.portfolio });
-        });
+        // Investiert-Linie: TX-Punkte die im sichtbaren Zeitraum liegen
+        // Für ALL-Tab: alle TX-Punkte + Startpunkt mit Stand vor erstem Preispunkt
+        const firstPriceDate = pricesInRange[0][0];
+        const lastPriceDate  = pricesInRange[pricesInRange.length-1][0];
+
+        if (activeTab === "ALL") {
+          // Für ALL: Investiert-Linie aus ALLEN Transaktionen (unabhängig von Preisdaten)
+          // Startpunkt = erste Transaktion, Endpunkt = heute
+          const allTxDates = txDatesSorted;
+          allTxDates.forEach(date => {
+            const t = fmtT(date);
+            const existing = combined.find(p => p.t === t);
+            if (existing) existing.invested = Math.max(0, Math.round(txMap[date].inv));
+            else combined.push({ t, invested: Math.max(0, Math.round(txMap[date].inv)) });
+          });
+        } else {
+          // Für 1D/7D/30D: Investiert-Linie nur aus TX im Zeitraum
+          // Plus Startpunkt mit dem Stand KURZ VOR dem Cutoff
+          const prevTx = txDatesSorted.filter(d => d < cutoffStr);
+          const startInv = prevTx.length ? txMap[prevTx[prevTx.length-1]].inv : 0;
+          // Startpunkt einfügen
+          const startT = fmtT(cutoffStr);
+          const startExisting = combined.find(p => p.t === startT);
+          if (startExisting) startExisting.invested = Math.round(startInv);
+          else combined.unshift({ t: startT, invested: Math.round(startInv) });
+          // TX-Punkte im Zeitraum
+          txDatesSorted.filter(d => d >= cutoffStr && d <= lastPriceDate).forEach(date => {
+            const t = fmtT(date);
+            const existing = combined.find(p => p.t === t);
+            if (existing) existing.invested = Math.max(0, Math.round(txMap[date].inv));
+            else combined.push({ t, invested: Math.max(0, Math.round(txMap[date].inv)) });
+          });
+        }
+
         // Heutiger Endpunkt
-        const todayT = activeTab === "ALL" ? now.toISOString().slice(0,7)
-          : activeTab === "30D" ? now.toISOString().slice(8,10)+"."
-          : fmtLabel(now.toISOString().slice(0,10));
-        merged.set(todayT, { ...(merged.get(todayT)||{t:todayT}), invested: Math.round(runInv), portfolio: Math.round(portfolioChf) });
+        const todayT = fmtT(now.toISOString().slice(0,10));
+        const todayExisting = combined.find(p => p.t === todayT);
+        if (todayExisting) { todayExisting.invested = Math.round(runInv); todayExisting.portfolio = Math.round(portfolioChf); }
+        else combined.push({ t: todayT, invested: Math.round(runInv), portfolio: Math.round(portfolioChf) });
 
-        const combined = Array.from(merged.values()).sort((a,b) => a.t.localeCompare(b.t));
+        // Sortieren
+        combined.sort((a,b) => a.t.localeCompare(b.t));
         return combined.length >= 2 ? combined : null;
       }
 
@@ -1136,7 +1154,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.7" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.8" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
