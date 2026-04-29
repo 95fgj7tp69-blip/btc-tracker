@@ -429,7 +429,13 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           { key: "7D",  label: "7T",  available: true },
           { key: "30D", label: "30T", available: true },
           { key: "1Y",  label: "1J",  available: daysSinceOldestPrice >= 365 && daysSinceOldestTx >= 365 },
-          { key: "ALL", label: "Alle", available: daysSinceOldestTx > 30 },
+          { key: "ALL", label: (() => {
+            if (!oldestPrice) return "Alle";
+            const years = Math.round(daysSinceOldestPrice / 365 * 2) / 2; // auf 0.5 runden
+            if (years >= 1) return `${years % 1 === 0 ? years : years}J`;
+            const months = Math.round(daysSinceOldestPrice / 30);
+            return `${months}M`;
+          })(), available: daysSinceOldestTx > 30 },
         ];
         // Falls activeTab nicht mehr verfügbar, auf 30D zurückfallen
         const effectiveTab = tabs.find(t => t.key === activeTab)?.available ? activeTab : "30D";
@@ -1156,7 +1162,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.14.3" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.14.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
