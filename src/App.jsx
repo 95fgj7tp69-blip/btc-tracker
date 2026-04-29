@@ -381,12 +381,36 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
       </div>
-      {/* Tab-Auswahl */}
-      <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px", alignSelf: "flex-start" }}>
-        {["1D","7D","30D","1Y","ALL"].map(t => (
-          <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none", fontFamily: "inherit" }}>{t}</button>
-        ))}
-      </div>
+      {/* Tab-Auswahl — nur verfügbare Tabs aktiv */}
+      {(() => {
+        const now = new Date();
+        const oldestPrice = rawPriceData.length ? rawPriceData[0][0] : null;
+        const oldestTx = transactions.length ? [...transactions].sort((a,b) => a.date.localeCompare(b.date))[0]?.date : null;
+        const daysSinceOldestPrice = oldestPrice ? Math.floor((now - new Date(oldestPrice)) / 86400000) : 0;
+        const daysSinceOldestTx = oldestTx ? Math.floor((now - new Date(oldestTx)) / 86400000) : 0;
+        const tabs = [
+          { key: "1D",  label: "1T",  available: true },
+          { key: "7D",  label: "7T",  available: true },
+          { key: "30D", label: "30T", available: true },
+          { key: "1Y",  label: "1J",  available: daysSinceOldestPrice >= 365 && daysSinceOldestTx >= 365 },
+          { key: "ALL", label: "Alle", available: daysSinceOldestTx > 30 },
+        ];
+        // Falls activeTab nicht mehr verfügbar, auf 30D zurückfallen
+        const effectiveTab = tabs.find(t => t.key === activeTab)?.available ? activeTab : "30D";
+        if (effectiveTab !== activeTab) { setActiveTab(effectiveTab); try { localStorage.setItem("portfolioTab", effectiveTab); } catch {} }
+        return (
+          <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px" }}>
+            {tabs.filter(t => t.available).map(t => (
+              <button key={t.key} onClick={() => { setActiveTab(t.key); try { localStorage.setItem("portfolioTab", t.key); } catch {} }}
+                style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit",
+                  background: activeTab === t.key ? T.surface : "transparent",
+                  color: activeTab === t.key ? T.text : T.textFaint,
+                  boxShadow: activeTab === t.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}>{t.label}</button>
+            ))}
+          </div>
+        );
+      })()}
       <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
@@ -1096,7 +1120,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.5" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
