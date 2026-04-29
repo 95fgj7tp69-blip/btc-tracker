@@ -1096,7 +1096,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.4" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.5" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1331,28 +1331,6 @@ function ClearDataModal({ onClose, onImport, T }) {
 }
 
 // ── Demo Import Modal ─────────────────────────────────────────────────────────
-const DEMO_TRANSACTIONS = [
-  { date: "2022-01-15", type: "buy",  btc: 0.05,  chf: 2150, fee: 5,   note: "DCA Januar" },
-  { date: "2022-02-15", type: "buy",  btc: 0.04,  chf: 1680, fee: 4,   note: "DCA Februar" },
-  { date: "2022-03-15", type: "buy",  btc: 0.05,  chf: 1920, fee: 5,   note: "DCA März" },
-  { date: "2022-06-20", type: "buy",  btc: 0.10,  chf: 2100, fee: 8,   note: "Crash-Kauf" },
-  { date: "2022-09-15", type: "buy",  btc: 0.04,  chf: 800,  fee: 4,   note: "DCA September" },
-  { date: "2022-11-20", type: "buy",  btc: 0.08,  chf: 1280, fee: 6,   note: "FTX-Crash Kauf" },
-  { date: "2023-01-15", type: "buy",  btc: 0.03,  chf: 680,  fee: 3,   note: "DCA Januar" },
-  { date: "2023-03-15", type: "buy",  btc: 0.03,  chf: 750,  fee: 3,   note: "DCA März" },
-  { date: "2023-06-15", type: "buy",  btc: 0.02,  chf: 720,  fee: 3,   note: "DCA Juni" },
-  { date: "2023-09-15", type: "buy",  btc: 0.02,  chf: 500,  fee: 2.5, note: "DCA September" },
-  { date: "2023-11-15", type: "buy",  btc: 0.02,  chf: 720,  fee: 3,   note: "DCA November" },
-  { date: "2024-01-15", type: "buy",  btc: 0.015, chf: 620,  fee: 2.5, note: "DCA Januar" },
-  { date: "2024-03-15", type: "buy",  btc: 0.01,  chf: 700,  fee: 2.5, note: "Halving-Kauf" },
-  { date: "2024-05-15", type: "buy",  btc: 0.01,  chf: 650,  fee: 2.5, note: "DCA Mai" },
-  { date: "2024-08-15", type: "buy",  btc: 0.01,  chf: 560,  fee: 2,   note: "DCA August" },
-  { date: "2024-10-15", type: "buy",  btc: 0.01,  chf: 620,  fee: 2,   note: "DCA Oktober" },
-  { date: "2024-12-15", type: "buy",  btc: 0.008, chf: 820,  fee: 2,   note: "DCA Dezember" },
-  { date: "2025-01-15", type: "buy",  btc: 0.005, chf: 480,  fee: 1.5, note: "DCA Januar" },
-  { date: "2025-03-15", type: "buy",  btc: 0.005, chf: 420,  fee: 1.5, note: "DCA März" },
-  { date: "2025-05-20", type: "sell", btc: 0.02,  chf: 1980, fee: 5,   note: "Teilgewinn" },
-];
 
 function DemoImportModal({ onClose, onImport, transactions, T }) {
   const [status, setStatus] = useState(null); // null | "saving" | "done" | "error"
@@ -1361,30 +1339,47 @@ function DemoImportModal({ onClose, onImport, transactions, T }) {
 
   const handleImport = async () => {
     setStatus("saving"); setProgress(0);
-    const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
-    const toImport = DEMO_TRANSACTIONS.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
-    const skipped = DEMO_TRANSACTIONS.length - toImport.length;
-
-    if (toImport.length === 0) {
-      setResult({ imported: 0, skipped });
-      setStatus("done");
-      return;
-    }
-
-    // Simuliere Fortschritt während Batch-Import läuft
     let animPct = 0;
     const anim = setInterval(() => {
       animPct = Math.min(animPct + 4, 90);
       setProgress(animPct);
     }, 150);
-
     try {
-      const imported = await onImport(toImport); // Batch in einem Aufruf
+      // CSV aus public/ laden und parsen
+      const res = await fetch("/demo-transaktionen.csv");
+      if (!res.ok) throw new Error("CSV nicht gefunden");
+      const text = await res.text();
+      const lines = text.replace(/^\uFEFF/, "").split("\n").filter(l => l.trim());
+      const rows = lines.slice(1).map(line => {
+        const parts = line.split(",");
+        return {
+          date: parts[0]?.trim(),
+          type: parts[1]?.trim(),
+          btc:  parseFloat(parts[2]) || 0,
+          chf:  parseFloat(parts[3]) || 0,
+          fee:  parseFloat(parts[4]) || 0,
+          note: parts[5]?.trim().replace(/^"|"$/g, "") || "",
+        };
+      }).filter(r => r.date && r.type && r.btc > 0);
+
+      const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
+      const toImport = rows.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
+      const skipped = rows.length - toImport.length;
+
+      if (toImport.length === 0) {
+        clearInterval(anim);
+        setProgress(100);
+        setResult({ imported: 0, skipped, total: rows.length });
+        setStatus("done");
+        return;
+      }
+
+      const imported = await onImport(toImport);
       clearInterval(anim);
       setProgress(100);
-      setResult({ imported, skipped });
+      setResult({ imported, skipped, total: rows.length });
       setStatus("done");
-    } catch {
+    } catch (e) {
       clearInterval(anim);
       setStatus("error");
     }
@@ -1417,7 +1412,7 @@ function DemoImportModal({ onClose, onImport, transactions, T }) {
           <div style={{ marginBottom: 20, padding: "12px 16px", background: result.imported > 0 ? "rgba(34,197,94,0.08)" : "rgba(247,147,26,0.08)", borderRadius: 10, textAlign: "center" }}>
             {result.imported > 0
               ? <span style={{ color: "#22c55e", fontSize: 14 }}>✓ {result.imported} Transaktionen importiert{result.skipped > 0 ? ` · ${result.skipped} bereits vorhanden` : ""}</span>
-              : <span style={{ color: "#f7931a", fontSize: 14 }}>Alle {result.skipped} Demo-Transaktionen bereits vorhanden</span>
+              : <span style={{ color: "#f7931a", fontSize: 14 }}>Alle {result.total} Demo-Transaktionen bereits vorhanden</span>
             }
           </div>
         )}
