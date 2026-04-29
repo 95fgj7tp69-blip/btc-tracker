@@ -927,6 +927,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [showCostInfo, setShowCostInfo] = useState(false);
   const [importResult, setImportResult] = useState(null); // {imported, skipped}
   const [importing, setImporting] = useState(false);
@@ -1011,7 +1013,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* EINSTANDSPREIS-METHODE */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, marginTop: 24 }}>
         <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em" }}>EINSTANDSPREIS-METHODE</div>
-        <button onClick={() => setShowCostInfo(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textFaint, borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0 }}>?</button>
+        <button onClick={() => setShowCostInfo(true)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 24, height: 24, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0, lineHeight: 1 }}>?</button>
       </div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
@@ -1054,7 +1056,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* DATEN */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
           <div>
             <div style={{ color: T.text, fontSize: 15 }}>Transaktionen importieren</div>
             <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>CSV-Datei im App-Format</div>
@@ -1063,6 +1065,20 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
             {importing ? "Lädt..." : "↑ Import"}
             <input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} disabled={importing} />
           </label>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 15 }}>Demo-Daten laden</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>20 Beispiel-Transaktionen importieren</div>
+          </div>
+          <button onClick={() => setShowDemoModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Demo</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+          <div>
+            <div style={{ color: "#ef4444", fontSize: 15 }}>Alle Transaktionen löschen</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>Konto bleibt erhalten</div>
+          </div>
+          <button onClick={() => setShowClearModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Löschen</button>
         </div>
         {importResult && !importResult.error && (
           <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}`, background: "rgba(34,197,94,0.06)" }}>
@@ -1080,7 +1096,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.12.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1108,6 +1124,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     </div>
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    {showClearModal && <ClearDataModal onClose={() => setShowClearModal(false)} onImport={onImport} T={T} />}
+    {showDemoModal && <DemoImportModal onClose={() => setShowDemoModal(false)} onImport={onImport} transactions={transactions} T={T} />}
     {showPrivacy && (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
         <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
@@ -1224,6 +1242,127 @@ function DeleteAccountModal({ onClose, onLogout, T }) {
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
           <button onClick={handleDelete} disabled={!confirmed || status === "saving"} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
             {status === "saving" ? "Wird gelöscht..." : "Konto löschen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Clear Data Modal ──────────────────────────────────────────────────────────
+function ClearDataModal({ onClose, onImport, T }) {
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const confirmed = confirm === "LÖSCHEN";
+
+  const handleClear = async () => {
+    if (!confirmed) return;
+    setStatus("saving"); setError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      // Alle Transaktionen einzeln löschen via bestehende API
+      const { data: rows } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("user_id", session.user.id);
+      for (const row of rows || []) {
+        await fetch(`/api/transactions/${row.id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+      }
+      setStatus("ok");
+      setTimeout(() => { onClose(); window.location.reload(); }, 1200);
+    } catch (e) {
+      setError("Fehler: " + e.message); setStatus("error");
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>🗑️</div>
+        </div>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Alle Transaktionen löschen?</div>
+        <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 16 }}>Alle Transaktionsdaten werden unwiderruflich gelöscht. Dein Konto bleibt erhalten.</div>
+        <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 20, padding: "10px 16px", background: "rgba(239,68,68,0.08)", borderRadius: 10 }}>
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>Tippe <strong style={{ color: "#ef4444" }}>LÖSCHEN</strong> zur Bestätigung</div>
+          <input type="text" placeholder="LÖSCHEN" value={confirm} onChange={e => setConfirm(e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${confirmed ? "#ef4444" : T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{error}</div>}
+        {status === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14 }}>✓ Alle Transaktionen gelöscht</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+          <button onClick={handleClear} disabled={!confirmed || status === "saving"} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {status === "saving" ? "Wird gelöscht..." : "Alles löschen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Demo Import Modal ─────────────────────────────────────────────────────────
+const DEMO_TRANSACTIONS = [
+  { date: "2022-01-15", type: "buy",  btc: 0.05,  chf: 2150, fee: 5,   note: "DCA Januar" },
+  { date: "2022-02-15", type: "buy",  btc: 0.04,  chf: 1680, fee: 4,   note: "DCA Februar" },
+  { date: "2022-03-15", type: "buy",  btc: 0.05,  chf: 1920, fee: 5,   note: "DCA März" },
+  { date: "2022-06-20", type: "buy",  btc: 0.10,  chf: 2100, fee: 8,   note: "Crash-Kauf" },
+  { date: "2022-09-15", type: "buy",  btc: 0.04,  chf: 800,  fee: 4,   note: "DCA September" },
+  { date: "2022-11-20", type: "buy",  btc: 0.08,  chf: 1280, fee: 6,   note: "FTX-Crash Kauf" },
+  { date: "2023-01-15", type: "buy",  btc: 0.03,  chf: 680,  fee: 3,   note: "DCA Januar" },
+  { date: "2023-03-15", type: "buy",  btc: 0.03,  chf: 750,  fee: 3,   note: "DCA März" },
+  { date: "2023-06-15", type: "buy",  btc: 0.02,  chf: 720,  fee: 3,   note: "DCA Juni" },
+  { date: "2023-09-15", type: "buy",  btc: 0.02,  chf: 500,  fee: 2.5, note: "DCA September" },
+  { date: "2023-11-15", type: "buy",  btc: 0.02,  chf: 720,  fee: 3,   note: "DCA November" },
+  { date: "2024-01-15", type: "buy",  btc: 0.015, chf: 620,  fee: 2.5, note: "DCA Januar" },
+  { date: "2024-03-15", type: "buy",  btc: 0.01,  chf: 700,  fee: 2.5, note: "Halving-Kauf" },
+  { date: "2024-05-15", type: "buy",  btc: 0.01,  chf: 650,  fee: 2.5, note: "DCA Mai" },
+  { date: "2024-08-15", type: "buy",  btc: 0.01,  chf: 560,  fee: 2,   note: "DCA August" },
+  { date: "2024-10-15", type: "buy",  btc: 0.01,  chf: 620,  fee: 2,   note: "DCA Oktober" },
+  { date: "2024-12-15", type: "buy",  btc: 0.008, chf: 820,  fee: 2,   note: "DCA Dezember" },
+  { date: "2025-01-15", type: "buy",  btc: 0.005, chf: 480,  fee: 1.5, note: "DCA Januar" },
+  { date: "2025-03-15", type: "buy",  btc: 0.005, chf: 420,  fee: 1.5, note: "DCA März" },
+  { date: "2025-05-20", type: "sell", btc: 0.02,  chf: 1980, fee: 5,   note: "Teilgewinn" },
+];
+
+function DemoImportModal({ onClose, onImport, transactions, T }) {
+  const [status, setStatus] = useState(null);
+
+  const handleImport = async () => {
+    setStatus("saving");
+    const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
+    const toImport = DEMO_TRANSACTIONS.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
+    const skipped = DEMO_TRANSACTIONS.length - toImport.length;
+    try {
+      const imported = await onImport(toImport);
+      setStatus({ imported, skipped });
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(247,147,26,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>📊</div>
+        </div>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Demo-Daten laden?</div>
+        <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 1.55 }}>
+          20 Beispiel-Transaktionen von 2022–2025 werden importiert. Bestehende Transaktionen bleiben erhalten.
+        </div>
+        {status === "error" && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14, textAlign: "center" }}>Fehler beim Import</div>}
+        {status && typeof status === "object" && (
+          <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14, textAlign: "center" }}>✓ {status.imported} importiert{status.skipped > 0 ? ` · ${status.skipped} bereits vorhanden` : ""}</div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+          <button onClick={handleImport} disabled={status === "saving" || (typeof status === "object")} style={{ padding: "15px 0", background: status === "saving" || typeof status === "object" ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {status === "saving" ? "Wird geladen..." : typeof status === "object" ? "Fertig" : "Demo laden"}
           </button>
         </div>
       </div>
