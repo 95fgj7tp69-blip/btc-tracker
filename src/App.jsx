@@ -1096,7 +1096,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.13.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.13.4" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1355,23 +1355,46 @@ const DEMO_TRANSACTIONS = [
 ];
 
 function DemoImportModal({ onClose, onImport, transactions, T }) {
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState(null); // null | "saving" | "done" | "error"
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState(null);
 
   const handleImport = async () => {
-    setStatus("saving");
+    setStatus("saving"); setProgress(0);
     const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
     const toImport = DEMO_TRANSACTIONS.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
     const skipped = DEMO_TRANSACTIONS.length - toImport.length;
+
+    if (toImport.length === 0) {
+      setResult({ imported: 0, skipped });
+      setStatus("done");
+      return;
+    }
+
+    // Simuliere Fortschritt während Batch-Import läuft
+    let animPct = 0;
+    const anim = setInterval(() => {
+      animPct = Math.min(animPct + 4, 90);
+      setProgress(animPct);
+    }, 150);
+
     try {
-      const imported = await onImport(toImport);
-      setStatus({ imported, skipped });
+      const imported = await onImport(toImport); // Batch in einem Aufruf
+      clearInterval(anim);
+      setProgress(100);
+      setResult({ imported, skipped });
+      setStatus("done");
     } catch {
+      clearInterval(anim);
       setStatus("error");
     }
   };
 
+  const isSaving = status === "saving";
+  const isDone = status === "done";
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={isSaving ? undefined : onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(247,147,26,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>📊</div>
@@ -1380,19 +1403,39 @@ function DemoImportModal({ onClose, onImport, transactions, T }) {
         <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 1.55 }}>
           20 Beispiel-Transaktionen von 2022–2025 werden importiert. Bestehende Transaktionen bleiben erhalten.
         </div>
-        {status === "error" && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14, textAlign: "center" }}>Fehler beim Import</div>}
-        {status && typeof status === "object" && (
-          <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14, textAlign: "center" }}>✓ {status.imported} importiert{status.skipped > 0 ? ` · ${status.skipped} bereits vorhanden` : ""}</div>
+
+        {isSaving && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8, textAlign: "center" }}>Wird importiert...</div>
+            <div style={{ height: 8, background: T.input, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "#f7931a", borderRadius: 4, transition: "width 0.15s ease" }} />
+            </div>
+          </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
-          <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
-          <button
-            onClick={typeof status === "object" ? onClose : handleImport}
-            disabled={status === "saving"}
-            style={{ padding: "15px 0", background: status === "saving" ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: status === "saving" ? "default" : "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-            {status === "saving" ? "Wird geladen..." : typeof status === "object" ? "Schliessen" : "Demo laden"}
-          </button>
-        </div>
+
+        {isDone && result && (
+          <div style={{ marginBottom: 20, padding: "12px 16px", background: result.imported > 0 ? "rgba(34,197,94,0.08)" : "rgba(247,147,26,0.08)", borderRadius: 10, textAlign: "center" }}>
+            {result.imported > 0
+              ? <span style={{ color: "#22c55e", fontSize: 14 }}>✓ {result.imported} Transaktionen importiert{result.skipped > 0 ? ` · ${result.skipped} bereits vorhanden` : ""}</span>
+              : <span style={{ color: "#f7931a", fontSize: 14 }}>Alle {result.skipped} Demo-Transaktionen bereits vorhanden</span>
+            }
+          </div>
+        )}
+
+        {status === "error" && (
+          <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14, textAlign: "center" }}>Fehler beim Import — bitte nochmals versuchen</div>
+        )}
+
+        {!isSaving && (
+          <div style={{ display: "grid", gridTemplateColumns: isDone ? "1fr" : "1fr 2fr", gap: 12 }}>
+            {!isDone && (
+              <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+            )}
+            <button onClick={isDone ? onClose : handleImport} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+              {isDone ? "Schliessen" : "Demo laden"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
