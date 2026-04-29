@@ -340,26 +340,34 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           return { t: fmtT(date), portfolio: Math.max(0, Math.round(lastBtc * usdPrice * usdChf)) };
         });
 
-        // Investiert-Linie NUR für ALL-Tab
-        if (activeTab === "ALL") {
-          // Füge invested-Werte nur dort ein wo auch portfolio-Daten vorhanden sind
-          // Startpunkt: Stand kurz vor dem ersten Preispunkt
-          const firstPriceDate = pricesInRange[0][0];
-          const prevTx = txDatesSorted.filter(d => d <= firstPriceDate);
-          const startInv = prevTx.length ? txMap[prevTx[prevTx.length-1]].inv : 0;
+        // Investiert-Linie für ALLE Tabs
+        // Startstand vor erstem Preispunkt berechnen
+        const firstPriceDate = pricesInRange[0][0];
+        const prevTxAll = txDatesSorted.filter(d => d <= firstPriceDate);
+        const startInvAll = prevTxAll.length ? txMap[prevTxAll[prevTxAll.length-1]].inv : 0;
 
-          // Setze invested für alle combined-Punkte durch Interpolation
-          let lastInv = startInv;
-          combined.forEach(p => {
-            // Finde TX an oder vor diesem Datum
-            const t = p.t; // Format: "2025-06"
-            const txAtOrBefore = txDatesSorted.filter(d => d.slice(0,7) <= t);
-            if (txAtOrBefore.length) {
-              lastInv = txMap[txAtOrBefore[txAtOrBefore.length-1]].inv;
+        // Für jeden Preis-Punkt: investierten Stand interpolieren
+        let lastInv = startInvAll;
+        combined.forEach(p => {
+          const t = p.t;
+          // Suche letzte TX <= diesem Monat/Tag
+          let matchDate;
+          if (activeTab === "ALL") {
+            const txBefore = txDatesSorted.filter(d => d.slice(0,7) <= t);
+            if (txBefore.length) matchDate = txBefore[txBefore.length-1];
+          } else {
+            // Für 1T/7T/30T: finde TX an oder vor dem raw-Datum
+            // Da t ein formatiertes Label ist, nutze den Index im combined-Array
+            const idx = combined.indexOf(p);
+            const rawDate = pricesInRange[Math.min(idx, pricesInRange.length-1)]?.[0];
+            if (rawDate) {
+              const txBefore = txDatesSorted.filter(d => d <= rawDate);
+              if (txBefore.length) matchDate = txBefore[txBefore.length-1];
             }
-            p.invested = Math.max(0, Math.round(lastInv));
-          });
-        }
+          }
+          if (matchDate) lastInv = txMap[matchDate].inv;
+          p.invested = Math.max(0, Math.round(lastInv));
+        });
 
         // Heutiger Endpunkt
         const todayT = fmtT(now.toISOString().slice(0,10));
@@ -443,13 +451,17 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-            <YAxis hide domain={["auto", "auto"]} />
+            <YAxis hide domain={([dataMin, dataMax]) => {
+              const min = Math.min(dataMin * 0.95, dataMin - 100);
+              const max = dataMax * 1.05;
+              return [Math.max(0, min), max];
+            }} />
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
               formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? "Investiert" : name === "portfolio" ? "Portfoliowert" : "Heute"]}
             />
-            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={activeTab === "ALL" ? 2 : 0} dot={false} activeDot={activeTab === "ALL" ? { r: 3 } : false} />
+            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
             {chartData?.[0]?.portfolio !== undefined ? (
               <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
             ) : (
@@ -467,12 +479,10 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       </div>
       {/* Legende */}
       <div style={{ display: "flex", gap: 16, padding: "0 16px 16px", justifyContent: "center" }}>
-        {activeTab === "ALL" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
-            <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Investiert</span>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {chartData?.[0]?.portfolio !== undefined ? (
             <><div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 12, color: T.textMuted }}>Portfoliowert</span></>
@@ -1150,7 +1160,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.14.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.14.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
