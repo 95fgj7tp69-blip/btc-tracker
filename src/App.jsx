@@ -226,21 +226,38 @@ function AuthScreen({ T }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
+function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen }) {
   const t = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const isPos = dayChangePct >= 0;
+  const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const sym = CURRENCIES[currency].symbol;
+  const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 12px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>Portfolio</div>
-          <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>Aktualisiert {t}</div>
+    <div style={{ padding: "14px 16px 10px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>Portfolio</div>
+            <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
+              {loading ? "Aktualisiere..." : `Aktualisiert ${t}`}
+            </div>
+          </div>
         </div>
+        <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, color: T.textMuted }}>⚙</button>
       </div>
-      <button onClick={onRefresh} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-        <span style={{ fontSize: 13, color: T.textMuted, display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>↻</span>
-        <span style={{ fontSize: 13, color: T.textMuted }}>Aktualisieren</span>
-      </button>
+      {/* BTC Kurs */}
+      {btcDisplay > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
+            {sym} {fmtPrice(btcDisplay)}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
+            {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+          </div>
+          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>24h</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -306,46 +323,82 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         : [];
 
       if (pricesInRange.length >= 2) {
-        // Erstelle einen Map von Datum -> kumuliertes BTC und Investiert
+        // txMap aufbauen
         const txMap = {};
         let runBtc = 0, runInv = 0;
         for (const tx of sortedTx) {
-          if (tx.type === "buy")          { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
-          else if (tx.type === "sell")    { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
-          else if (tx.type === "transfer_in")  runBtc += +(tx.btc||0);
-          else if (tx.type === "transfer_out") runBtc -= +(tx.btc||0);
+          if (tx.type === "buy")               { runBtc += +(tx.btc||0); runInv += +(tx.chf||0) + +(tx.fee||0); }
+          else if (tx.type === "sell")         { runBtc -= +(tx.btc||0); runInv -= +(tx.chf||0); }
+          else if (tx.type === "transfer_in")  { runBtc += +(tx.btc||0); }
+          else if (tx.type === "transfer_out") { runBtc -= +(tx.btc||0); }
           txMap[tx.date] = { btc: runBtc, inv: runInv };
         }
+        const txDatesSorted = Object.keys(txMap).sort();
 
-        // Fuer jeden Preispunkt: interpoliere BTC-Bestand und Investiert
-        const combined = [];
-        let lastBtc = 0, lastInv = 0;
-        for (const [date, usdPrice] of pricesInRange) {
-          // Update lastBtc/lastInv falls Transaktion an diesem Datum
-          if (txMap[date]) { lastBtc = txMap[date].btc; lastInv = txMap[date].inv; }
+        const fmtT = (date) => {
+          if (activeTab === "7D")  return ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
+          if (activeTab === "30D") return date.slice(8,10)+".";
+          if (activeTab === "ALL") return date.slice(0,7);
+          return fmtLabel(date);
+        };
+
+        // Portfolio-Wert aus Preisdaten (alle Tabs)
+        let lastBtc = 0;
+        // Initialisiere lastBtc mit Stand vor erstem Preispunkt
+        const prevTx = txDatesSorted.filter(d => d < pricesInRange[0][0]);
+        if (prevTx.length) lastBtc = txMap[prevTx[prevTx.length-1]].btc;
+
+        const combined = pricesInRange.map(([date, usdPrice]) => {
+          if (txMap[date]) lastBtc = txMap[date].btc;
           else {
-            // Finde letzten Stand vor diesem Datum
-            const txDates = Object.keys(txMap).filter(d => d <= date).sort();
-            if (txDates.length) {
-              const last = txDates[txDates.length-1];
-              lastBtc = txMap[last].btc;
-              lastInv = txMap[last].inv;
+            const prev = txDatesSorted.filter(d => d <= date);
+            if (prev.length) lastBtc = txMap[prev[prev.length-1]].btc;
+          }
+          return { t: fmtT(date), portfolio: Math.max(0, Math.round(lastBtc * usdPrice * usdChf)) };
+        });
+
+        // Investiert-Linie für ALLE Tabs
+        // Startstand vor erstem Preispunkt berechnen
+        const firstPriceDate = pricesInRange[0][0];
+        const prevTxAll = txDatesSorted.filter(d => d <= firstPriceDate);
+        const startInvAll = prevTxAll.length ? txMap[prevTxAll[prevTxAll.length-1]].inv : 0;
+
+        // Für jeden Preis-Punkt: investierten Stand interpolieren
+        let lastInv = startInvAll;
+        combined.forEach(p => {
+          const t = p.t;
+          // Suche letzte TX <= diesem Monat/Tag
+          let matchDate;
+          if (activeTab === "ALL") {
+            const txBefore = txDatesSorted.filter(d => d.slice(0,7) <= t);
+            if (txBefore.length) matchDate = txBefore[txBefore.length-1];
+          } else {
+            // Für 1T/7T/30T: finde TX an oder vor dem raw-Datum
+            // Da t ein formatiertes Label ist, nutze den Index im combined-Array
+            const idx = combined.indexOf(p);
+            const rawDate = pricesInRange[Math.min(idx, pricesInRange.length-1)]?.[0];
+            if (rawDate) {
+              const txBefore = txDatesSorted.filter(d => d <= rawDate);
+              if (txBefore.length) matchDate = txBefore[txBefore.length-1];
             }
           }
-          const chfPrice = usdPrice * usdChf;
-          let t = date;
-          if (activeTab === "7D") t = ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(date+"T12:00:00").getDay()];
-          else if (activeTab === "30D") t = date.slice(8,10)+".";
-          else if (activeTab === "ALL") t = date.slice(0,7);
-          combined.push({
-            t,
-            invested: Math.max(0, Math.round(lastInv)),
-            portfolio: Math.max(0, Math.round(lastBtc * chfPrice)),
-          });
-        }
+          if (matchDate) lastInv = txMap[matchDate].inv;
+          p.invested = Math.max(0, Math.round(lastInv));
+        });
+
         // Heutiger Endpunkt
-        const todayD = now.toISOString().slice(0,10);
-        combined.push({ t: fmtLabel(todayD), invested: Math.max(0, Math.round(runInv)), portfolio: Math.round(portfolioChf) });
+        const todayT = fmtT(now.toISOString().slice(0,10));
+        const todayEx = combined.find(p => p.t === todayT);
+        if (todayEx) {
+          todayEx.portfolio = Math.round(portfolioChf);
+          if (activeTab === "ALL") todayEx.invested = Math.round(runInv);
+        } else {
+          const pt = { t: todayT, portfolio: Math.round(portfolioChf) };
+          if (activeTab === "ALL") pt.invested = Math.round(runInv);
+          combined.push(pt);
+        }
+
+        combined.sort((a,b) => a.t.localeCompare(b.t));
         return combined.length >= 2 ? combined : null;
       }
 
@@ -381,17 +434,47 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           <span style={{ color: T.textFaint, fontSize: 13 }}>seit Kauf</span>
         </div>
       </div>
-      {/* Tab-Auswahl */}
-      <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px", alignSelf: "flex-start" }}>
-        {["1D","7D","30D","1Y","ALL"].map(t => (
-          <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("portfolioTab", t); } catch {} }} style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, background: activeTab === t ? T.surface : "transparent", color: activeTab === t ? T.text : T.textFaint, boxShadow: activeTab === t ? `0 1px 3px rgba(0,0,0,0.1)` : "none", fontFamily: "inherit" }}>{t}</button>
-        ))}
-      </div>
+      {/* Tab-Auswahl — nur verfügbare Tabs aktiv */}
+      {(() => {
+        const now = new Date();
+        const oldestPrice = rawPriceData.length ? rawPriceData[0][0] : null;
+        const oldestTx = transactions.length ? [...transactions].sort((a,b) => a.date.localeCompare(b.date))[0]?.date : null;
+        const daysSinceOldestPrice = oldestPrice ? Math.floor((now - new Date(oldestPrice)) / 86400000) : 0;
+        const daysSinceOldestTx = oldestTx ? Math.floor((now - new Date(oldestTx)) / 86400000) : 0;
+        const tabs = [
+          { key: "1D",  label: "1T",  available: true },
+          { key: "7D",  label: "7T",  available: true },
+          { key: "30D", label: "30T", available: true },
+          { key: "1Y",  label: "1J",  available: daysSinceOldestPrice >= 365 && daysSinceOldestTx >= 365 },
+          { key: "ALL", label: (() => {
+            if (!oldestPrice) return "Alle";
+            const years = Math.round(daysSinceOldestPrice / 365 * 2) / 2; // auf 0.5 runden
+            if (years >= 1) return `${years % 1 === 0 ? years : years}J`;
+            const months = Math.round(daysSinceOldestPrice / 30);
+            return `${months}M`;
+          })(), available: daysSinceOldestTx > 30 },
+        ];
+        // Falls activeTab nicht mehr verfügbar, auf 30D zurückfallen
+        const effectiveTab = tabs.find(t => t.key === activeTab)?.available ? activeTab : "30D";
+        if (effectiveTab !== activeTab) { setActiveTab(effectiveTab); try { localStorage.setItem("portfolioTab", effectiveTab); } catch {} }
+        return (
+          <div style={{ display: "flex", gap: 2, background: T.input, borderRadius: 10, padding: 3, margin: "0 16px 12px" }}>
+            {tabs.filter(t => t.available).map(t => (
+              <button key={t.key} onClick={() => { setActiveTab(t.key); try { localStorage.setItem("portfolioTab", t.key); } catch {} }}
+                style={{ padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit",
+                  background: activeTab === t.key ? T.surface : "transparent",
+                  color: activeTab === t.key ? T.text : T.textFaint,
+                  boxShadow: activeTab === t.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}>{t.label}</button>
+            ))}
+          </div>
+        );
+      })()}
       <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-            <YAxis hide domain={["auto", "auto"]} />
+            <YAxis hide domain={[0, "auto"]} />
             <Tooltip
               contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
@@ -676,9 +759,13 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const [feeInput, setFeeInput] = useState("0");
   const [mode, setMode] = useState("chf");
   const val = parseFloat(input) || 0, fee = parseFloat(feeInput) || 0;
-  const newBtc = mode === "chf" ? (val - fee) / currentChf : val;
-  const newChf = mode === "chf" ? val : val * currentChf + fee;
-  const newTotalBtc = totalBtc + newBtc, newTotalInvested = totalInvested + newChf;
+  // newBtc: Gebühren kaufen keine BTC, also val / kurs (ohne fee abzug)
+  const newBtc = mode === "chf" ? val / currentChf : val;
+  // newChf: Gesamtkosten = Kaufbetrag + Gebühren
+  const newChf = mode === "chf" ? val + fee : val * currentChf + fee;
+  const costBasis = avgChf * totalBtc; // Kostenbasis der gehaltenen BTC
+  const newTotalBtc = totalBtc + newBtc;
+  const newTotalInvested = costBasis + newChf;
   const newAvgChf = newTotalBtc > 0 ? newTotalInvested / newTotalBtc : 0;
   const newAvgUsd = newAvgChf / usdChf;
   const avgDrop = avgChf > 0 ? ((newAvgChf - avgChf) / avgChf) * 100 : 0;
@@ -686,7 +773,7 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>DCA-RECHNER</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>KAUF-SIMULATOR</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
         {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
@@ -722,23 +809,110 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   );
 }
 
-function BarChart({ portfolioChf, investedChf, T }) {
-  const max = Math.max(portfolioChf, investedChf, 1) * 1.2;
-  const steps = [0, 25000, 50000, 75000, 100000].filter(v => v <= max);
-  const bars = [{ label: "Portfolio", value: portfolioChf, color: "#ef4444" }, { label: "Investiert", value: investedChf, color: "#3b82f6" }];
+// ── Realized P&L Card ─────────────────────────────────────────────────────────
+function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, avgChf = 0 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toDisplay(v, currency, usdChf, eurUsd))}`;
+
+  // Realisierter Gewinn = Verkaufserlös - Einstandswert der verkauften BTC (nach FIFO/AVCO = avgChf)
+  const sells = transactions.filter(t => t.type === "sell");
+  const totalProceeds = sells.reduce((s, t) => s + +t.chf - +(t.fee || 0), 0);
+  const totalCostBasis = sells.reduce((s, t) => s + +t.btc * avgChf, 0);
+  const realizedPnl = totalProceeds - totalCostBasis;
+  const isPos = realizedPnl >= 0;
+
+  if (sells.length === 0) {
+    return (
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
+        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 12 }}>REALISIERTER GEWINN / VERLUST</div>
+        <div style={{ color: T.textFaint, fontSize: 14, textAlign: "center", padding: "16px 0" }}>Noch keine Verkäufe erfasst</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>REALISIERTER GEWINN / VERLUST</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
+            {isPos ? "+" : ""}{fmt(realizedPnl)}
+          </div>
+          <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>aus {sells.length} Verkauf{sells.length > 1 ? "en" : ""}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>Verkaufserlös</div>
+          <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{fmt(totalProceeds)}</div>
+          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8, marginBottom: 4 }}>Einstandswert</div>
+          <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{fmt(totalCostBasis)}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 16, padding: "10px 14px", background: isPos ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${isPos ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10 }}>
+        <span style={{ color: T.textMuted, fontSize: 13 }}>Basierend auf aktuellem Einstandspreis von {fmt(avgChf)} / BTC</span>
+      </div>
+    </div>
+  );
+}
+
+// ── DCA Effizienz Chart ────────────────────────────────────────────────────────
+function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+  const sym = CURRENCIES[currency].symbol;
+  const fmt0 = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toDisplay(v, currency, usdChf, eurUsd));
+
+  // Durchschnittlicher Kaufpreis pro Jahr
+  const byYear = {};
+  transactions.filter(t => t.type === "buy").forEach(t => {
+    const year = t.date.slice(0, 4);
+    if (!byYear[year]) byYear[year] = { totalChf: 0, totalBtc: 0 };
+    byYear[year].totalChf += +t.chf + +(t.fee || 0);
+    byYear[year].totalBtc += +t.btc;
+  });
+
+  const years = Object.keys(byYear).sort();
+  if (years.length === 0) return null;
+
+  const bars = years.map(year => ({
+    year,
+    avgPrice: byYear[year].totalBtc > 0 ? byYear[year].totalChf / byYear[year].totalBtc : 0,
+    invested: byYear[year].totalChf,
+  }));
+
+  const maxPrice = Math.max(...bars.map(b => b.avgPrice)) * 1.15;
+  const barH = 140;
+
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 20 }}>VERGLEICH</div>
-      <div style={{ display: "flex", alignItems: "flex-end", height: 180, position: "relative" }}>
-        {steps.map(v => (<div key={v} style={{ position: "absolute", left: 32, right: 0, bottom: `${(v / max) * 100}%`, borderTop: `1px solid ${T.border}` }}><span style={{ position: "absolute", left: -30, bottom: 2, color: T.textMuted, fontSize: 10 }}>{v >= 1000 ? `${v / 1000}k` : v}</span></div>))}
-        <div style={{ flex: 1, display: "flex", gap: 16, alignItems: "flex-end", paddingLeft: 36, height: "100%" }}>
-          {bars.map(({ label, value, color }) => (
-            <div key={label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, height: "100%", justifyContent: "flex-end" }}>
-              <div style={{ color: T.textMuted, fontSize: 11 }}>{fmtChf(value, 0)}</div>
-              <div style={{ width: "100%", height: `${Math.max((value / max) * 148, 2)}px`, background: color, borderRadius: "6px 6px 2px 2px", opacity: 0.8 }} />
-              <div style={{ color: T.textSub, fontSize: 12 }}>{label}</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>KAUFPREIS-EFFIZIENZ</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 16 }}>Ø Kaufpreis pro Jahr in {sym}</div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, paddingRight: 48, position: "relative" }}>
+        {/* Gridlines */}
+        {[0.25, 0.5, 0.75, 1].map(f => (
+          <div key={f} style={{ position: "absolute", left: 0, right: 48, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
+            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}</span>
+          </div>
+        ))}
+        {bars.map(({ year, avgPrice, invested }) => {
+          const h = Math.max(4, (avgPrice / maxPrice) * barH);
+          // Farbe: günstiger als Durchschnitt = grün, teurer = rot
+          const avgAll = bars.reduce((s, b) => s + b.avgPrice, 0) / bars.length;
+          const color = avgPrice <= avgAll ? "#22c55e" : "#ef4444";
+          return (
+            <div key={year} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 4 }}>
+              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(avgPrice)}</div>
+              <div style={{ width: "100%", height: h, background: color, borderRadius: "4px 4px 2px 2px", opacity: 0.8 }} />
+              <div style={{ color: T.textMuted, fontSize: 10, textAlign: "center" }}>{year.slice(2)}</div>
             </div>
-          ))}
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: "#22c55e", opacity: 0.8 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Unter Ø</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: "#ef4444", opacity: 0.8 }} />
+          <span style={{ fontSize: 12, color: T.textMuted }}>Über Ø</span>
         </div>
       </div>
     </div>
@@ -773,7 +947,7 @@ function OnboardingScreen({ onFinish, T }) {
       icon: "analyse",
       iconBg: null,
       title: "Tiefe Analysen",
-      text: "Break-Even Analyse, DCA-Rechner und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
+      text: "Break-Even Analyse, Kauf-Simulator und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
     },
     {
       icon: "currency",
@@ -923,10 +1097,13 @@ function OnboardingScreen({ onFinish, T }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showCostInfo, setShowCostInfo] = useState(false);
   const [importResult, setImportResult] = useState(null); // {imported, skipped}
   const [importing, setImporting] = useState(false);
 
@@ -1007,6 +1184,35 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* EINSTANDSPREIS-METHODE */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, marginTop: 24 }}>
+        <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em" }}>EINSTANDSPREIS-METHODE</div>
+        <button onClick={() => setShowCostInfo(true)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 24, height: 24, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0, lineHeight: 1 }}>?</button>
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+          {["FIFO", "AVCO"].map((key, i) => (
+            <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "14px 0", background: costMethod === key ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: costMethod === key ? "#000" : T.textMuted, fontSize: 15, fontWeight: costMethod === key ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{key}</button>
+          ))}
+        </div>
+      </div>
+      {showCostInfo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowCostInfo(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+            <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Einstandspreis-Methode</div>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>FIFO – First In, First Out</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.55 }}>Die zuerst gekauften BTC gelten als zuerst verkauft. Jeder Kauf wird als einzelnes Lot gespeichert. Beim Verkauf werden die ältesten Lots zuerst aufgebraucht. Der verbleibende Einstandspreis entspricht den neueren, oft teureren Käufen.</div>
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>AVCO – Weighted Average Cost</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.55 }}>Bei jedem Kauf wird der gewichtete Durchschnittspreis aller BTC neu berechnet. Verkäufe verändern den Einstandspreis nicht, nur den Bestand. Alle gehaltenen BTC haben immer denselben Einstandspreis.</div>
+            </div>
+            <button onClick={() => setShowCostInfo(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Schliessen</button>
+          </div>
+        </div>
+      )}
+
       {/* DARSTELLUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DARSTELLUNG</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1024,7 +1230,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* DATEN */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>DATEN</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
           <div>
             <div style={{ color: T.text, fontSize: 15 }}>Transaktionen importieren</div>
             <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>CSV-Datei im App-Format</div>
@@ -1033,6 +1239,20 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
             {importing ? "Lädt..." : "↑ Import"}
             <input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} disabled={importing} />
           </label>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 15 }}>Demo-Daten laden</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>Beispiel-Transaktionen importieren</div>
+          </div>
+          <button onClick={() => setShowDemoModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Laden</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+          <div>
+            <div style={{ color: "#ef4444", fontSize: 15 }}>Alle Transaktionen löschen</div>
+            <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>Konto bleibt erhalten</div>
+          </div>
+          <button onClick={() => setShowClearModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", flexShrink: 0 }}>Löschen</button>
         </div>
         {importResult && !importResult.error && (
           <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.border}`, background: "rgba(34,197,94,0.06)" }}>
@@ -1050,7 +1270,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.11.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.16.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1078,6 +1298,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     </div>
     {showPwModal && <PasswordModal onClose={() => setShowPwModal(false)} T={T} />}
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
+    {showClearModal && <ClearDataModal onClose={() => setShowClearModal(false)} onImport={onImport} T={T} />}
+    {showDemoModal && <DemoImportModal key={String(showDemoModal)} onClose={() => setShowDemoModal(false)} onImport={onImport} transactions={transactions} T={T} />}
     {showPrivacy && (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
         <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
@@ -1196,6 +1418,193 @@ function DeleteAccountModal({ onClose, onLogout, T }) {
             {status === "saving" ? "Wird gelöscht..." : "Konto löschen"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Clear Data Modal ──────────────────────────────────────────────────────────
+function ClearDataModal({ onClose, onImport, T }) {
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0); // 0-100
+  const [progressLabel, setProgressLabel] = useState("");
+  const confirmed = confirm === "LÖSCHEN";
+
+  const handleClear = async () => {
+    if (!confirmed) return;
+    setStatus("saving"); setError(""); setProgress(0);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const { data: rows } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("user_id", session.user.id);
+      const total = (rows || []).length;
+      if (total === 0) { setStatus("ok"); setTimeout(() => { onClose(); window.location.reload(); }, 1000); return; }
+      setProgressLabel(`0 / ${total} gelöscht`);
+      for (let i = 0; i < rows.length; i++) {
+        await fetch(`/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+        const pct = Math.round(((i + 1) / total) * 100);
+        setProgress(pct);
+        setProgressLabel(`${i + 1} / ${total} gelöscht`);
+      }
+      setStatus("ok");
+      setTimeout(() => { onClose(); window.location.reload(); }, 1200);
+    } catch (e) {
+      setError("Fehler: " + e.message); setStatus("error");
+    }
+  };
+
+  const isSaving = status === "saving";
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={isSaving ? undefined : onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>🗑️</div>
+        </div>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Alle Transaktionen löschen?</div>
+        <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 16 }}>Alle Transaktionsdaten werden unwiderruflich gelöscht. Dein Konto bleibt erhalten.</div>
+        <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", marginBottom: 20, padding: "10px 16px", background: "rgba(239,68,68,0.08)", borderRadius: 10 }}>
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </div>
+        {!isSaving && status !== "ok" && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>Tippe <strong style={{ color: "#ef4444" }}>LÖSCHEN</strong> zur Bestätigung</div>
+            <input type="text" placeholder="LÖSCHEN" value={confirm} onChange={e => setConfirm(e.target.value)} style={{ width: "100%", background: T.input, border: `1px solid ${confirmed ? "#ef4444" : T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+        )}
+        {isSaving && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ color: T.textMuted, fontSize: 13 }}>Wird gelöscht...</span>
+              <span style={{ color: T.textMuted, fontSize: 13 }}>{progressLabel}</span>
+            </div>
+            <div style={{ height: 8, background: T.input, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "#ef4444", borderRadius: 4, transition: "width 0.2s ease" }} />
+            </div>
+            <div style={{ color: T.textFaint, fontSize: 12, textAlign: "center", marginTop: 8 }}>Bitte warten — App nicht schliessen</div>
+          </div>
+        )}
+        {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{error}</div>}
+        {status === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14, textAlign: "center" }}>✓ Alle Transaktionen gelöscht</div>}
+        {!isSaving && status !== "ok" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+            <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+            <button onClick={handleClear} disabled={!confirmed} style={{ padding: "15px 0", background: confirmed ? "#ef4444" : T.textFaint, border: "none", color: "#fff", borderRadius: 12, cursor: confirmed ? "pointer" : "default", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+              Alles löschen
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Demo Import Modal ─────────────────────────────────────────────────────────
+
+function DemoImportModal({ onClose, onImport, transactions, T }) {
+  const [status, setStatus] = useState(null); // null | "saving" | "done" | "error"
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState(null);
+
+  const handleImport = async () => {
+    setStatus("saving"); setProgress(0);
+    let animPct = 0;
+    const anim = setInterval(() => {
+      animPct = Math.min(animPct + 4, 90);
+      setProgress(animPct);
+    }, 150);
+    try {
+      // CSV aus public/ laden und parsen
+      const res = await fetch("/demo-transaktionen.csv");
+      if (!res.ok) throw new Error("CSV nicht gefunden");
+      const text = await res.text();
+      const lines = text.replace(/^\uFEFF/, "").split("\n").filter(l => l.trim());
+      const rows = lines.slice(1).map(line => {
+        const parts = line.split(",");
+        return {
+          date: parts[0]?.trim(),
+          type: parts[1]?.trim(),
+          btc:  parseFloat(parts[2]) || 0,
+          chf:  parseFloat(parts[3]) || 0,
+          fee:  parseFloat(parts[4]) || 0,
+          note: parts[5]?.trim().replace(/^"|"$/g, "") || "",
+        };
+      }).filter(r => r.date && r.type && r.btc > 0);
+
+      const existing = new Set(transactions.map(t => `${t.date}_${t.type}_${t.btc}`));
+      const toImport = rows.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
+      const skipped = rows.length - toImport.length;
+
+      if (toImport.length === 0) {
+        clearInterval(anim);
+        setProgress(100);
+        setResult({ imported: 0, skipped, total: rows.length });
+        setStatus("done");
+        return;
+      }
+
+      const imported = await onImport(toImport);
+      clearInterval(anim);
+      setProgress(100);
+      setResult({ imported, skipped, total: rows.length });
+      setStatus("done");
+    } catch (e) {
+      clearInterval(anim);
+      setStatus("error");
+    }
+  };
+
+  const isSaving = status === "saving";
+  const isDone = status === "done";
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={isSaving ? undefined : onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(247,147,26,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>📊</div>
+        </div>
+        <div style={{ color: T.text, fontSize: 18, fontWeight: 600, textAlign: "center", marginBottom: 8 }}>Demo-Daten laden?</div>
+        <div style={{ color: T.textMuted, fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 1.55 }}>
+          Beispiel-Transaktionen von 2022–2026 werden importiert. Bestehende Transaktionen bleiben erhalten.
+        </div>
+
+        {isSaving && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8, textAlign: "center" }}>Wird importiert...</div>
+            <div style={{ height: 8, background: T.input, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "#f7931a", borderRadius: 4, transition: "width 0.15s ease" }} />
+            </div>
+          </div>
+        )}
+
+        {isDone && result && (
+          <div style={{ marginBottom: 20, padding: "12px 16px", background: result.imported > 0 ? "rgba(34,197,94,0.08)" : "rgba(247,147,26,0.08)", borderRadius: 10, textAlign: "center" }}>
+            {result.imported > 0
+              ? <span style={{ color: "#22c55e", fontSize: 14 }}>✓ {result.imported} Transaktionen importiert{result.skipped > 0 ? ` · ${result.skipped} bereits vorhanden` : ""}</span>
+              : <span style={{ color: "#f7931a", fontSize: 14 }}>Alle {result.total} Demo-Transaktionen bereits vorhanden</span>
+            }
+          </div>
+        )}
+
+        {status === "error" && (
+          <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14, textAlign: "center" }}>Fehler beim Import — bitte nochmals versuchen</div>
+        )}
+
+        {!isSaving && (
+          <div style={{ display: "grid", gridTemplateColumns: isDone ? "1fr" : "1fr 2fr", gap: 12 }}>
+            {!isDone && (
+              <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Abbrechen</button>
+            )}
+            <button onClick={isDone ? onClose : handleImport} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+              {isDone ? "Schliessen" : "Demo laden"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1354,7 +1763,7 @@ function BottomNav({ view, setView, onAdd, T }) {
       {btn("analyse", "◎", "Analyse")}
       <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px", boxShadow: "0 4px 20px rgba(247,147,26,0.35)", flexShrink: 0 }}>+</button>
       {btn("verlauf", "≡", "Verlauf")}
-      {btn("settings", "⚙︎", "Einstellungen")}
+      {btn("tools", "⊞", "Tools")}
     </div>
   );
 }
@@ -1373,6 +1782,8 @@ export default function App() {
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
+  const [showDcaModal, setShowDcaModal]     = useState(false);
+  const [showSettings, setShowSettings]     = useState(false);
   const [editTx, setEditTx]                 = useState(null);
   const [loading, setLoading]               = useState(false);
   const [dbLoading, setDbLoading]           = useState(true);
@@ -1506,34 +1917,65 @@ export default function App() {
   const pnlChf       = portfolioChf - totalInvested;
   const pnlPct       = buyInvested > 0 ? (pnlChf / buyInvested) * 100 : 0;
 
-  // AVCO-Methode (Weighted Average Cost)
-  // Einstandspreis pro BTC bleibt beim Verkauf gleich
-  // Nur Bestand und Gesamtkostenbasis reduzieren sich
-  const avgChf = (() => {
-    const sorted = [...transactions]
-      .filter(t => t.type === "buy" || t.type === "sell" || t.type === "transfer_in" || t.type === "transfer_out")
-      .sort((a, b) => a.date.localeCompare(b.date));
-    let poolBtc = 0;  // aktueller BTC-Bestand
-    let avco = 0;     // aktueller Einstandspreis pro BTC
+  // ── Einstandspreis-Methode ────────────────────────────────────────────────────
+  const [costMethod, setCostMethodState] = useState(() => {
+    try { return localStorage.getItem("costMethod") || "FIFO"; } catch { return "FIFO"; }
+  });
+  const setCostMethod = (m) => { setCostMethodState(m); try { localStorage.setItem("costMethod", m); } catch {} };
+
+  // FIFO-Methode: Lots werden nach Kaufdatum verwaltet
+  const calcFifo = (txList) => {
+    const sorted = [...txList].sort((a, b) => a.date.localeCompare(b.date));
+    const lots = []; // { btc, costPerBtc }
     for (const tx of sorted) {
       if (tx.type === "buy") {
-        // Neuer AVCO = (alter Bestand × alter AVCO + neue Kosten) / neuer Bestand
+        const costPerBtc = (+tx.chf + +(tx.fee || 0)) / +tx.btc;
+        lots.push({ btc: +tx.btc, costPerBtc });
+      } else if (tx.type === "sell") {
+        let toSell = +tx.btc;
+        while (toSell > 1e-10 && lots.length) {
+          if (lots[0].btc <= toSell) { toSell -= lots[0].btc; lots.shift(); }
+          else { lots[0].btc -= toSell; toSell = 0; }
+        }
+      } else if (tx.type === "transfer_in") {
+        // Einbuchung ohne Kostenbasis: zum aktuellen FIFO-Durchschnitt einbuchen
+        const curAvg = lots.length ? lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0) / lots.reduce((s, l) => s + l.btc, 0) : 0;
+        lots.push({ btc: +tx.btc, costPerBtc: curAvg });
+      } else if (tx.type === "transfer_out") {
+        let toRemove = +tx.btc;
+        while (toRemove > 1e-10 && lots.length) {
+          if (lots[0].btc <= toRemove) { toRemove -= lots[0].btc; lots.shift(); }
+          else { lots[0].btc -= toRemove; toRemove = 0; }
+        }
+      }
+    }
+    const remBtc = lots.reduce((s, l) => s + l.btc, 0);
+    const remCost = lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0);
+    return remBtc > 0 ? remCost / remBtc : 0;
+  };
+
+  // AVCO-Methode (Weighted Average Cost)
+  const calcAvco = (txList) => {
+    const sorted = [...txList].sort((a, b) => a.date.localeCompare(b.date));
+    let poolBtc = 0;
+    let avco = 0;
+    for (const tx of sorted) {
+      if (tx.type === "buy") {
         const kosten = +tx.chf + +(tx.fee || 0);
         avco = (poolBtc * avco + kosten) / (poolBtc + +tx.btc);
         poolBtc += +tx.btc;
       } else if (tx.type === "sell") {
-        // AVCO bleibt gleich, nur Bestand reduziert sich
         poolBtc -= +tx.btc;
       } else if (tx.type === "transfer_in") {
-        // Einbuchung: AVCO bleibt gleich, nur Bestand steigt
         poolBtc += +tx.btc;
       } else if (tx.type === "transfer_out") {
-        // Ausbuchung: AVCO bleibt gleich, Bestand reduziert sich
         poolBtc -= +tx.btc;
       }
     }
     return avco;
-  })();
+  };
+
+  const avgChf = costMethod === "FIFO" ? calcFifo(transactions) : calcAvco(transactions);
   const avgUsd = avgChf / usdChf;
 
   const handleSave = async (form) => {
@@ -1632,14 +2074,51 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  // Pull-to-Refresh
+  const pullRef = useRef(null);
+  const pullStartY = useRef(0);
+  const pullDist = useRef(0);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+
+  const handleTouchStart = useCallback((e) => {
+    pullStartY.current = e.touches[0].clientY;
+    pullDist.current = 0;
+  }, []);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDist.current > 70 && !pullRefreshing) {
+      setPullRefreshing(true);
+      await Promise.all([fetchPrice(), fetchHistoricChart()]);
+      setPullRefreshing(false);
+    }
+    pullDist.current = 0;
+  }, [pullRefreshing, fetchPrice, fetchHistoricChart]);
+
+  const handleTouchMove = useCallback((e) => {
+    const el = pullRef.current;
+    if (!el) return;
+    const scrollTop = el.scrollTop;
+    if (scrollTop > 0) return;
+    pullDist.current = Math.max(0, e.touches[0].clientY - pullStartY.current);
+  }, []);
+
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
-  // Auth loading
-  if (authLoading) return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: T.textFaint, fontSize: 15 }}>Laden...</div>
-    </div>
+  // Splash Screen — während Auth-Check und initialem Daten-Laden
+  if (authLoading || (dbLoading && transactions.length === 0 && session)) return (
+    <>
+      <style>{`
+        @keyframes btc-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(0.95); } }
+        @keyframes btc-spin { to { transform:rotate(360deg); } }
+        @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
+      `}</style>
+      <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
+        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42, fontWeight: 800, color: "#000", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>₿</div>
+        <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>BTC Portfolio</div>
+        <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
+      </div>
+    </>
   );
 
   // Nicht eingeloggt → Login Screen
@@ -1669,25 +2148,44 @@ export default function App() {
         </div>
       )}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: window.location.hostname.includes("dev--") ? 28 : 0 }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} />
 
         {dbLoading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: T.textFaint, fontSize: 15 }}>Lade Daten...</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+            <div style={{ width: 24, height: 24, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
+          </div>
         ) : (
           <>
             {view === "dashboard" && (
-              <div style={scrollStyle}>
+              <div ref={pullRef} style={scrollStyle} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
             )}
             {view === "analyse" && (
-              <div style={{ ...scrollStyle, padding: "0 12px" }}>
+              <div ref={pullRef} style={{ ...scrollStyle, padding: "0 12px" }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
-                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
-                <BarChart portfolioChf={portfolioChf} investedChf={totalInvested} T={T} />
+                <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} />
+                <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+
+              </div>
+            )}
+            {showDcaModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowDcaModal(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+                    <div style={{ color: T.text, fontSize: 17, fontWeight: 600 }}>Kauf-Simulator</div>
+                    <button onClick={() => setShowDcaModal(false)} style={{ background: T.input, border: "none", color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Schliessen</button>
+                  </div>
+                  <div style={{ padding: "12px 12px 24px" }}>
+                    <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
+                  </div>
+                </div>
               </div>
             )}
             {view === "verlauf" && (
@@ -1702,7 +2200,44 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} onImport={handleImportTransactions} />}
+            {view === "tools" && (
+              <div style={{ ...scrollStyle, padding: "0 16px" }}>
+                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>FINANZ-TOOLS</div>
+                {/* Kauf-Simulator */}
+                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                      <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+                      <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
+                      <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>Kauf-Simulator</div>
+                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>Einstandspreis bei Nachkauf berechnen</div>
+                  </div>
+                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
+                </button>
+              </div>
+            )}
+            {/* Settings Modal */}
+            {showSettings && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSettings(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+                    <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>Einstellungen</div>
+                    <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Schliessen</button>
+                  </div>
+                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} />
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
