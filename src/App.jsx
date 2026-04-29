@@ -226,7 +226,7 @@ function AuthScreen({ T }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, onRefresh, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
+function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen }) {
   const t = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
   const isPos = dayChangePct >= 0;
   const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
@@ -239,13 +239,12 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, onRefresh, loading,
           <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>Portfolio</div>
-            <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>Aktualisiert {t}</div>
+            <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
+              {loading ? "Aktualisiere..." : `Aktualisiert ${t}`}
+            </div>
           </div>
         </div>
-        <button onClick={onRefresh} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-          <span style={{ fontSize: 13, color: T.textMuted, display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>↻</span>
-          <span style={{ fontSize: 13, color: T.textMuted }}>Aktualisieren</span>
-        </button>
+        <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, color: T.textMuted }}>⚙</button>
       </div>
       {/* BTC Kurs */}
       {btcDisplay > 0 && (
@@ -1267,7 +1266,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.15.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.16.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1760,7 +1759,7 @@ function BottomNav({ view, setView, onAdd, T }) {
       {btn("analyse", "◎", "Analyse")}
       <button onClick={onAdd} style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#000", fontWeight: 400, lineHeight: "56px", boxShadow: "0 4px 20px rgba(247,147,26,0.35)", flexShrink: 0 }}>+</button>
       {btn("verlauf", "≡", "Verlauf")}
-      {btn("settings", "⚙︎", "Einstellungen")}
+      {btn("tools", "⊞", "Tools")}
     </div>
   );
 }
@@ -1780,6 +1779,7 @@ export default function App() {
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
   const [showDcaModal, setShowDcaModal]     = useState(false);
+  const [showSettings, setShowSettings]     = useState(false);
   const [editTx, setEditTx]                 = useState(null);
   const [loading, setLoading]               = useState(false);
   const [dbLoading, setDbLoading]           = useState(true);
@@ -2070,6 +2070,34 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  // Pull-to-Refresh
+  const pullRef = useRef(null);
+  const pullStartY = useRef(0);
+  const pullDist = useRef(0);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+
+  const handleTouchStart = useCallback((e) => {
+    pullStartY.current = e.touches[0].clientY;
+    pullDist.current = 0;
+  }, []);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDist.current > 70 && !pullRefreshing) {
+      setPullRefreshing(true);
+      await Promise.all([fetchPrice(), fetchHistoricChart()]);
+      setPullRefreshing(false);
+    }
+    pullDist.current = 0;
+  }, [pullRefreshing, fetchPrice, fetchHistoricChart]);
+
+  const handleTouchMove = useCallback((e) => {
+    const el = pullRef.current;
+    if (!el) return;
+    const scrollTop = el.scrollTop;
+    if (scrollTop > 0) return;
+    pullDist.current = Math.max(0, e.touches[0].clientY - pullStartY.current);
+  }, []);
+
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
@@ -2116,7 +2144,7 @@ export default function App() {
         </div>
       )}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: window.location.hostname.includes("dev--") ? 28 : 0 }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2125,24 +2153,21 @@ export default function App() {
         ) : (
           <>
             {view === "dashboard" && (
-              <div style={scrollStyle}>
+              <div ref={pullRef} style={scrollStyle} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
               </div>
             )}
             {view === "analyse" && (
-              <div style={{ ...scrollStyle, padding: "0 12px" }}>
+              <div ref={pullRef} style={{ ...scrollStyle, padding: "0 12px" }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                {pullRefreshing && <div style={{ textAlign: "center", padding: "8px 0", color: T.textFaint, fontSize: 13 }}>↻ Aktualisiere...</div>}
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} />
                 <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
-                {/* Kauf-Simulator Button */}
-                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", padding: "16px 0", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, color: T.text, fontSize: 15, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>🧮</span>
-                  Kauf-Simulator öffnen
-                  <span style={{ color: T.textFaint, fontSize: 18, marginLeft: 4 }}>›</span>
-                </button>
+
               </div>
             )}
             {showDcaModal && (
@@ -2171,7 +2196,44 @@ export default function App() {
                 {filteredTx.map(tx => <TxRow key={tx.id} tx={tx} onDelete={handleDelete} onEdit={tx => { setEditTx(tx); setShowModal(true); }} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />)}
               </div>
             )}
-            {view === "settings" && <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={handleLogout} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={resetOnboarding} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} />}
+            {view === "tools" && (
+              <div style={{ ...scrollStyle, padding: "0 16px" }}>
+                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>FINANZ-TOOLS</div>
+                {/* Kauf-Simulator */}
+                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                      <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+                      <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
+                      <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                      <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>Kauf-Simulator</div>
+                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>Einstandspreis bei Nachkauf berechnen</div>
+                  </div>
+                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
+                </button>
+              </div>
+            )}
+            {/* Settings Modal */}
+            {showSettings && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSettings(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+                    <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>Einstellungen</div>
+                    <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Schliessen</button>
+                  </div>
+                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} />
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
