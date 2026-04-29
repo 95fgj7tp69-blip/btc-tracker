@@ -226,21 +226,39 @@ function AuthScreen({ T }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, onRefresh, loading, T }) {
+function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, onRefresh, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
   const t = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const isPos = dayChangePct >= 0;
+  const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const sym = CURRENCIES[currency].symbol;
+  const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 12px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>Portfolio</div>
-          <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>Aktualisiert {t}</div>
+    <div style={{ padding: "14px 16px 10px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>Portfolio</div>
+            <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>Aktualisiert {t}</div>
+          </div>
         </div>
+        <button onClick={onRefresh} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <span style={{ fontSize: 13, color: T.textMuted, display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>↻</span>
+          <span style={{ fontSize: 13, color: T.textMuted }}>Aktualisieren</span>
+        </button>
       </div>
-      <button onClick={onRefresh} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-        <span style={{ fontSize: 13, color: T.textMuted, display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>↻</span>
-        <span style={{ fontSize: 13, color: T.textMuted }}>Aktualisieren</span>
-      </button>
+      {/* BTC Kurs */}
+      {btcDisplay > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
+            {sym} {fmtPrice(btcDisplay)}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
+            {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+          </div>
+          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>24h</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -752,7 +770,7 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>DCA-RECHNER</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>KAUF-SIMULATOR</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
         {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
@@ -861,13 +879,13 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>DCA-EFFIZIENZ</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>KAUFPREIS-EFFIZIENZ</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 16 }}>Ø Kaufpreis pro Jahr in {sym}</div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, paddingRight: 48, position: "relative" }}>
         {/* Gridlines */}
         {[0.25, 0.5, 0.75, 1].map(f => (
-          <div key={f} style={{ position: "absolute", left: 0, right: 0, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
-            <span style={{ position: "absolute", right: 0, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}k</span>
+          <div key={f} style={{ position: "absolute", left: 0, right: 48, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
+            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}</span>
           </div>
         ))}
         {bars.map(({ year, avgPrice, invested }) => {
@@ -926,7 +944,7 @@ function OnboardingScreen({ onFinish, T }) {
       icon: "analyse",
       iconBg: null,
       title: "Tiefe Analysen",
-      text: "Break-Even Analyse, DCA-Rechner und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
+      text: "Break-Even Analyse, Kauf-Simulator und Preis-Charts helfen dir, bessere Entscheidungen zu treffen.",
     },
     {
       icon: "currency",
@@ -1249,7 +1267,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.15.2" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.15.6" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1761,6 +1779,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
+  const [showDcaModal, setShowDcaModal]     = useState(false);
   const [editTx, setEditTx]                 = useState(null);
   const [loading, setLoading]               = useState(false);
   const [dbLoading, setDbLoading]           = useState(true);
@@ -2097,7 +2116,7 @@ export default function App() {
         </div>
       )}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: window.location.hostname.includes("dev--") ? 28 : 0 }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} onRefresh={() => { fetchPrice(); fetchHistoricChart(); }} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2116,9 +2135,28 @@ export default function App() {
               <div style={{ ...scrollStyle, padding: "0 12px" }}>
                 <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
-                <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
                 <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} />
                 <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
+                {/* Kauf-Simulator Button */}
+                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", padding: "16px 0", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, color: T.text, fontSize: 15, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>🧮</span>
+                  Kauf-Simulator öffnen
+                  <span style={{ color: T.textFaint, fontSize: 18, marginLeft: 4 }}>›</span>
+                </button>
+              </div>
+            )}
+            {showDcaModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowDcaModal(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+                    <div style={{ color: T.text, fontSize: 17, fontWeight: 600 }}>Kauf-Simulator</div>
+                    <button onClick={() => setShowDcaModal(false)} style={{ background: T.input, border: "none", color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Schliessen</button>
+                  </div>
+                  <div style={{ padding: "12px 12px 24px" }}>
+                    <DcaCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} currentChf={btcChf} usdChf={usdChf} T={T} currency={currency} eurUsd={eurUsd} />
+                  </div>
+                </div>
               </div>
             )}
             {view === "verlauf" && (
