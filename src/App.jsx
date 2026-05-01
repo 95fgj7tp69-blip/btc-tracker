@@ -195,6 +195,7 @@ function AuthScreen({ T }) {
   const btnLabels = { login: "Anmelden", register: "Registrieren", reset: "Link senden" };
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
@@ -285,7 +286,7 @@ function AuthScreen({ T }) {
         </div>
       </div>
     )}
-  </div>
+    </>
   );
 }
 
