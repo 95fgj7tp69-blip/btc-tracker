@@ -114,6 +114,38 @@ const PORTFOLIO_CHART_DATA = {
   ],
 };
 
+
+// ── AGB Text ──────────────────────────────────────────────────────────────────
+const AGB_SECTIONS = [
+  {
+    title: "1. Datenspeicherung bei Drittanbietern",
+    text: "Die App speichert deine Daten bei Supabase (Irland, EU) und wird über Netlify bereitgestellt. Obwohl beide Anbieter hohe Sicherheits- und Verfügbarkeitsstandards einhalten, liegt die Verantwortung für die Datenverfügbarkeit bei diesen Drittanbietern. Der Anbieter dieser App übernimmt keine Haftung für Datenverluste, die durch technische Störungen, Ausfälle oder Änderungen bei Supabase oder Netlify entstehen."
+  },
+  {
+    title: "2. Empfehlung zur Datensicherung",
+    text: "Nutzer werden ausdrücklich empfohlen, ihre Transaktionsdaten regelmässig via CSV-Export zu sichern. Diese Funktion steht unter Einstellungen → Daten zur Verfügung."
+  },
+  {
+    title: "3. Keine Anlageberatung",
+    text: "Die in dieser App angezeigten Informationen, Berechnungen und Analysen dienen ausschliesslich zu Informationszwecken und stellen keine Anlageberatung, Steuerberatung oder Empfehlung zum Kauf oder Verkauf von Kryptowährungen dar. Alle Entscheidungen liegen in der alleinigen Verantwortung des Nutzers."
+  },
+  {
+    title: "4. Verfügbarkeit",
+    text: "Der Betrieb der App kann jederzeit und ohne Vorankündigung unterbrochen, eingeschränkt oder eingestellt werden. Ein Anspruch auf permanente Verfügbarkeit besteht nicht."
+  },
+  {
+    title: "5. Haftungsbeschränkung",
+    text: "Die Haftung des Anbieters ist im gesetzlich zulässigen Rahmen ausgeschlossen. Dies gilt insbesondere für indirekte Schäden, Datenverluste oder entgangene Gewinne. Vorbehalten bleibt die Haftung für grosse Fahrlässigkeit und Vorsatz."
+  },
+  {
+    title: "6. Änderungen",
+    text: "Der Anbieter behält sich vor, diese AGB jederzeit zu ändern. Über wesentliche Änderungen werden Nutzer informiert."
+  },
+  {
+    title: "7. Kontakt",
+    text: "support [at] bluebubble [dot] ch"
+  },
+];
 // ── Auth Screen ───────────────────────────────────────────────────────────────
 function AuthScreen({ T }) {
   const [mode, setMode] = useState("login"); // "login" | "register" | "reset"
@@ -122,6 +154,8 @@ function AuthScreen({ T }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [agbAccepted, setAgbAccepted] = useState(false);
+  const [showAgb, setShowAgb] = useState(false);
 
   const iStyle = {
     width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`,
@@ -139,6 +173,7 @@ function AuthScreen({ T }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else if (mode === "register") {
+        if (!agbAccepted) { throw new Error("Bitte AGB und Datenschutzerklärung akzeptieren."); }
         if (password.length < 6) { throw new Error("Passwort muss mindestens 6 Zeichen haben."); }
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -193,10 +228,23 @@ function AuthScreen({ T }) {
             </div>
           )}
 
-          <button onClick={handleSubmit} disabled={loading} style={{
-            width: "100%", padding: "15px 0", background: loading ? T.textFaint : "#f7931a",
+          {mode === "register" && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
+              <div onClick={() => setAgbAccepted(!agbAccepted)} style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${agbAccepted ? "#f7931a" : T.inputBorder}`, background: agbAccepted ? "#f7931a" : "transparent", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                {agbAccepted && <span style={{ color: "#000", fontSize: 13, fontWeight: 700 }}>✓</span>}
+              </div>
+              <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.5 }}>
+                Ich akzeptiere die{" "}
+                <span onClick={() => setShowAgb(true)} style={{ color: "#f7931a", cursor: "pointer", textDecoration: "underline" }}>AGB</span>
+                {" "}und die{" "}
+                <span onClick={() => setShowAgb(true)} style={{ color: "#f7931a", cursor: "pointer", textDecoration: "underline" }}>Datenschutzerklärung</span>
+              </div>
+            </div>
+          )}
+          <button onClick={handleSubmit} disabled={loading || (mode === "register" && !agbAccepted)} style={{
+            width: "100%", padding: "15px 0", background: (loading || (mode === "register" && !agbAccepted)) ? T.textFaint : "#f7931a",
             border: "none", borderRadius: 12, color: "#000", fontSize: 16, fontWeight: 600,
-            fontFamily: "inherit", cursor: loading ? "default" : "pointer", marginBottom: 16,
+            fontFamily: "inherit", cursor: (loading || (mode === "register" && !agbAccepted)) ? "default" : "pointer", marginBottom: 16,
           }}>
             {loading ? "Bitte warten..." : btnLabels[mode]}
           </button>
@@ -222,6 +270,22 @@ function AuthScreen({ T }) {
         </div>
       </div>
     </div>
+    {showAgb && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowAgb(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "85vh", overflowY: "auto", padding: "28px 24px 40px" }}>
+          <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 20px" }} />
+          <div style={{ color: T.text, fontSize: 20, fontWeight: 700, marginBottom: 20 }}>AGB & Datenschutz</div>
+          {AGB_SECTIONS.map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 18 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.6 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowAgb(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
+  </div>
   );
 }
 
@@ -1099,6 +1163,7 @@ function OnboardingScreen({ onFinish, T }) {
 // ── Settings ──────────────────────────────────────────────────────────────────
 function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAgbModal, setShowAgbModal] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -1270,19 +1335,29 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>APP INFO</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: "Version", value: "1.17.0" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: "Version", value: "1.17.1" }, { label: "Datenbank", value: "Supabase" }, { label: "Kurs-API", value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
           </div>
         ))}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
-          <span style={{ color: T.text, fontSize: 15 }}>Datenschutzerklärung</span>
-          <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
-        </div>
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
           <span style={{ color: T.text, fontSize: 15 }}>Einführung nochmals zeigen</span>
           <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+      </div>
+
+      {/* RECHTLICHES */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>RECHTLICHES</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ color: T.text, fontSize: 15 }}>AGB</span>
+          <button onClick={() => setShowAgbModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+          <span style={{ color: T.text, fontSize: 15 }}>Datenschutzerklärung</span>
+          <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
       </div>
 
@@ -1300,6 +1375,21 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onLogout={onLogout} T={T} />}
     {showClearModal && <ClearDataModal onClose={() => setShowClearModal(false)} onImport={onImport} T={T} />}
     {showDemoModal && <DemoImportModal key={String(showDemoModal)} onClose={() => setShowDemoModal(false)} onImport={onImport} transactions={transactions} T={T} />}
+    {showAgbModal && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowAgbModal(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "85vh", overflowY: "auto", padding: "28px 24px 40px" }}>
+          <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 20px" }} />
+          <div style={{ color: T.text, fontSize: 20, fontWeight: 700, marginBottom: 20 }}>AGB & Datenschutz</div>
+          {AGB_SECTIONS.map(({ title, text }) => (
+            <div key={title} style={{ marginBottom: 18 }}>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{title}</div>
+              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.6 }}>{text}</div>
+            </div>
+          ))}
+          <button onClick={() => setShowAgbModal(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>Schliessen</button>
+        </div>
+      </div>
+    )}
     {showPrivacy && (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
         <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
