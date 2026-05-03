@@ -1898,7 +1898,11 @@ export default function App() {
   const setCurrency = (c) => { setCurrencyState(c); try { localStorage.setItem("currency", c); } catch {} };
 
   const [language, setLanguageState] = useState(() => {
-    try { return localStorage.getItem("language") || "de"; } catch { return "de"; }
+    try {
+      const saved = localStorage.getItem("language");
+      if (saved) return saved;
+      return navigator.language?.startsWith("de") ? "de" : "en";
+    } catch { return "de"; }
   });
   const setLanguage = (l) => { setLanguageState(l); try { localStorage.setItem("language", l); } catch {} };
   const t = tr(translations, language);
