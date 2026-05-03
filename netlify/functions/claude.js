@@ -1,43 +1,40 @@
 // netlify/functions/claude.js
 // Claude AI Tools: Portfolio-Analyse + Markt-Kommentar
-// Version: 1.19.0
+// Version: 1.19.0 — CommonJS Format
 
-export default async (req) => {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+const headers = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers, body: "" };
+  }
+
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "API key not configured" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "API key not configured" }) };
   }
 
   let body;
   try {
-    body = await req.json();
+    body = JSON.parse(event.body);
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON" }) };
   }
 
   const { tool, portfolio, lang = "de" } = body;
 
   if (!tool || !["portfolio", "market"].includes(tool)) {
-    return new Response(JSON.stringify({ error: "Invalid tool" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid tool" }) };
   }
-
-  // ── Prompts ────────────────────────────────────────────────────────────────
 
   const portfolioPromptDe = `Du bist ein sachlicher Bitcoin-Portfolio-Analyst. Analysiere das folgende Portfolio und gib eine klare, ehrliche Einschätzung auf Deutsch.
 
@@ -74,7 +71,7 @@ Portfolio data:
 
 Structure your response in exactly 3 short sections (2-3 sentences each):
 1. **Current Position** — Where does the portfolio stand today?
-2. **Strengths** — What's going well?
+2. **Strengths** — What is going well?
 3. **Risks & Notes** — What should be considered?
 
 No financial advice disclaimer needed. Direct and to the point.`;
@@ -90,7 +87,7 @@ Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
 
 Bleib sachlich. Kein Finanzberatungs-Disclaimer nötig.`;
 
-  const marketPromptEn = `You are a concise Bitcoin market observer. Use your current knowledge of the BTC market and provide a brief market commentary in English.
+  const marketPromptEn = `You are a concise Bitcoin market observer. Provide a brief market commentary in English.
 
 Current BTC price per app: ${portfolio.btcPrice} ${portfolio.currency} (24h: ${portfolio.change24h}%)
 
@@ -103,12 +100,9 @@ Stay factual. No financial advice disclaimer needed.`;
 
   const prompt =
     tool === "portfolio"
-      ? lang === "de" ? portfolioPromptDe : portfolioPromptEn
-      : lang === "de" ? marketPromptDe : marketPromptEn;
+      ? (lang === "de" ? portfolioPromptDe : portfolioPromptEn)
+      : (lang === "de" ? marketPromptDe : marketPromptEn);
 
-  // ── Anthropic API Call ─────────────────────────────────────────────────────
-
-  // Markt-Kommentar: Web Search aktivieren für aktuelle Daten
   const useWebSearch = tool === "market";
 
   const requestBody = {
@@ -135,34 +129,20 @@ Stay factual. No financial advice disclaimer needed.`;
     if (!response.ok) {
       const err = await response.text();
       console.error("Anthropic API error:", err);
-      return new Response(JSON.stringify({ error: "AI request failed" }), {
-        status: 502,
-        headers: { "Content-Type": "application/json" },
-      });
+      return { statusCode: 502, headers, body: JSON.stringify({ error: "AI request failed", detail: err }) };
     }
 
     const data = await response.json();
 
-    // Text aus allen content-Blöcken zusammensetzen
     const text = (data.content || [])
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("\n");
 
-    return new Response(JSON.stringify({ result: text }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-    });
+    return { statusCode: 200, headers, body: JSON.stringify({ result: text }) };
+
   } catch (err) {
     console.error("Claude function error:", err);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
-
-export const config = { path: "/api/claude" };
