@@ -106,7 +106,7 @@ Stay factual. No financial advice disclaimer needed.`;
   const useWebSearch = tool === "market";
 
   const requestBody = {
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-5",
     max_tokens: 600,
     messages: [{ role: "user", content: prompt }],
     ...(useWebSearch && {
