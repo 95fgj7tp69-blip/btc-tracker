@@ -2377,18 +2377,18 @@ export default function App() {
                 <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.aiTools")}</div>
                 <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
                   {/* Buttons */}
-                  <div style={{ display: "flex", gap: 10, marginBottom: aiResult || aiLoading ? 16 : 0 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: aiResult || aiLoading ? 16 : 0 }}>
                     <button
                       onClick={() => callClaudeAI("portfolio")}
                       disabled={aiLoading || totalBtc === 0}
-                      style={{ flex: 1, padding: "13px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 14, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", opacity: aiLoading || totalBtc === 0 ? 0.45 : 1, fontFamily: "inherit" }}
+                      style={{ width: "100%", padding: "15px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 15, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", opacity: aiLoading || totalBtc === 0 ? 0.45 : 1, fontFamily: "inherit" }}
                     >
                       📊 {t("tools.aiPortfolioBtn")}
                     </button>
                     <button
                       onClick={() => callClaudeAI("market")}
                       disabled={aiLoading}
-                      style={{ flex: 1, padding: "13px 8px", borderRadius: 12, border: "none", background: "#5856d6", color: "#fff", fontWeight: 600, fontSize: 14, cursor: aiLoading ? "not-allowed" : "pointer", opacity: aiLoading ? 0.45 : 1, fontFamily: "inherit" }}
+                      style={{ width: "100%", padding: "15px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 15, cursor: aiLoading ? "not-allowed" : "pointer", opacity: aiLoading ? 0.45 : 1, fontFamily: "inherit" }}
                     >
                       🌐 {t("tools.aiMarketBtn")}
                     </button>
