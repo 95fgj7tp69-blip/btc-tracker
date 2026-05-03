@@ -203,7 +203,9 @@ function AuthScreen({ T, language }) {
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>t</div>
+          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>
+            <svg width="36" height="36" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
+          </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi</div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t("auth.tagline")}</div>
         </div>
@@ -305,7 +307,9 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>t</div>
+          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>
+            <svg width="20" height="20" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3.5" fill="#000"/></svg>
+          </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{t("header.portfolio")}</div>
             <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
@@ -671,7 +675,9 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
       <div style={{ padding: "18px 20px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", flexShrink: 0 }}>t</div>
+            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="4" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="4" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="4" fill="#000"/></svg>
+            </div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
           <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
@@ -1019,7 +1025,10 @@ function OnboardingScreen({ onFinish, T, language }) {
           {slide === 0 && (
             <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
               <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
-              <text x="140" y="78" textAnchor="middle" fontSize="56" fontWeight="800" fill="#000" fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif">t</text>
+              <line x1="108" y1="90" x2="108" y2="32" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
+              <line x1="108" y1="90" x2="178" y2="90" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
+              <polyline points="118,72 132,54 148,64 168,36" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="168" cy="36" r="5" fill="#000"/>
               <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
               <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
               <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
@@ -2265,7 +2274,9 @@ export default function App() {
         @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
-        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>t</div>
+        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>
+          <svg width="44" height="44" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
+        </div>
         <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi</div>
         <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
       </div>
@@ -2293,12 +2304,14 @@ export default function App() {
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
+      {/* Banner temporär ausgeblendet für Screenshots
       {window.location.hostname.includes("dev--") && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: "linear-gradient(90deg, #7c3aed, #a855f7)", color: "#fff", textAlign: "center", fontSize: 12, fontWeight: 700, letterSpacing: 2, padding: "6px 0", fontFamily: "inherit" }}>
           🧪 TESTUMGEBUNG — dev
         </div>
       )}
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: window.location.hostname.includes("dev--") ? 28 : "env(safe-area-inset-top)" }}>
+      */}
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
         <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} />
 
         {dbLoading ? (
