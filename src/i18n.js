@@ -1,4 +1,4 @@
-// ── i18n.js — BTC Portfolio App ──────────────────────────────────────────────
+// ── i18n.js — Trackoshi ──────────────────────────────────────────────────────
 // Alle sichtbaren Texte der App in DE und EN.
 // Verwendung: import { translations, tr } from "./i18n";
 //             const t = tr(translations, language);
@@ -16,14 +16,12 @@ export const translations = {
 
     // ── Header ──────────────────────────────────────────────────────────────────
     header: {
-      portfolio:       "Portfolio",
-      aktualisiere:    "Aktualisiere...",
-      aktualisiert:    "Aktualisiert",  // + Uhrzeit danach
+      portfolio:       "Trackoshi",
     },
 
     // ── Auth Screen ─────────────────────────────────────────────────────────────
     auth: {
-      tagline:          "Dein Bitcoin-Tracker",
+      tagline:          "Bitcoin Portfolio Tracker",
       login:            "Anmelden",
       register:         "Konto erstellen",
       reset:            "Passwort zurücksetzen",
@@ -301,7 +299,7 @@ export const translations = {
       datenschutzLink:  "Vollständige Datenschutzerklärung lesen",
       slides: [
         {
-          title: "Willkommen bei BTC Portfolio",
+          title: "Willkommen bei Trackoshi",
           text:  "Dein persönlicher Bitcoin-Tracker. Erfasse Käufe, verfolge deinen Einstandspreis und behalte den Überblick.",
         },
         {
@@ -383,13 +381,13 @@ export const translations = {
     },
 
     header: {
-      portfolio:       "Portfolio",
+      portfolio:       "Trackoshi",
       aktualisiere:    "Updating...",
       aktualisiert:    "Updated",
     },
 
     auth: {
-      tagline:          "Your Bitcoin Tracker",
+      tagline:          "Bitcoin Portfolio Tracker",
       login:            "Sign In",
       register:         "Create Account",
       reset:            "Reset Password",
@@ -648,7 +646,7 @@ export const translations = {
       datenschutzLink:  "Read full Privacy Policy",
       slides: [
         {
-          title: "Welcome to BTC Portfolio",
+          title: "Welcome to Trackoshi",
           text:  "Your personal Bitcoin tracker. Record purchases, track your cost basis, and stay on top of your portfolio.",
         },
         {

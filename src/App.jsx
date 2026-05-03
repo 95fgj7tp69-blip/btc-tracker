@@ -203,8 +203,8 @@ function AuthScreen({ T, language }) {
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "#000", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>₿</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>BTC Portfolio</div>
+          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>t</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi</div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t("auth.tagline")}</div>
         </div>
 
@@ -305,7 +305,7 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#000", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>₿</div>
+          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>t</div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{t("header.portfolio")}</div>
             <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
@@ -671,7 +671,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
       <div style={{ padding: "18px 20px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#000", flexShrink: 0 }}>₿</div>
+            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", flexShrink: 0 }}>t</div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
           <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
@@ -1003,7 +1003,7 @@ function OnboardingScreen({ onFinish, T, language }) {
   const privacyContent = t("privacy.sections");
   const slidesData = t("onboarding.slides");
   const slides = [
-    { icon: "₿",       iconBg: "#f7931a", title: slidesData[0].title, text: slidesData[0].text },
+    { icon: "t",       iconBg: "#f7931a", title: slidesData[0].title, text: slidesData[0].text },
     { icon: "chart",   iconBg: null,      title: slidesData[1].title, text: slidesData[1].text },
     { icon: "analyse", iconBg: null,      title: slidesData[2].title, text: slidesData[2].text },
     { icon: "currency",iconBg: null,      title: slidesData[3].title, text: slidesData[3].text },
@@ -1019,7 +1019,7 @@ function OnboardingScreen({ onFinish, T, language }) {
           {slide === 0 && (
             <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
               <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
-              <text x="140" y="78" textAnchor="middle" fontSize="56" fontWeight="800" fill="#000">₿</text>
+              <text x="140" y="78" textAnchor="middle" fontSize="56" fontWeight="800" fill="#000" fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif">t</text>
               <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
               <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
               <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
@@ -1329,7 +1329,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "1.17.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.1.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1858,7 +1858,7 @@ function BottomNav({ view, setView, onAdd, T, language }) {
   );
 }
 
-// ── Main App — v1.19.0 ───────────────────────────────────────────────────────
+// ── Main App — v2.1.0 ───────────────────────────────────────────────────────
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -2265,8 +2265,8 @@ export default function App() {
         @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
-        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42, fontWeight: 800, color: "#000", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>₿</div>
-        <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>BTC Portfolio</div>
+        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, fontWeight: 800, color: "#000", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>t</div>
+        <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi</div>
         <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
       </div>
     </>
