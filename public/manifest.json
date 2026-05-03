@@ -1,6 +1,6 @@
 {
-  "name": "BTC Portfolio",
-  "short_name": "BTC Portfolio",
+  "name": "Trackoshi",
+  "short_name": "Trackoshi",
   "description": "Dein persönlicher Bitcoin-Tracker",
   "start_url": "/",
   "display": "standalone",
