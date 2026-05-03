@@ -332,7 +332,9 @@ export const translations = {
       // KI-Tools
       aiTools:        "KI-TOOLS",
       aiPortfolioBtn: "Portfolio analysieren",
+      aiPortfolioBtnHint: "Stärken, Risiken & aktuelle Position",
       aiMarketBtn:    "Markt-Kommentar",
+      aiMarketBtnHint: "Aktuelle BTC-Marktlage & Ausblick",
       aiLoading:      "Claude denkt...",
       aiError:        "Fehler beim Laden. Bitte erneut versuchen.",
       aiPoweredBy:    "Powered by Claude AI",
@@ -676,7 +678,9 @@ export const translations = {
       // AI Tools
       aiTools:        "AI TOOLS",
       aiPortfolioBtn: "Analyse Portfolio",
+      aiPortfolioBtnHint: "Strengths, risks & current position",
       aiMarketBtn:    "Market Commentary",
+      aiMarketBtnHint: "Current BTC market situation & outlook",
       aiLoading:      "Claude is thinking...",
       aiError:        "Error loading. Please try again.",
       aiPoweredBy:    "Powered by Claude AI",
