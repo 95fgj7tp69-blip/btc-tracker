@@ -1858,7 +1858,7 @@ function BottomNav({ view, setView, onAdd, T, language }) {
   );
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
+// ── Main App — v1.19.0 ───────────────────────────────────────────────────────
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -1874,6 +1874,9 @@ export default function App() {
   const [showModal, setShowModal]           = useState(false);
   const [showDcaModal, setShowDcaModal]     = useState(false);
   const [showSettings, setShowSettings]     = useState(false);
+  const [aiResult, setAiResult]             = useState(null);
+  const [aiLoading, setAiLoading]           = useState(false);
+  const [aiActiveTool, setAiActiveTool]     = useState(null); // "portfolio" | "market"
   const [editTx, setEditTx]                 = useState(null);
   const [loading, setLoading]               = useState(false);
   const [dbLoading, setDbLoading]           = useState(true);
@@ -2177,6 +2180,80 @@ export default function App() {
 
 
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
+
+  // ── Claude AI Tools ───────────────────────────────────────────────────────────
+  const fmt = (chfAmount) => {
+    const val = toDisplay(chfAmount, currency, usdChf, eurUsd);
+    return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+  };
+
+  const realizedPnl = (() => {
+    const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
+    const lots = [];
+    let realized = 0;
+    for (const tx of sorted) {
+      if (tx.type === "buy") {
+        lots.push({ btc: +tx.btc, costPerBtc: (+tx.chf + +(tx.fee || 0)) / +tx.btc });
+      } else if (tx.type === "sell") {
+        let toSell = +tx.btc;
+        const proceeds = +tx.chf - +(tx.fee || 0);
+        const avgCost = lots.length ? lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0) / lots.reduce((s, l) => s + l.btc, 0) : 0;
+        realized += proceeds - toSell * avgCost;
+        while (toSell > 1e-10 && lots.length) {
+          if (lots[0].btc <= toSell) { toSell -= lots[0].btc; lots.shift(); }
+          else { lots[0].btc -= toSell; toSell = 0; }
+        }
+      }
+    }
+    return realized;
+  })();
+
+  const callClaudeAI = async (tool) => {
+    setAiLoading(true);
+    setAiActiveTool(tool);
+    setAiResult(null);
+    const btcPrice = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : btcUsd * eurUsd;
+    const firstTx = transactions.length > 0
+      ? [...transactions].sort((a, b) => a.date.localeCompare(b.date))[0].date
+      : "n/a";
+    const portfolioPayload = {
+      totalBtc: totalBtc.toFixed(8),
+      invested: fmt(totalInvested),
+      value: fmt(portfolioChf),
+      pnl: fmt(pnlChf),
+      pnlPct: pnlPct.toFixed(1),
+      breakEven: fmt(avgChf),
+      btcPrice: fmt(btcChf),
+      change24h: dayChangePct?.toFixed(2) ?? "n/a",
+      method: costMethod,
+      txCount: transactions.length,
+      firstTx,
+      realizedPnl: fmt(realizedPnl),
+      currency,
+    };
+    try {
+      const res = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool, portfolio: portfolioPayload, lang: language }),
+      });
+      const data = await res.json();
+      setAiResult(data.result || "error");
+    } catch {
+      setAiResult("error");
+    }
+    setAiLoading(false);
+  };
+
+  const renderMarkdown = (text) =>
+    text.split("\n").map((line, i) => {
+      const parts = line.split(/\*\*(.*?)\*\*/g);
+      return (
+        <p key={i} style={{ margin: "4px 0" }}>
+          {parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
+        </p>
+      );
+    });
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
   // Splash Screen — während Auth-Check und initialem Daten-Laden
@@ -2295,6 +2372,54 @@ export default function App() {
                   </div>
                   <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
                 </button>
+
+                {/* KI-Tools */}
+                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.aiTools")}</div>
+                <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
+                  {/* Buttons */}
+                  <div style={{ display: "flex", gap: 10, marginBottom: aiResult || aiLoading ? 16 : 0 }}>
+                    <button
+                      onClick={() => callClaudeAI("portfolio")}
+                      disabled={aiLoading || totalBtc === 0}
+                      style={{ flex: 1, padding: "13px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 14, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", opacity: aiLoading || totalBtc === 0 ? 0.45 : 1, fontFamily: "inherit" }}
+                    >
+                      📊 {t("tools.aiPortfolioBtn")}
+                    </button>
+                    <button
+                      onClick={() => callClaudeAI("market")}
+                      disabled={aiLoading}
+                      style={{ flex: 1, padding: "13px 8px", borderRadius: 12, border: "none", background: "#5856d6", color: "#fff", fontWeight: 600, fontSize: 14, cursor: aiLoading ? "not-allowed" : "pointer", opacity: aiLoading ? 0.45 : 1, fontFamily: "inherit" }}
+                    >
+                      🌐 {t("tools.aiMarketBtn")}
+                    </button>
+                  </div>
+
+                  {/* Loading */}
+                  {aiLoading && (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: T.textMuted, fontSize: 15 }}>
+                      <div style={{ width: 24, height: 24, border: `3px solid ${T.border}`, borderTopColor: "#5856d6", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite", margin: "0 auto 10px" }} />
+                      {t("tools.aiLoading")}
+                    </div>
+                  )}
+
+                  {/* Fehler */}
+                  {!aiLoading && aiResult === "error" && (
+                    <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 10, padding: 14, color: "#ef4444", fontSize: 14 }}>
+                      {t("tools.aiError")}
+                    </div>
+                  )}
+
+                  {/* Resultat */}
+                  {!aiLoading && aiResult && aiResult !== "error" && (
+                    <div style={{ background: T.input, borderRadius: 12, padding: 16, fontSize: 14, lineHeight: 1.65, color: T.text }}>
+                      {renderMarkdown(aiResult)}
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", color: T.textFaint, fontSize: 11 }}>
+                        <span>{t("tools.aiPoweredBy")}</span>
+                        <span>{t("tools.aiDisclaimer")}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {/* Settings Modal */}
