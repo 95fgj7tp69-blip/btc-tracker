@@ -2375,42 +2375,65 @@ export default function App() {
 
                 {/* KI-Tools */}
                 <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.aiTools")}</div>
-                <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
-                  {/* Buttons */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: aiResult || aiLoading ? 16 : 0 }}>
-                    <button
-                      onClick={() => callClaudeAI("portfolio")}
-                      disabled={aiLoading || totalBtc === 0}
-                      style={{ width: "100%", padding: "15px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 15, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", opacity: aiLoading || totalBtc === 0 ? 0.45 : 1, fontFamily: "inherit" }}
-                    >
-                      📊 {t("tools.aiPortfolioBtn")}
-                    </button>
-                    <button
-                      onClick={() => callClaudeAI("market")}
-                      disabled={aiLoading}
-                      style={{ width: "100%", padding: "15px 8px", borderRadius: 12, border: "none", background: "#f7931a", color: "#000", fontWeight: 600, fontSize: 15, cursor: aiLoading ? "not-allowed" : "pointer", opacity: aiLoading ? 0.45 : 1, fontFamily: "inherit" }}
-                    >
-                      🌐 {t("tools.aiMarketBtn")}
-                    </button>
+
+                {/* Button: Portfolio analysieren */}
+                <button
+                  onClick={() => callClaudeAI("portfolio")}
+                  disabled={aiLoading || totalBtc === 0}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>📊</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiPortfolioBtn")}</div>
+                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiPortfolioBtnHint")}</div>
                   </div>
+                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
+                </button>
 
-                  {/* Loading */}
-                  {aiLoading && (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: T.textMuted, fontSize: 15 }}>
-                      <div style={{ width: 24, height: 24, border: `3px solid ${T.border}`, borderTopColor: "#5856d6", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite", margin: "0 auto 10px" }} />
-                      {t("tools.aiLoading")}
-                    </div>
-                  )}
+                {/* Button: Markt-Kommentar */}
+                <button
+                  onClick={() => callClaudeAI("market")}
+                  disabled={aiLoading}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🌐</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiMarketBtn")}</div>
+                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiMarketBtnHint")}</div>
+                  </div>
+                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
+                </button>
 
-                  {/* Fehler */}
-                  {!aiLoading && aiResult === "error" && (
+                {/* Loading */}
+                {aiLoading && (
+                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20, textAlign: "center", color: T.textMuted, fontSize: 15 }}>
+                    <div style={{ width: 24, height: 24, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+                    {t("tools.aiLoading")}
+                  </div>
+                )}
+
+                {/* Fehler */}
+                {!aiLoading && aiResult === "error" && (
+                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
                     <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 10, padding: 14, color: "#ef4444", fontSize: 14 }}>
                       {t("tools.aiError")}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Resultat */}
-                  {!aiLoading && aiResult && aiResult !== "error" && (
+                {/* Resultat */}
+                {!aiLoading && aiResult && aiResult !== "error" && (
+                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
+                    {/* Header mit X */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <span style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em" }}>
+                        {aiActiveTool === "portfolio" ? t("tools.aiPortfolioBtn") : t("tools.aiMarketBtn")}
+                      </span>
+                      <button
+                        onClick={() => setAiResult(null)}
+                        style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "inherit" }}
+                      >✕</button>
+                    </div>
                     <div style={{ background: T.input, borderRadius: 12, padding: 16, fontSize: 14, lineHeight: 1.65, color: T.text }}>
                       {renderMarkdown(aiResult)}
                       <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", color: T.textFaint, fontSize: 11 }}>
@@ -2418,8 +2441,8 @@ export default function App() {
                         <span>{t("tools.aiDisclaimer")}</span>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
             {/* Settings Modal */}
