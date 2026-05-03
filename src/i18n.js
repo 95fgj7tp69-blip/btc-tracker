@@ -17,6 +17,8 @@ export const translations = {
     // ── Header ──────────────────────────────────────────────────────────────────
     header: {
       portfolio:       "Trackoshi",
+      aktualisiere:    "Aktualisiere...",
+      aktualisiert:    "Aktualisiert",
     },
 
     // ── Auth Screen ─────────────────────────────────────────────────────────────
