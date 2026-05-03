@@ -328,6 +328,15 @@ export const translations = {
       finanzTools:    "FINANZ-TOOLS",
       kaufSimulator:  "Kauf-Simulator",
       kaufSimulatorHint: "Einstandspreis bei Nachkauf berechnen",
+
+      // KI-Tools
+      aiTools:        "KI-TOOLS",
+      aiPortfolioBtn: "Portfolio analysieren",
+      aiMarketBtn:    "Markt-Kommentar",
+      aiLoading:      "Claude denkt...",
+      aiError:        "Fehler beim Laden. Bitte erneut versuchen.",
+      aiPoweredBy:    "Powered by Claude AI",
+      aiDisclaimer:   "Keine Anlageberatung.",
     },
 
     // ── Demo Import Modal ───────────────────────────────────────────────────────
@@ -663,6 +672,15 @@ export const translations = {
       finanzTools:        "FINANCIAL TOOLS",
       kaufSimulator:      "Buy Simulator",
       kaufSimulatorHint:  "Calculate cost basis after additional purchase",
+
+      // AI Tools
+      aiTools:        "AI TOOLS",
+      aiPortfolioBtn: "Analyse Portfolio",
+      aiMarketBtn:    "Market Commentary",
+      aiLoading:      "Claude is thinking...",
+      aiError:        "Error loading. Please try again.",
+      aiPoweredBy:    "Powered by Claude AI",
+      aiDisclaimer:   "Not financial advice.",
     },
 
     demoImport: {
