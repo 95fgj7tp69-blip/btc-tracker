@@ -1400,7 +1400,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.2.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.3.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1879,30 +1879,68 @@ function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd
   const t = tr(translations, language);
   const TYPE_META = getTypeMeta(t);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const startXRef = useRef(null);
+  const THRESHOLD = 72; // px bis Button sichtbar
   const m = TYPE_META[tx.type];
   const sym = CURRENCIES[currency].symbol;
   const fmtTx = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:2,maximumFractionDigits:2}).format(toDisplay(v, currency, usdChf, eurUsd));
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    setSwiping(true);
+  };
+  const onTouchMove = (e) => {
+    if (startXRef.current === null) return;
+    const dx = e.touches[0].clientX - startXRef.current;
+    setSwipeX(Math.max(-THRESHOLD, Math.min(0, dx)));
+  };
+  const onTouchEnd = () => {
+    if (swipeX < -THRESHOLD * 0.5) {
+      setSwipeX(-THRESHOLD);
+    } else {
+      setSwipeX(0);
+    }
+    setSwiping(false);
+    startXRef.current = null;
+  };
+
+  const close = () => setSwipeX(0);
+
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{m.icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
-            <div style={{ color: m.color, fontSize: 15 }}>
-            {tx.type === "transfer_in"  ? `+${tx.btc} BTC` :
-             tx.type === "transfer_out" ? `−${tx.btc} BTC` :
-             `${sym} ${fmtTx(tx.chf)}`}
-          </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-            <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-            {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>{t("verlauf.gebuehr")} {sym} {fmtTx(tx.fee)}</div>}
-          </div>
+      <div style={{ position: "relative", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
+        {/* Roter Löschen-Button dahinter */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: THRESHOLD, background: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "0 0 0 0" }}>
+          <button onClick={() => { close(); setShowConfirm(true); }} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: 18 }}>✕</span>
+            <span>{t("deleteModal.loeschen")}</span>
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <button onClick={() => onEdit(tx)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✎</button>
-          <button onClick={() => setShowConfirm(true)} style={{ background: "none", border: `1px solid rgba(239,68,68,0.3)`, color: "#ef4444", borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✕</button>
+        {/* Zeilen-Inhalt — verschiebt sich beim Swipe */}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", background: T.surface, transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 0.25s ease", willChange: "transform" }}
+        >
+          <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{m.icon}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
+              <div style={{ color: m.color, fontSize: 15 }}>
+                {tx.type === "transfer_in"  ? `+${tx.btc} BTC` :
+                 tx.type === "transfer_out" ? `−${tx.btc} BTC` :
+                 `${sym} ${fmtTx(tx.chf)}`}
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+              <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
+              {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>{t("verlauf.gebuehr")} {sym} {fmtTx(tx.fee)}</div>}
+            </div>
+          </div>
+          <button onClick={() => { close(); onEdit(tx); }} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px", flexShrink: 0 }}>✎</button>
         </div>
       </div>
       {showConfirm && (
