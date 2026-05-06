@@ -730,11 +730,18 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 }
 
 // ── Analyse Charts ─────────────────────────────────────────────────────────────
-function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }) {
+function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
   const t = tr(translations, language);
   const svgRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
-  const data = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
+  const sym = CURRENCIES[currency].symbol;
+  const convertPrice = (usdPrice) => {
+    if (currency === "CHF") return usdPrice * usdChf;
+    if (currency === "EUR") return usdPrice * eurUsd;
+    return usdPrice;
+  };
+  const rawData = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
+  const data = rawData.map(([d, p]) => [d, Math.round(convertPrice(p))]);
   const prices = data.map(d => d[1]);
   const minP = Math.min(...prices) * 0.92, maxP = Math.max(...prices) * 1.06;
   const W = 340, H = 160, PAD_L = 46, PAD_R = 12, PAD_T = 12, PAD_B = 24;
@@ -744,8 +751,9 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }
   const linePoints = data.map((d, i) => `${xScale(i)},${yScale(d[1])}`).join(" ");
   const areaPoints = [`${xScale(0)},${PAD_T + ch}`, ...data.map((d, i) => `${xScale(i)},${yScale(d[1])}`), `${xScale(data.length - 1)},${PAD_T + ch}`].join(" ");
   const buyMarkers = transactions.filter(t => t.type === "buy").map(t => { const idx = data.findIndex(d => d[0] === t.date.slice(0, 7)); if (idx < 0) return null; return { x: xScale(idx), y: yScale(data[idx][1]) }; }).filter(Boolean);
+  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
   const isAbove = currentChf >= avgChf;
-  const avgY = yScale(avgChf);
+  const avgY = yScale(avgDisplay);
   const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => ({ v, y: yScale(v), label: v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v) }));
   const xTicks = data.map((d, i) => ({ i, label: d[0] })).filter((_, i) => i % 6 === 0 || i === data.length - 1);
   const updateTooltip = useCallback((clientX) => {
@@ -780,12 +788,12 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }
         {xTicks.map(t => (<text key={t.i} x={xScale(t.i)} y={H - 4} fill={T.textFaint} fontSize="8" textAnchor="middle">{t.label.slice(2)}</text>))}
         <polygon points={areaPoints} fill="url(#areaGrad)" clipPath="url(#chartClip)" />
         <polyline points={linePoints} fill="none" stroke={isAbove ? "#22c55e" : "#ef4444"} strokeWidth="1.5" strokeLinejoin="round" clipPath="url(#chartClip)" opacity="0.9" />
-        {avgChf >= minP && avgChf <= maxP && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgChf / 1000)}k</text></g>)}
+        {avgDisplay >= minP && avgDisplay <= maxP && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgDisplay / 1000)}k</text></g>)}
         {buyMarkers.map((m, i) => (<g key={i}><circle cx={m.x} cy={m.y} r="4" fill="#22c55e" opacity="0.85" /><circle cx={m.x} cy={m.y} r="7" fill="none" stroke="#22c55e" strokeWidth="1" opacity="0.3" /></g>))}
         {tooltip && (<g><line x1={tooltip.x} y1={PAD_T} x2={tooltip.x} y2={PAD_T + ch} stroke={T.textFaint} strokeWidth="1" strokeDasharray="3 3" /><circle cx={tooltip.x} cy={tooltip.y} r="4" fill={T.text} opacity="0.95" /></g>)}
       </svg>
       <div style={{ marginTop: 10, padding: "10px 14px", background: T.input, borderRadius: 8, border: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 40 }}>
-        {tooltip ? (<><span style={{ color: T.textMuted, fontSize: 13 }}>{tooltip.label}</span><span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>CHF {fmtChf(tooltip.price, 0)}</span></>) : (<><span style={{ color: T.textFaint, fontSize: 13 }}>{t("priceChart.fingerHint")}</span><span style={{ color: T.textMuted, fontSize: 13 }}>CHF {fmtChf(currentChf, 0)}</span></>)}
+        {tooltip ? (<><span style={{ color: T.textMuted, fontSize: 13 }}>{tooltip.label}</span><span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{sym} {fmtChf(tooltip.price, 0)}</span></>) : (<><span style={{ color: T.textFaint, fontSize: 13 }}>{t("priceChart.fingerHint")}</span><span style={{ color: T.textMuted, fontSize: 13 }}>{sym} {fmtChf(toDisplay(currentChf, currency, usdChf, eurUsd), 0)}</span></>)}
       </div>
     </div>
   );
@@ -1344,7 +1352,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.1.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.1.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2154,7 +2162,7 @@ export default function App() {
     if (!prices.length) return [];
     const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
     const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-    return prices.map(([date, chfPrice]) => {
+    return prices.map(([date, usdPrice]) => {
       let btcAmt = 0;
       for (const tx of sortedTx) {
         if (tx.date > date) break;
@@ -2163,7 +2171,7 @@ export default function App() {
         else if (tx.type === "transfer_in")  btcAmt += +(tx.btc || 0);
         else if (tx.type === "transfer_out") btcAmt -= +(tx.btc || 0);
       }
-      const v = Math.round(btcAmt * chfPrice);
+      const v = Math.round(btcAmt * usdPrice * usdChf);
       let t = date;
       if (tab === "7D") t = dayLabels[new Date(date).getDay()];
       else if (tab === "30D") t = date.slice(8, 10) + ".";
@@ -2347,7 +2355,7 @@ export default function App() {
             )}
             {view === "analyse" && (
               <div style={{ ...scrollStyle, padding: "0 12px" }}>
-                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} language={language} />
+                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} language={language} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
                 <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} language={language} />
                 <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
