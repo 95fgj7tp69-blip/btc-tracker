@@ -696,6 +696,14 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
   const maxV = vals.length ? Math.max(...vals) : 0;
   const midV = Math.round((minV + maxV) / 2);
   const xTicks = chartData.filter((_, i) => { const n = chartData.length; if (n <= 8) return true; return i % Math.floor(n / 5) === 0 || i === n - 1; }).map(d => d.t);
+  const fmtAxis = (usdVal) => {
+    const converted = niceRound(toDisplay(usdVal * usdChf, currency, usdChf, eurUsd));
+    return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted);
+  };
+  const fmtTooltip = (usdVal) => {
+    const converted = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
+    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)}`;
+  };
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -736,12 +744,12 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
                 <YAxis domain={["auto", "auto"]} hide />
-                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [`CHF ${fmtChf(v, 0)}`, ""]} />
+                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
                 <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill="url(#marketGrad)" dot={false} activeDot={{ r: 3, fill: color }} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ position: "absolute", right: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
-              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtChf(v, 0)}</span>))}
+              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtAxis(v)}</span>))}
             </div>
           </>
         ) : null}
@@ -1392,7 +1400,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.2.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.2.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
