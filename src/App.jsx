@@ -660,23 +660,14 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
   const fetchMarketChart = useCallback(async (tab) => {
     setLoadingChart(true);
-    setChartData([]); // reset while loading
+    setChartData([]);
     try {
       const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
       const days = daysMap[tab];
-      const r = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`);
+      const r = await fetch(`/api/market?days=${days}`);
       const d = await r.json();
       if (!d.prices?.length) { setLoadingChart(false); return; }
-      const formatted = d.prices.map(([ts, price]) => {
-        const dt = new Date(ts);
-        let label;
-        if (days === 1) label = dt.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
-        else if (days <= 7) label = dt.toLocaleDateString("de-CH", { weekday: "short" });
-        else label = dt.toLocaleDateString("de-CH", { day: "numeric", month: "short" });
-        return { t: label, v: Math.round(price) };
-      });
-      const step = Math.max(1, Math.floor(formatted.length / 60));
-      setChartData(formatted.filter((_, i) => i % step === 0 || i === formatted.length - 1));
+      setChartData(d.prices);
     } catch (e) { console.error("Chart fetch failed:", e); }
     setLoadingChart(false);
   }, []);
@@ -1400,7 +1391,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.3.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2096,31 +2087,23 @@ export default function App() {
     try {
       const r = await fetch("/api/history");
       const d = await r.json();
-      if (d.prices?.length) setRawPriceData(d.prices);
-    } catch {}
-  }, []);
-
-  const fetchHistoricChart = useCallback(async () => {
-    try {
-      const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=730&interval=daily");
-      const d = await r.json();
       if (!d.prices?.length) return;
-      // Für Markt-Chart: monatliche Durchschnitte
+      // Tägliche Preise für Portfolio-Chart
+      setRawPriceData(d.prices);
+      // Monatliche Durchschnitte für PriceChart (Analyse-Tab)
       const monthly = {};
-      d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
-      const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
-      if (data.length) setHistoricChartData(data);
-      // Für Portfolio-Chart: tägliche Preise speichern
-      const daily = d.prices.map(([ts, price]) => {
-        const dt = new Date(ts);
-        const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
-        return [iso, Math.round(price)];
+      d.prices.forEach(([date, price]) => {
+        const key = date.slice(0, 7);
+        if (!monthly[key]) monthly[key] = [];
+        monthly[key].push(price);
       });
-      setRawPriceData(daily);
+      const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
+      if (data.length) setHistoricChartData(data);
     } catch {}
   }, []);
 
-  useEffect(() => { fetchPrice(); fetchHistoricChart(); fetchHistory(); }, [fetchPrice, fetchHistoricChart, fetchHistory]);
+  useEffect(() => { fetchPrice(); fetchHistory(); }, [fetchPrice, fetchHistory]);
   useEffect(() => { const id = setInterval(fetchPrice, 60_000); return () => clearInterval(id); }, [fetchPrice]);
 
   const btcChf = btcUsd * usdChf;
