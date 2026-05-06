@@ -27,6 +27,13 @@ const fmtChf = (n, d = 2) => new Intl.NumberFormat("de-CH", { minimumFractionDig
 const fmtUsd = (n) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 const fmtBtc = (n) => { const s = n.toFixed(6); return parseFloat(s).toString(); };
 
+// Rundet auf "schöne" Achsenwerte: 81'234 → 80'000, 9'876 → 10'000
+const niceRound = (v) => {
+  if (!v || v === 0) return 0;
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(v))) - 1);
+  return Math.round(v / mag) * mag;
+};
+
 // ── Währungs-Konfiguration ────────────────────────────────────────────────────
 const CURRENCIES = {
   CHF: { label: "CHF", symbol: "CHF", locale: "de-CH", rate: (usdChf) => usdChf },
@@ -159,6 +166,7 @@ function AuthScreen({ T, language }) {
   const [success, setSuccess] = useState("");
   const [agbAccepted, setAgbAccepted] = useState(false);
   const [showAgb, setShowAgb] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const iStyle = {
     width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`,
@@ -229,8 +237,13 @@ function AuthScreen({ T, language }) {
           {mode !== "reset" && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em", marginBottom: 8 }}>{t("auth.password")}</div>
-              <input type="password" placeholder={mode === "register" ? t("auth.passwordRegisterPlaceholder") : t("auth.passwordPlaceholder")} value={password} onChange={e => setPassword(e.target.value)} style={iStyle}
-                onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} placeholder={mode === "register" ? t("auth.passwordRegisterPlaceholder") : t("auth.passwordPlaceholder")} value={password} onChange={e => setPassword(e.target.value)} style={{ ...iStyle, paddingRight: 48 }}
+                  onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+                <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+                  {showPw ? "🙈" : "👁"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -296,13 +309,18 @@ function AuthScreen({ T, language }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language }) {
+function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language, secondaryCurrency = "none" }) {
   const t = tr(translations, language);
   const t2 = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
   const isPos = dayChangePct >= 0;
   const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
   const sym = CURRENCIES[currency].symbol;
   const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
+  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const symSecondary = secondaryCurrency && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
+  const fmtSecondary = (v) => secondaryCurrency ? new Intl.NumberFormat(CURRENCIES[secondaryCurrency]?.locale || "de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v) : "";
   return (
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -322,13 +340,22 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
       {/* BTC Kurs */}
       {btcDisplay > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
-            {sym} {fmtPrice(btcDisplay)}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
+              {sym} {fmtPrice(btcDisplay)}
+            </div>
+            {showSecondary && btcSecondary > 0 && (
+              <div style={{ fontSize: 20, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>
+                {symSecondary} {fmtSecondary(btcSecondary)}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
-            {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
+              {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+            </div>
+            <div style={{ color: T.textFaint, fontSize: 12 }}>{currency} 24h</div>
           </div>
-          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>24h</div>
         </div>
       )}
     </div>
@@ -633,23 +660,14 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
   const fetchMarketChart = useCallback(async (tab) => {
     setLoadingChart(true);
-    setChartData([]); // reset while loading
+    setChartData([]);
     try {
       const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
       const days = daysMap[tab];
-      const r = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`);
+      const r = await fetch(`/api/market?days=${days}`);
       const d = await r.json();
       if (!d.prices?.length) { setLoadingChart(false); return; }
-      const formatted = d.prices.map(([ts, price]) => {
-        const dt = new Date(ts);
-        let label;
-        if (days === 1) label = dt.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
-        else if (days <= 7) label = dt.toLocaleDateString("de-CH", { weekday: "short" });
-        else label = dt.toLocaleDateString("de-CH", { day: "numeric", month: "short" });
-        return { t: label, v: Math.round(price) };
-      });
-      const step = Math.max(1, Math.floor(formatted.length / 60));
-      setChartData(formatted.filter((_, i) => i % step === 0 || i === formatted.length - 1));
+      setChartData(d.prices);
     } catch (e) { console.error("Chart fetch failed:", e); }
     setLoadingChart(false);
   }, []);
@@ -669,6 +687,14 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
   const maxV = vals.length ? Math.max(...vals) : 0;
   const midV = Math.round((minV + maxV) / 2);
   const xTicks = chartData.filter((_, i) => { const n = chartData.length; if (n <= 8) return true; return i % Math.floor(n / 5) === 0 || i === n - 1; }).map(d => d.t);
+  const fmtAxis = (usdVal) => {
+    const converted = niceRound(toDisplay(usdVal * usdChf, currency, usdChf, eurUsd));
+    return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted);
+  };
+  const fmtTooltip = (usdVal) => {
+    const converted = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
+    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)}`;
+  };
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -709,12 +735,12 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
                 <YAxis domain={["auto", "auto"]} hide />
-                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [`CHF ${fmtChf(v, 0)}`, ""]} />
+                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
                 <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill="url(#marketGrad)" dot={false} activeDot={{ r: 3, fill: color }} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ position: "absolute", right: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
-              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtChf(v, 0)}</span>))}
+              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtAxis(v)}</span>))}
             </div>
           </>
         ) : null}
@@ -724,11 +750,18 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 }
 
 // ── Analyse Charts ─────────────────────────────────────────────────────────────
-function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }) {
+function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, currency = "CHF", usdChf = 0.9, eurUsd = 0.92 }) {
   const t = tr(translations, language);
   const svgRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
-  const data = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
+  const sym = CURRENCIES[currency].symbol;
+  const convertPrice = (usdPrice) => {
+    if (currency === "CHF") return usdPrice * usdChf;
+    if (currency === "EUR") return usdPrice * eurUsd;
+    return usdPrice;
+  };
+  const rawData = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
+  const data = rawData.map(([d, p]) => [d, Math.round(convertPrice(p))]);
   const prices = data.map(d => d[1]);
   const minP = Math.min(...prices) * 0.92, maxP = Math.max(...prices) * 1.06;
   const W = 340, H = 160, PAD_L = 46, PAD_R = 12, PAD_T = 12, PAD_B = 24;
@@ -738,9 +771,10 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }
   const linePoints = data.map((d, i) => `${xScale(i)},${yScale(d[1])}`).join(" ");
   const areaPoints = [`${xScale(0)},${PAD_T + ch}`, ...data.map((d, i) => `${xScale(i)},${yScale(d[1])}`), `${xScale(data.length - 1)},${PAD_T + ch}`].join(" ");
   const buyMarkers = transactions.filter(t => t.type === "buy").map(t => { const idx = data.findIndex(d => d[0] === t.date.slice(0, 7)); if (idx < 0) return null; return { x: xScale(idx), y: yScale(data[idx][1]) }; }).filter(Boolean);
+  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
   const isAbove = currentChf >= avgChf;
-  const avgY = yScale(avgChf);
-  const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => ({ v, y: yScale(v), label: v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v) }));
+  const avgY = yScale(avgDisplay);
+  const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => { const nr = niceRound(v); return { v: nr, y: yScale(nr), label: nr >= 1000 ? `${Math.round(nr / 1000)}k` : Math.round(nr) }; });
   const xTicks = data.map((d, i) => ({ i, label: d[0] })).filter((_, i) => i % 6 === 0 || i === data.length - 1);
   const updateTooltip = useCallback((clientX) => {
     if (!svgRef.current) return;
@@ -774,12 +808,12 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language }
         {xTicks.map(t => (<text key={t.i} x={xScale(t.i)} y={H - 4} fill={T.textFaint} fontSize="8" textAnchor="middle">{t.label.slice(2)}</text>))}
         <polygon points={areaPoints} fill="url(#areaGrad)" clipPath="url(#chartClip)" />
         <polyline points={linePoints} fill="none" stroke={isAbove ? "#22c55e" : "#ef4444"} strokeWidth="1.5" strokeLinejoin="round" clipPath="url(#chartClip)" opacity="0.9" />
-        {avgChf >= minP && avgChf <= maxP && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgChf / 1000)}k</text></g>)}
+        {avgDisplay >= minP && avgDisplay <= maxP && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgDisplay / 1000)}k</text></g>)}
         {buyMarkers.map((m, i) => (<g key={i}><circle cx={m.x} cy={m.y} r="4" fill="#22c55e" opacity="0.85" /><circle cx={m.x} cy={m.y} r="7" fill="none" stroke="#22c55e" strokeWidth="1" opacity="0.3" /></g>))}
         {tooltip && (<g><line x1={tooltip.x} y1={PAD_T} x2={tooltip.x} y2={PAD_T + ch} stroke={T.textFaint} strokeWidth="1" strokeDasharray="3 3" /><circle cx={tooltip.x} cy={tooltip.y} r="4" fill={T.text} opacity="0.95" /></g>)}
       </svg>
       <div style={{ marginTop: 10, padding: "10px 14px", background: T.input, borderRadius: 8, border: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 40 }}>
-        {tooltip ? (<><span style={{ color: T.textMuted, fontSize: 13 }}>{tooltip.label}</span><span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>CHF {fmtChf(tooltip.price, 0)}</span></>) : (<><span style={{ color: T.textFaint, fontSize: 13 }}>{t("priceChart.fingerHint")}</span><span style={{ color: T.textMuted, fontSize: 13 }}>CHF {fmtChf(currentChf, 0)}</span></>)}
+        {tooltip ? (<><span style={{ color: T.textMuted, fontSize: 13 }}>{tooltip.label}</span><span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{sym} {fmtChf(tooltip.price, 0)}</span></>) : (<><span style={{ color: T.textFaint, fontSize: 13 }}>{t("priceChart.fingerHint")}</span><span style={{ color: T.textMuted, fontSize: 13 }}>{sym} {fmtChf(toDisplay(currentChf, currency, usdChf, eurUsd), 0)}</span></>)}
       </div>
     </div>
   );
@@ -854,7 +888,7 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("dca.title").toUpperCase()}</div>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("dca.chartTitle")}</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
         {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
@@ -970,7 +1004,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
         {/* Gridlines */}
         {[0.25, 0.5, 0.75, 1].map(f => (
           <div key={f} style={{ position: "absolute", left: 0, right: 48, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
-            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}</span>
+            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(niceRound(maxPrice * f))}</span>
           </div>
         ))}
         {bars.map(({ year, avgPrice, invested }) => {
@@ -980,7 +1014,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
           const color = avgPrice <= avgAll ? "#22c55e" : "#ef4444";
           return (
             <div key={year} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 4 }}>
-              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(avgPrice)}</div>
+              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(niceRound(avgPrice))}</div>
               <div style={{ width: "100%", height: h, background: color, borderRadius: "4px 4px 2px 2px", opacity: 0.8 }} />
               <div style={{ color: T.textMuted, fontSize: 10, textAlign: "center" }}>{year.slice(2)}</div>
             </div>
@@ -1153,7 +1187,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1242,6 +1276,25 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
+      {/* SEKUNDÄRKURS */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{t("settings.sekundaerkurs")}</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.sekundaerkursHint")}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0 }}>
+          {["none", "CHF", "EUR", "USD"].map((c, i) => {
+            const isActive = secondaryCurrency === c;
+            const isDisabled = c !== "none" && c === currency;
+            const label = c === "none" ? t("settings.sekundaerkursAus") : c;
+            return (
+              <button key={c} onClick={() => !isDisabled && setSecondaryCurrency(c)}
+                style={{ padding: "14px 0", background: isActive ? "#f7931a" : "none", border: "none", borderRight: i < 3 ? `1px solid ${T.border}` : "none", color: isActive ? "#000" : isDisabled ? T.textFaint : T.textMuted, fontSize: 14, fontWeight: isActive ? 600 : 400, cursor: isDisabled ? "default" : "pointer", fontFamily: "inherit", opacity: isDisabled ? 0.35 : 1 }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* EINSTANDSPREIS-METHODE */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, marginTop: 24 }}>
         <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em" }}>{t("settings.einstandsMethode")}</div>
@@ -1289,7 +1342,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {[["de", "Deutsch 🇨🇭"], ["en", "English 🇬🇧"]].map(([code, label], i) => (
+          {[["de", "Deutsch 🇩🇪"], ["en", "English 🇬🇧"]].map(([code, label], i) => (
             <button key={code} onClick={() => setLanguage(code)} style={{ padding: "14px 0", background: language === code ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: language === code ? "#000" : T.textMuted, fontSize: 14, fontWeight: language === code ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
           ))}
         </div>
@@ -1338,7 +1391,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.1.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1417,6 +1470,8 @@ function PasswordModal({ onClose, T, language }) {
   const [pwForm, setPwForm] = useState({ next: "", confirm: "" });
   const [pwStatus, setPwStatus] = useState(null);
   const [pwError, setPwError] = useState("");
+  const [showPwNext, setShowPwNext] = useState(false);
+  const [showPwConfirm, setShowPwConfirm] = useState(false);
   const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }));
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
 
@@ -1443,11 +1498,21 @@ function PasswordModal({ onClose, T, language }) {
         <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("pwModal.title")}</div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{t("pwModal.neuesPasswort")}</div>
-          <input type="password" placeholder={t("pwModal.placeholder")} value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={iStyle} />
+          <div style={{ position: "relative" }}>
+            <input type={showPwNext ? "text" : "password"} placeholder={t("pwModal.placeholder")} value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={{ ...iStyle, paddingRight: 48 }} />
+            <button type="button" onClick={() => setShowPwNext(v => !v)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+              {showPwNext ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
         <div style={{ marginBottom: 20 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{t("pwModal.bestaetigen")}</div>
-          <input type="password" placeholder={t("pwModal.placeholderRepeat")} value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={iStyle} />
+          <div style={{ position: "relative" }}>
+            <input type={showPwConfirm ? "text" : "password"} placeholder={t("pwModal.placeholderRepeat")} value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={{ ...iStyle, paddingRight: 48 }} />
+            <button type="button" onClick={() => setShowPwConfirm(v => !v)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+              {showPwConfirm ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
         {pwError && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{pwError}</div>}
         {pwStatus === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14 }}>{t("pwModal.erfolg")}</div>}
@@ -1805,30 +1870,68 @@ function TxRow({ tx, onDelete, onEdit, T, currency = "CHF", usdChf = 0.9, eurUsd
   const t = tr(translations, language);
   const TYPE_META = getTypeMeta(t);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const startXRef = useRef(null);
+  const THRESHOLD = 72; // px bis Button sichtbar
   const m = TYPE_META[tx.type];
   const sym = CURRENCIES[currency].symbol;
   const fmtTx = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:2,maximumFractionDigits:2}).format(toDisplay(v, currency, usdChf, eurUsd));
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    setSwiping(true);
+  };
+  const onTouchMove = (e) => {
+    if (startXRef.current === null) return;
+    const dx = e.touches[0].clientX - startXRef.current;
+    setSwipeX(Math.max(-THRESHOLD, Math.min(0, dx)));
+  };
+  const onTouchEnd = () => {
+    if (swipeX < -THRESHOLD * 0.5) {
+      setSwipeX(-THRESHOLD);
+    } else {
+      setSwipeX(0);
+    }
+    setSwiping(false);
+    startXRef.current = null;
+  };
+
+  const close = () => setSwipeX(0);
+
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{m.icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
-            <div style={{ color: m.color, fontSize: 15 }}>
-            {tx.type === "transfer_in"  ? `+${tx.btc} BTC` :
-             tx.type === "transfer_out" ? `−${tx.btc} BTC` :
-             `${sym} ${fmtTx(tx.chf)}`}
-          </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-            <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
-            {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>{t("verlauf.gebuehr")} {sym} {fmtTx(tx.fee)}</div>}
-          </div>
+      <div style={{ position: "relative", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
+        {/* Roter Löschen-Button dahinter */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: THRESHOLD, background: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "0 0 0 0" }}>
+          <button onClick={() => { close(); setShowConfirm(true); }} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: 18 }}>✕</span>
+            <span>{t("deleteModal.loeschen")}</span>
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <button onClick={() => onEdit(tx)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✎</button>
-          <button onClick={() => setShowConfirm(true)} style={{ background: "none", border: `1px solid rgba(239,68,68,0.3)`, color: "#ef4444", borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px" }}>✕</button>
+        {/* Zeilen-Inhalt — verschiebt sich beim Swipe */}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", background: T.surface, transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 0.25s ease", willChange: "transform" }}
+        >
+          <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{m.icon}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ color: T.text, fontSize: 16 }}>{fmtBtc(tx.btc)} <span style={{ color: T.textMuted, fontSize: 13 }}>BTC</span></div>
+              <div style={{ color: m.color, fontSize: 15 }}>
+                {tx.type === "transfer_in"  ? `+${tx.btc} BTC` :
+                 tx.type === "transfer_out" ? `−${tx.btc} BTC` :
+                 `${sym} ${fmtTx(tx.chf)}`}
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+              <div style={{ color: T.textMuted, fontSize: 13 }}>{tx.date}{tx.note ? ` · ${tx.note}` : ""}</div>
+              {tx.fee > 0 && tx.type !== "transfer_in" && tx.type !== "transfer_out" && <div style={{ color: T.textFaint, fontSize: 12 }}>{t("verlauf.gebuehr")} {sym} {fmtTx(tx.fee)}</div>}
+            </div>
+          </div>
+          <button onClick={() => { close(); onEdit(tx); }} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 14, padding: "7px 10px", flexShrink: 0 }}>✎</button>
         </div>
       </div>
       {showConfirm && (
@@ -1909,6 +2012,11 @@ export default function App() {
   });
   const setCurrency = (c) => { setCurrencyState(c); try { localStorage.setItem("currency", c); } catch {} };
 
+  const [secondaryCurrency, setSecondaryCurrencyState] = useState(() => {
+    try { return localStorage.getItem("secondaryCurrency") || "none"; } catch { return "none"; }
+  });
+  const setSecondaryCurrency = (c) => { setSecondaryCurrencyState(c); try { localStorage.setItem("secondaryCurrency", c); } catch {} };
+
   const [language, setLanguageState] = useState(() => {
     try {
       const saved = localStorage.getItem("language");
@@ -1979,31 +2087,23 @@ export default function App() {
     try {
       const r = await fetch("/api/history");
       const d = await r.json();
-      if (d.prices?.length) setRawPriceData(d.prices);
-    } catch {}
-  }, []);
-
-  const fetchHistoricChart = useCallback(async () => {
-    try {
-      const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=730&interval=daily");
-      const d = await r.json();
       if (!d.prices?.length) return;
-      // Für Markt-Chart: monatliche Durchschnitte
+      // Tägliche Preise für Portfolio-Chart
+      setRawPriceData(d.prices);
+      // Monatliche Durchschnitte für PriceChart (Analyse-Tab)
       const monthly = {};
-      d.prices.forEach(([ts, price]) => { const dt = new Date(ts); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`; if (!monthly[key]) monthly[key] = []; monthly[key].push(price); });
-      const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
-      if (data.length) setHistoricChartData(data);
-      // Für Portfolio-Chart: tägliche Preise speichern
-      const daily = d.prices.map(([ts, price]) => {
-        const dt = new Date(ts);
-        const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
-        return [iso, Math.round(price)];
+      d.prices.forEach(([date, price]) => {
+        const key = date.slice(0, 7);
+        if (!monthly[key]) monthly[key] = [];
+        monthly[key].push(price);
       });
-      setRawPriceData(daily);
+      const data = Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, prices]) => [key, Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)]);
+      if (data.length) setHistoricChartData(data);
     } catch {}
   }, []);
 
-  useEffect(() => { fetchPrice(); fetchHistoricChart(); fetchHistory(); }, [fetchPrice, fetchHistoricChart, fetchHistory]);
+  useEffect(() => { fetchPrice(); fetchHistory(); }, [fetchPrice, fetchHistory]);
   useEffect(() => { const id = setInterval(fetchPrice, 60_000); return () => clearInterval(id); }, [fetchPrice]);
 
   const btcChf = btcUsd * usdChf;
@@ -2136,7 +2236,7 @@ export default function App() {
     if (!prices.length) return [];
     const sortedTx = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
     const dayLabels = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-    return prices.map(([date, chfPrice]) => {
+    return prices.map(([date, usdPrice]) => {
       let btcAmt = 0;
       for (const tx of sortedTx) {
         if (tx.date > date) break;
@@ -2145,7 +2245,7 @@ export default function App() {
         else if (tx.type === "transfer_in")  btcAmt += +(tx.btc || 0);
         else if (tx.type === "transfer_out") btcAmt -= +(tx.btc || 0);
       }
-      const v = Math.round(btcAmt * chfPrice);
+      const v = Math.round(btcAmt * usdPrice * usdChf);
       let t = date;
       if (tab === "7D") t = dayLabels[new Date(date).getDay()];
       else if (tab === "30D") t = date.slice(8, 10) + ".";
@@ -2312,7 +2412,7 @@ export default function App() {
       )}
       */}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2329,7 +2429,7 @@ export default function App() {
             )}
             {view === "analyse" && (
               <div style={{ ...scrollStyle, padding: "0 12px" }}>
-                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} language={language} />
+                <PriceChart avgChf={avgChf} currentChf={btcChf} transactions={transactions} chartData={historicChartData} T={T} language={language} currency={currency} usdChf={usdChf} eurUsd={eurUsd} />
                 <BreakEvenCard avgChf={avgChf} currentChf={btcChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
                 <RealizedPnlCard transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} avgChf={avgChf} language={language} />
                 <DcaEfficiencyChart transactions={transactions} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
@@ -2467,7 +2567,7 @@ export default function App() {
                     <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
                     <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
                   </div>
-                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} />
+                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} />
                 </div>
               </div>
             )}

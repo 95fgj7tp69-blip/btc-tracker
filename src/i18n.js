@@ -116,6 +116,7 @@ export const translations = {
     // ── DCA Calculator ──────────────────────────────────────────────────────────
     dca: {
       title:           "Kauf-Simulator",
+      chartTitle:      "KAUF-SIMULATOR",
       betrag:          "Kaufbetrag",
       berechnen:       "Berechnen",
       neuerEinstand:   "Neuer Einstandspreis",
@@ -183,6 +184,10 @@ export const translations = {
 
       portfolioWaehrung:    "PORTFOLIO-WÄHRUNG",
       portfolioWaehrungHint: "Alle Beträge werden in dieser Währung angezeigt und erfasst",
+
+      sekundaerkurs:        "SEKUNDÄRKURS",
+      sekundaerkursHint:    "Zweiten Kurs im Header anzeigen",
+      sekundaerkursAus:     "Aus",
 
       einstandsMethode:     "EINSTANDSPREIS-METHODE",
 
@@ -474,6 +479,7 @@ export const translations = {
 
     dca: {
       title:           "Buy Simulator",
+      chartTitle:      "BUY SIMULATOR",
       betrag:          "Purchase Amount",
       berechnen:       "Calculate",
       neuerEinstand:   "New Cost Basis",
@@ -536,6 +542,10 @@ export const translations = {
 
       portfolioWaehrung:     "PORTFOLIO CURRENCY",
       portfolioWaehrungHint: "All amounts are displayed and entered in this currency",
+
+      sekundaerkurs:        "SECONDARY PRICE",
+      sekundaerkursHint:    "Show a second currency in the header",
+      sekundaerkursAus:     "Off",
 
       einstandsMethode:      "COST BASIS METHOD",
 
