@@ -334,7 +334,7 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
           <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
             {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
           </div>
-          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>USD 24h</div>
+          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>{currency} 24h</div>
         </div>
       )}
     </div>
