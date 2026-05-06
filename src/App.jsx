@@ -27,6 +27,13 @@ const fmtChf = (n, d = 2) => new Intl.NumberFormat("de-CH", { minimumFractionDig
 const fmtUsd = (n) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 const fmtBtc = (n) => { const s = n.toFixed(6); return parseFloat(s).toString(); };
 
+// Rundet auf "schöne" Achsenwerte: 81'234 → 80'000, 9'876 → 10'000
+const niceRound = (v) => {
+  if (!v || v === 0) return 0;
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(v))) - 1);
+  return Math.round(v / mag) * mag;
+};
+
 // ── Währungs-Konfiguration ────────────────────────────────────────────────────
 const CURRENCIES = {
   CHF: { label: "CHF", symbol: "CHF", locale: "de-CH", rate: (usdChf) => usdChf },
@@ -768,7 +775,7 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
   const isAbove = currentChf >= avgChf;
   const avgY = yScale(avgDisplay);
-  const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => ({ v, y: yScale(v), label: v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v) }));
+  const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => { const nr = niceRound(v); return { v: nr, y: yScale(nr), label: nr >= 1000 ? `${Math.round(nr / 1000)}k` : Math.round(nr) }; });
   const xTicks = data.map((d, i) => ({ i, label: d[0] })).filter((_, i) => i % 6 === 0 || i === data.length - 1);
   const updateTooltip = useCallback((clientX) => {
     if (!svgRef.current) return;
@@ -998,7 +1005,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
         {/* Gridlines */}
         {[0.25, 0.5, 0.75, 1].map(f => (
           <div key={f} style={{ position: "absolute", left: 0, right: 48, bottom: 24 + f * barH, borderTop: `1px solid ${T.border}`, pointerEvents: "none" }}>
-            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(maxPrice * f)}</span>
+            <span style={{ position: "absolute", right: -46, bottom: 2, color: T.textFaint, fontSize: 9 }}>{fmt0(niceRound(maxPrice * f))}</span>
           </div>
         ))}
         {bars.map(({ year, avgPrice, invested }) => {
@@ -1008,7 +1015,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
           const color = avgPrice <= avgAll ? "#22c55e" : "#ef4444";
           return (
             <div key={year} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 4 }}>
-              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(avgPrice)}</div>
+              <div style={{ color: T.textFaint, fontSize: 9, textAlign: "center" }}>{fmt0(niceRound(avgPrice))}</div>
               <div style={{ width: "100%", height: h, background: color, borderRadius: "4px 4px 2px 2px", opacity: 0.8 }} />
               <div style={{ color: T.textMuted, fontSize: 10, textAlign: "center" }}>{year.slice(2)}</div>
             </div>
@@ -1385,7 +1392,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.2.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.2.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
