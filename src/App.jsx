@@ -1351,7 +1351,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {[["de", "Deutsch 🇨🇭"], ["en", "English 🇬🇧"]].map(([code, label], i) => (
+          {[["de", "Deutsch 🇩🇪"], ["en", "English 🇬🇧"]].map(([code, label], i) => (
             <button key={code} onClick={() => setLanguage(code)} style={{ padding: "14px 0", background: language === code ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: language === code ? "#000" : T.textMuted, fontSize: 14, fontWeight: language === code ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
           ))}
         </div>
