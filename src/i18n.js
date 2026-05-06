@@ -116,6 +116,7 @@ export const translations = {
     // ── DCA Calculator ──────────────────────────────────────────────────────────
     dca: {
       title:           "Kauf-Simulator",
+      chartTitle:      "KAUF-SIMULATOR",
       betrag:          "Kaufbetrag",
       berechnen:       "Berechnen",
       neuerEinstand:   "Neuer Einstandspreis",
@@ -478,6 +479,7 @@ export const translations = {
 
     dca: {
       title:           "Buy Simulator",
+      chartTitle:      "BUY SIMULATOR",
       betrag:          "Purchase Amount",
       berechnen:       "Calculate",
       neuerEinstand:   "New Cost Basis",
