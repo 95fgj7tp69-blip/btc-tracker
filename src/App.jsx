@@ -159,6 +159,7 @@ function AuthScreen({ T, language }) {
   const [success, setSuccess] = useState("");
   const [agbAccepted, setAgbAccepted] = useState(false);
   const [showAgb, setShowAgb] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const iStyle = {
     width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`,
@@ -229,8 +230,13 @@ function AuthScreen({ T, language }) {
           {mode !== "reset" && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em", marginBottom: 8 }}>{t("auth.password")}</div>
-              <input type="password" placeholder={mode === "register" ? t("auth.passwordRegisterPlaceholder") : t("auth.passwordPlaceholder")} value={password} onChange={e => setPassword(e.target.value)} style={iStyle}
-                onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} placeholder={mode === "register" ? t("auth.passwordRegisterPlaceholder") : t("auth.passwordPlaceholder")} value={password} onChange={e => setPassword(e.target.value)} style={{ ...iStyle, paddingRight: 48 }}
+                  onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+                <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+                  {showPw ? "🙈" : "👁"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -1338,7 +1344,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.1.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.1.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1417,6 +1423,8 @@ function PasswordModal({ onClose, T, language }) {
   const [pwForm, setPwForm] = useState({ next: "", confirm: "" });
   const [pwStatus, setPwStatus] = useState(null);
   const [pwError, setPwError] = useState("");
+  const [showPwNext, setShowPwNext] = useState(false);
+  const [showPwConfirm, setShowPwConfirm] = useState(false);
   const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }));
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
 
@@ -1443,11 +1451,21 @@ function PasswordModal({ onClose, T, language }) {
         <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("pwModal.title")}</div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{t("pwModal.neuesPasswort")}</div>
-          <input type="password" placeholder={t("pwModal.placeholder")} value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={iStyle} />
+          <div style={{ position: "relative" }}>
+            <input type={showPwNext ? "text" : "password"} placeholder={t("pwModal.placeholder")} value={pwForm.next} onChange={e => setPw("next", e.target.value)} style={{ ...iStyle, paddingRight: 48 }} />
+            <button type="button" onClick={() => setShowPwNext(v => !v)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+              {showPwNext ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
         <div style={{ marginBottom: 20 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{t("pwModal.bestaetigen")}</div>
-          <input type="password" placeholder={t("pwModal.placeholderRepeat")} value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={iStyle} />
+          <div style={{ position: "relative" }}>
+            <input type={showPwConfirm ? "text" : "password"} placeholder={t("pwModal.placeholderRepeat")} value={pwForm.confirm} onChange={e => setPw("confirm", e.target.value)} style={{ ...iStyle, paddingRight: 48 }} />
+            <button type="button" onClick={() => setShowPwConfirm(v => !v)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textFaint, fontSize: 18, padding: 0, display: "flex", alignItems: "center" }}>
+              {showPwConfirm ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
         {pwError && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 14 }}>{pwError}</div>}
         {pwStatus === "ok" && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 14 }}>{t("pwModal.erfolg")}</div>}
