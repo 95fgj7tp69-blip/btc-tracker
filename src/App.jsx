@@ -1286,14 +1286,14 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       </div>
 
       {/* SEKUNDÄRKURS */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{language === "en" ? "SECONDARY PRICE" : "SEKUNDÄRKURS"}</div>
-      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{language === "en" ? "Show a second currency in the header" : "Zweiten Kurs im Header anzeigen"}</div>
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{t("settings.sekundaerkurs")}</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.sekundaerkursHint")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0 }}>
           {["none", "CHF", "EUR", "USD"].map((c, i) => {
             const isActive = secondaryCurrency === c;
             const isDisabled = c !== "none" && c === currency;
-            const label = c === "none" ? (language === "en" ? "Off" : "Aus") : c;
+            const label = c === "none" ? t("settings.sekundaerkursAus") : c;
             return (
               <button key={c} onClick={() => !isDisabled && setSecondaryCurrency(c)}
                 style={{ padding: "14px 0", background: isActive ? "#f7931a" : "none", border: "none", borderRight: i < 3 ? `1px solid ${T.border}` : "none", color: isActive ? "#000" : isDisabled ? T.textFaint : T.textMuted, fontSize: 14, fontWeight: isActive ? 600 : 400, cursor: isDisabled ? "default" : "pointer", fontFamily: "inherit", opacity: isDisabled ? 0.35 : 1 }}>
@@ -1400,7 +1400,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.2.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.2.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>

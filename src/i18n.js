@@ -184,6 +184,10 @@ export const translations = {
       portfolioWaehrung:    "PORTFOLIO-WÄHRUNG",
       portfolioWaehrungHint: "Alle Beträge werden in dieser Währung angezeigt und erfasst",
 
+      sekundaerkurs:        "SEKUNDÄRKURS",
+      sekundaerkursHint:    "Zweiten Kurs im Header anzeigen",
+      sekundaerkursAus:     "Aus",
+
       einstandsMethode:     "EINSTANDSPREIS-METHODE",
 
       darstellung:      "DARSTELLUNG",
@@ -536,6 +540,10 @@ export const translations = {
 
       portfolioWaehrung:     "PORTFOLIO CURRENCY",
       portfolioWaehrungHint: "All amounts are displayed and entered in this currency",
+
+      sekundaerkurs:        "SECONDARY PRICE",
+      sekundaerkursHint:    "Show a second currency in the header",
+      sekundaerkursAus:     "Off",
 
       einstandsMethode:      "COST BASIS METHOD",
 
