@@ -302,13 +302,18 @@ function AuthScreen({ T, language }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language }) {
+function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language, secondaryCurrency = "none" }) {
   const t = tr(translations, language);
   const t2 = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
   const isPos = dayChangePct >= 0;
   const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
   const sym = CURRENCIES[currency].symbol;
   const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
+  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const symSecondary = secondaryCurrency && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
+  const fmtSecondary = (v) => secondaryCurrency ? new Intl.NumberFormat(CURRENCIES[secondaryCurrency]?.locale || "de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v) : "";
   return (
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -328,13 +333,22 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
       {/* BTC Kurs */}
       {btcDisplay > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
-            {sym} {fmtPrice(btcDisplay)}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
+              {sym} {fmtPrice(btcDisplay)}
+            </div>
+            {showSecondary && btcSecondary > 0 && (
+              <div style={{ fontSize: 20, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>
+                {symSecondary} {fmtSecondary(btcSecondary)}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
-            {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
+              {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
+            </div>
+            <div style={{ color: T.textFaint, fontSize: 12 }}>{currency} 24h</div>
           </div>
-          <div style={{ color: T.textFaint, fontSize: 12, marginLeft: "auto" }}>{currency} 24h</div>
         </div>
       )}
     </div>
@@ -1167,7 +1181,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1253,6 +1267,25 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           {["CHF", "EUR", "USD"].map((c, i) => (
             <button key={c} onClick={() => setCurrency(c)} style={{ padding: "14px 0", background: currency === c ? "#f7931a" : "none", border: "none", borderRight: i < 2 ? `1px solid ${T.border}` : "none", color: currency === c ? "#000" : T.textMuted, fontSize: 15, fontWeight: currency === c ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{c}</button>
           ))}
+        </div>
+      </div>
+
+      {/* SEKUNDÄRKURS */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{language === "en" ? "SECONDARY PRICE" : "SEKUNDÄRKURS"}</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{language === "en" ? "Show a second currency in the header" : "Zweiten Kurs im Header anzeigen"}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0 }}>
+          {["none", "CHF", "EUR", "USD"].map((c, i) => {
+            const isActive = secondaryCurrency === c;
+            const isDisabled = c !== "none" && c === currency;
+            const label = c === "none" ? (language === "en" ? "Off" : "Aus") : c;
+            return (
+              <button key={c} onClick={() => !isDisabled && setSecondaryCurrency(c)}
+                style={{ padding: "14px 0", background: isActive ? "#f7931a" : "none", border: "none", borderRight: i < 3 ? `1px solid ${T.border}` : "none", color: isActive ? "#000" : isDisabled ? T.textFaint : T.textMuted, fontSize: 14, fontWeight: isActive ? 600 : 400, cursor: isDisabled ? "default" : "pointer", fontFamily: "inherit", opacity: isDisabled ? 0.35 : 1 }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1352,7 +1385,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.1.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.2.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1935,6 +1968,11 @@ export default function App() {
   });
   const setCurrency = (c) => { setCurrencyState(c); try { localStorage.setItem("currency", c); } catch {} };
 
+  const [secondaryCurrency, setSecondaryCurrencyState] = useState(() => {
+    try { return localStorage.getItem("secondaryCurrency") || "none"; } catch { return "none"; }
+  });
+  const setSecondaryCurrency = (c) => { setSecondaryCurrencyState(c); try { localStorage.setItem("secondaryCurrency", c); } catch {} };
+
   const [language, setLanguageState] = useState(() => {
     try {
       const saved = localStorage.getItem("language");
@@ -2338,7 +2376,7 @@ export default function App() {
       )}
       */}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} />
+        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2493,7 +2531,7 @@ export default function App() {
                     <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
                     <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
                   </div>
-                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} />
+                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} />
                 </div>
               </div>
             )}
