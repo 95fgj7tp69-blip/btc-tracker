@@ -816,6 +816,8 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const rawData = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
   const data = rawData.map(([d, p]) => [d, Math.round(convertPrice(p))]);
   const prices = data.map(d => d[1]);
+  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
+  const isAbove = currentChf >= avgChf;
   if (prices.length === 0) return null;
   const chartMin = Math.min(...prices);
   const chartMax = Math.max(...prices);
@@ -828,8 +830,6 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const linePoints = data.map((d, i) => `${xScale(i)},${yScale(d[1])}`).join(" ");
   const areaPoints = [`${xScale(0)},${PAD_T + ch}`, ...data.map((d, i) => `${xScale(i)},${yScale(d[1])}`), `${xScale(data.length - 1)},${PAD_T + ch}`].join(" ");
   const buyMarkers = transactions.filter(t => t.type === "buy").map(t => { const idx = data.findIndex(d => d[0] === t.date.slice(0, 7)); if (idx < 0) return null; return { x: xScale(idx), y: yScale(data[idx][1]) }; }).filter(Boolean);
-  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
-  const isAbove = currentChf >= avgChf;
   const avgY = yScale(avgDisplay);
   const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => { const nr = niceRound(v); return { v: nr, y: yScale(nr), label: nr >= 1000 ? `${Math.round(nr / 1000)}k` : Math.round(nr) }; });
   const xTicks = data.map((d, i) => ({ i, label: d[0] })).filter((_, i) => i % 6 === 0 || i === data.length - 1);
@@ -1459,7 +1459,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.5.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.5.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
