@@ -1258,19 +1258,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     <>
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
 
-      {/* SCHRIFTGRÖSSE */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{language === "en" ? "TEXT SIZE" : "SCHRIFTGRÖSSE"}</div>
-      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{language === "en" ? "Adjust text size for better readability" : "Schriftgrösse für bessere Lesbarkeit anpassen"}</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
-          {[["S", language === "en" ? "Small" : "Klein"], ["M", language === "en" ? "Medium" : "Mittel"], ["L", language === "en" ? "Large" : "Gross"]].map(([scale, label], i) => (
-            <button key={scale} onClick={() => setFontScale(scale)}
-              style={{ padding: "14px 0", background: fontScale === scale ? "#f7931a" : "none", border: "none", borderRight: i < 2 ? `1px solid ${T.border}` : "none", color: fontScale === scale ? "#000" : T.textMuted, fontSize: scale === "S" ? 13 : scale === "M" ? 15 : 17, fontWeight: fontScale === scale ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* KONTO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.konto")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
@@ -1286,7 +1274,32 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      {/* PORTFOLIO */}
+      {/* DARSTELLUNG — Dark/Light + Schriftgrösse zusammen */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.darstellung")}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{darkMode ? t("settings.darkMode") : t("settings.lightMode")}</div>
+            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{darkMode ? t("settings.darkModeAktiv") : t("settings.lightModeAktiv")}</div>
+          </div>
+          <div onClick={() => setDarkMode(!darkMode)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: darkMode ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+            <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: darkMode ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
+          </div>
+        </div>
+        <div style={{ padding: "14px 18px" }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 10 }}>{language === "en" ? "Text Size" : "Schriftgrösse"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {[["S", language === "en" ? "Small" : "Klein"], ["M", language === "en" ? "Medium" : "Mittel"], ["L", language === "en" ? "Large" : "Gross"]].map(([scale, label]) => (
+              <button key={scale} onClick={() => setFontScale(scale)}
+                style={{ padding: "10px 0", background: fontScale === scale ? "#f7931a" : T.input, border: `1px solid ${fontScale === scale ? "#f7931a" : T.border}`, borderRadius: 10, color: fontScale === scale ? "#000" : T.textMuted, fontSize: scale === "S" ? 13 : scale === "M" ? 15 : 17, fontWeight: fontScale === scale ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PORTFOLIO-WÄHRUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>{t("settings.portfolioWaehrung")}</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.portfolioWaehrungHint")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1345,20 +1358,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       )}
 
-      {/* DARSTELLUNG */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.darstellung")}</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
-          <div>
-            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{darkMode ? t("settings.darkMode") : t("settings.lightMode")}</div>
-            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{darkMode ? t("settings.darkModeAktiv") : t("settings.lightModeAktiv")}</div>
-          </div>
-          <div onClick={() => setDarkMode(!darkMode)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: darkMode ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
-            <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: darkMode ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
-          </div>
-        </div>
-      </div>
-
       {/* SPRACHE */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1412,7 +1411,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.4.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.4.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2444,7 +2443,8 @@ export default function App() {
         </div>
       )}
       */}
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)", zoom: { S: 0.9, M: 1.0, L: 1.15 }[fontScale] || 1.0 }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
+        <div style={{ zoom: { S: 0.9, M: 1.0, L: 1.15 }[fontScale] || 1.0 }}>
         <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
 
         {dbLoading ? (
@@ -2593,7 +2593,7 @@ export default function App() {
             )}
             {/* Settings Modal */}
             {showSettings && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSettings(false)}>
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center", zoom: 1 }} onClick={() => setShowSettings(false)}>
                 <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
                   <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
