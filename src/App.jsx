@@ -2606,7 +2606,8 @@ export default function App() {
             )}
           </>
         )}
-      </div>
+        </div> {/* zoom div */}
+      </div> {/* maxWidth div */}
 
       {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} language={language} />}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
