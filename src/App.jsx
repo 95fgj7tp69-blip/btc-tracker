@@ -1036,6 +1036,7 @@ function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, e
 }
 
 
+function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T, currency = "CHF", eurUsd = 0.92, language }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`;
