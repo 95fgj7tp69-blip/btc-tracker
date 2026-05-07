@@ -3,6 +3,9 @@ import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, To
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
+// ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://bb-btc-tracker.netlify.app";
+
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
 const supabase = createClient(
   "https://xjkomserewmxktwvmoaa.supabase.co",
@@ -16,10 +19,10 @@ const authHeaders = (token) => ({
 });
 
 const api = {
-  getAll: (token) => fetch("/api/transactions", { headers: authHeaders(token) }).then(r => r.json()),
-  create: (tx, token) => fetch("/api/transactions", { method: "POST", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
-  update: (tx, token) => fetch(`/api/transactions/${tx.id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
-  remove: (id, token) => fetch(`/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
+  getAll: (token) => fetch(`${API_BASE}/api/transactions`, { headers: authHeaders(token) }).then(r => r.json()),
+  create: (tx, token) => fetch(`${API_BASE}/api/transactions`, { method: "POST", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  update: (tx, token) => fetch(`${API_BASE}/api/transactions/${tx.id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  remove: (id, token) => fetch(`${API_BASE}/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -646,7 +649,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
     try {
       const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
       const days = daysMap[tab];
-      const r = await fetch(`/api/market?days=${days}`);
+      const r = await fetch(`${API_BASE}/api/market?days=${days}`);
       const d = await r.json();
       if (!d.prices?.length) { setLoadingChart(false); return; }
       setChartData(d.prices);
@@ -1572,7 +1575,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.7.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1722,7 +1725,7 @@ function DeleteAccountModal({ onClose, onLogout, T, language }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const res = await fetch("/api/transactions/account", { method: "DELETE", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
+      const res = await fetch(`${API_BASE}/api/transactions/account`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!res.ok) throw new Error(t("deleteAccount.fehler"));
       await supabase.auth.signOut();
       onLogout();
@@ -1782,7 +1785,7 @@ function ClearDataModal({ onClose, onImport, T, language }) {
       if (total === 0) { setStatus("ok"); setTimeout(() => { onClose(); window.location.reload(); }, 1000); return; }
       setProgressLabel(`0 / ${total}`);
       for (let i = 0; i < rows.length; i++) {
-        await fetch(`/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+        await fetch(`${API_BASE}/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
         const pct = Math.round(((i + 1) / total) * 100);
         setProgress(pct);
         setProgressLabel(`${i + 1} / ${total}`);
@@ -1855,7 +1858,7 @@ function DemoImportModal({ onClose, onImport, transactions, T, language }) {
       setProgress(animPct);
     }, 150);
     try {
-      const res = await fetch("/demo-transaktionen.csv");
+      const res = await fetch(`${API_BASE}/demo-transaktionen.csv`);
       if (!res.ok) throw new Error("CSV nicht gefunden");
       const text = await res.text();
       const lines = text.replace(/^\uFEFF/, "").split("\n").filter(l => l.trim());
@@ -2263,7 +2266,7 @@ export default function App() {
     setLoading(true);
     try {
       // Eigener Proxy mit 60s Cache -- schützt vor Rate Limiting bei vielen Usern
-      const r = await fetch("/api/prices");
+      const r = await fetch(`${API_BASE}/api/prices`);
       const d = await r.json();
       if (d.usd) {
         setBtcUsd(d.usd);
@@ -2279,7 +2282,7 @@ export default function App() {
   // Holt taegl. historische BTC/USD Kurse (24h gecacht via Netlify Function)
   const fetchHistory = useCallback(async () => {
     try {
-      const r = await fetch("/api/history");
+      const r = await fetch(`${API_BASE}/api/history`);
       const d = await r.json();
       if (!d.prices?.length) return;
       // Tägliche Preise für Portfolio-Chart
@@ -2535,7 +2538,7 @@ export default function App() {
       currency,
     };
     try {
-      const res = await fetch("/api/claude", {
+      const res = await fetch(`${API_BASE}/api/claude`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tool, portfolio: portfolioPayload, lang: language }),
