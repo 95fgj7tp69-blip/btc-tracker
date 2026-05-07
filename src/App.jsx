@@ -533,8 +533,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ color: T.textMuted, fontSize: 13 }}>{t("portfolio.gesamtwert")}</div>
         </div>
-        <div style={{ fontSize: fs(36), fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          <span style={{ fontSize: fs(22), fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
+        <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 16 }}>
@@ -634,7 +634,7 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, curren
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
         <div style={{ borderRight: `1px solid ${T.divider}`, paddingRight: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>{t("position.bestand")}</div>
-          <div style={{ color: T.text, fontSize: fs(20), fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: fs(13), fontWeight: 400, color: T.textSub }}>BTC</span></div>
+          <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
           <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ {sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}</div>
         </div>
         <div style={{ paddingLeft: 16 }}>
@@ -719,7 +719,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
           </div>
         </div>
-        <div style={{ fontSize: fs(28), fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
         {currency === "CHF" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
         {currency === "EUR" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
         {currency === "USD" && <div style={{ marginBottom: 14 }} />}
@@ -859,7 +859,7 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
         <div style={{ flex: 1 }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{language === "en" ? "CURRENT VS. COST BASIS" : "AKTUELL VS. EINSTAND"}</div>
-            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: fs(22), fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: fs(14), marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
+            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 22, fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: 14, marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
             <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 14, opacity: 0.7, marginTop: 3 }}>{isAbove ? "+" : ""}{diffPct.toFixed(1)}%</div>
           </div>
           <div style={{ background: isAbove ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${isAbove ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "10px 12px" }}>
@@ -959,7 +959,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
       <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: fs(32), fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
             {isPos ? "+" : ""}{fmt(realizedPnl)}
           </div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{language === "en" ? `from ${sells.length} sale${sells.length > 1 ? "s" : ""}` : `aus ${sells.length} Verkauf${sells.length > 1 ? "en" : ""}`}</div>
@@ -2444,7 +2444,7 @@ export default function App() {
         </div>
       )}
       */}
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)", fontSize: `${({ S: 14, M: 16, L: 18 }[fontScale] || 16)}px` }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)", zoom: { S: 0.9, M: 1.0, L: 1.15 }[fontScale] || 1.0 }}>
         <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
 
         {dbLoading ? (
