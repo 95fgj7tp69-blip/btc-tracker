@@ -318,18 +318,9 @@ function AuthScreen({ T, language }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language, secondaryCurrency = "none" }) {
+function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
   const t = tr(translations, language);
   const t2 = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
-  const isPos = dayChangePct >= 0;
-  const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
-  const sym = CURRENCIES[currency].symbol;
-  const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-
-  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
-  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
-  const symSecondary = secondaryCurrency && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
-  const fmtSecondary = (v) => secondaryCurrency ? new Intl.NumberFormat(CURRENCIES[secondaryCurrency]?.locale || "de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v) : "";
   return (
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -346,27 +337,6 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
         </div>
         <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, color: T.textMuted }}>⚙</button>
       </div>
-      {/* BTC Kurs */}
-      {btcDisplay > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
-              {sym} {fmtPrice(btcDisplay)}
-            </div>
-            {showSecondary && btcSecondary > 0 && (
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>
-                {symSecondary} {fmtSecondary(btcSecondary)}
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
-              {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
-            </div>
-            <div style={{ color: T.textFaint, fontSize: 12 }}>{currency} 24h</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -654,10 +624,15 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, curren
 }
 
 // ── Market Card mit Live Chart ────────────────────────────────────────────────
-function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language }) {
+function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language, secondaryCurrency = "none" }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const btcDisplay = toDisplay(btcChf, currency, usdChf, eurUsd);
+  const fmtPrice = (v, cur) => new Intl.NumberFormat(CURRENCIES[cur].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
+  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const symSecondary = showSecondary && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("marketTab") || "1T"; } catch { return "1T"; }
   });
@@ -730,9 +705,12 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
-        {currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
-        {currency === "USD" && <div style={{ marginBottom: 14 }} />}
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {fmtPrice(btcDisplay, currency)}</div>
+        {showSecondary && btcSecondary > 0 && (
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
+        )}
+        {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
+        <div style={{ marginBottom: 14 }} />
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(tab => (
             <button key={tab} onClick={() => { setActiveTab(tab); try { localStorage.setItem("marketTab", tab); } catch {} }}
@@ -1448,7 +1426,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.5.5" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.6.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2482,7 +2460,7 @@ export default function App() {
       */}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
         <div style={{ zoom: { S: 0.9, M: 1.0, L: 1.15 }[fontScale] || 1.0 }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
+        <Header lastUpdated={lastUpdated} loading={loading} T={T} onSettingsOpen={() => setShowSettings(true)} language={language} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2492,9 +2470,9 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
+                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
-                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
               </div>
             )}
             {view === "analyse" && (
