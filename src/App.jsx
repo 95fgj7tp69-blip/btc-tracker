@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend } from "recharts";
+import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
@@ -32,6 +32,15 @@ const niceRound = (v) => {
   if (!v || v === 0) return 0;
   const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(v))) - 1);
   return Math.round(v / mag) * mag;
+};
+
+// Globaler Font-Scale Helper — liest aus localStorage damit er in allen Komponenten verfügbar ist
+const FONT_SCALES = { S: 0.9, M: 1.0, L: 1.15 };
+const fs = (n) => {
+  try {
+    const scale = FONT_SCALES[localStorage.getItem("fontScale") || "M"] || 1.0;
+    return Math.round(n * scale);
+  } catch { return n; }
 };
 
 // ── Währungs-Konfiguration ────────────────────────────────────────────────────
@@ -70,9 +79,9 @@ const DARK = {
   surface:   "#1c1c1e",
   border:    "#3a3a3c",
   text:      "#ffffff",
-  textSub:   "#d1d1d6",
-  textMuted: "#98989f",
-  textFaint: "#636366",
+  textSub:   "#e5e5ea",
+  textMuted: "#aeaeb2",
+  textFaint: "#8e8e93",
   input:     "#2c2c2e",
   inputBorder: "#48484a",
   navBg:     "rgba(18,18,18,0.97)",
@@ -83,10 +92,10 @@ const LIGHT = {
   bg:        "#f2f2f7",
   surface:   "#fff",
   border:    "#e0e0e0",
-  text:      "#000",
-  textSub:   "#3a3a3a",
-  textMuted: "#555",
-  textFaint: "#888",
+  text:      "#000000",
+  textSub:   "#1c1c1e",
+  textMuted: "#3a3a3a",
+  textFaint: "#636366",
   input:     "#f5f5f5",
   inputBorder: "#d0d0d0",
   navBg:     "rgba(242,242,247,0.97)",
@@ -309,18 +318,9 @@ function AuthScreen({ T, language }) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, onSettingsOpen, language, secondaryCurrency = "none" }) {
+function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
   const t = tr(translations, language);
   const t2 = lastUpdated ? lastUpdated.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" }) : "--:--";
-  const isPos = dayChangePct >= 0;
-  const btcDisplay = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : (btcUsd * eurUsd);
-  const sym = CURRENCIES[currency].symbol;
-  const fmtPrice = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-
-  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
-  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
-  const symSecondary = secondaryCurrency && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
-  const fmtSecondary = (v) => secondaryCurrency ? new Intl.NumberFormat(CURRENCIES[secondaryCurrency]?.locale || "de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v) : "";
   return (
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -337,27 +337,6 @@ function Header({ lastUpdated, btcUsd, btcChf, dayChangePct, loading, T, currenc
         </div>
         <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, color: T.textMuted }}>⚙</button>
       </div>
-      {/* BTC Kurs */}
-      {btcDisplay > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, padding: "10px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
-              {sym} {fmtPrice(btcDisplay)}
-            </div>
-            {showSecondary && btcSecondary > 0 && (
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>
-                {symSecondary} {fmtSecondary(btcSecondary)}
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: isPos ? "#22c55e" : "#ef4444", background: isPos ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", padding: "3px 8px", borderRadius: 8 }}>
-              {isPos ? "▲" : "▼"} {Math.abs(dayChangePct).toFixed(2)}%
-            </div>
-            <div style={{ color: T.textFaint, fontSize: 12 }}>{currency} 24h</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -645,17 +624,20 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, curren
 }
 
 // ── Market Card mit Live Chart ────────────────────────────────────────────────
-function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language }) {
+function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language, secondaryCurrency = "none" }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const btcDisplay = toDisplay(btcChf, currency, usdChf, eurUsd);
+  const fmtPrice = (v, cur) => new Intl.NumberFormat(CURRENCIES[cur].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
+  const btcSecondary = secondaryCurrency === "CHF" ? btcChf : secondaryCurrency === "USD" ? btcUsd : (btcUsd * eurUsd);
+  const symSecondary = showSecondary && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem("marketTab") || "1T"; } catch { return "1T"; }
   });
   const [chartData, setChartData] = useState([]);
   const [loadingChart, setLoadingChart] = useState(false);
-  const isPos = dayChangePct >= 0;
-  const color = isPos ? "#22c55e" : "#ef4444";
   const TABS = ["1T", "1W", "1M", "3M", "6M", "1J"];
 
   const fetchMarketChart = useCallback(async (tab) => {
@@ -674,26 +656,38 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
   useEffect(() => {
     fetchMarketChart(activeTab);
-    // Retry after 3s if rate limited
-    const retry = setTimeout(() => {
-      setChartData(prev => prev.length === 0 ? prev : prev);
-      fetchMarketChart(activeTab);
-    }, 3000);
+    const retry = setTimeout(() => { fetchMarketChart(activeTab); }, 3000);
     return () => clearTimeout(retry);
   }, [activeTab, fetchMarketChart]);
 
+  // Berechnungen
   const vals = chartData.map(d => d.v);
   const minV = vals.length ? Math.min(...vals) : 0;
   const maxV = vals.length ? Math.max(...vals) : 0;
-  const midV = Math.round((minV + maxV) / 2);
-  const xTicks = chartData.filter((_, i) => { const n = chartData.length; if (n <= 8) return true; return i % Math.floor(n / 5) === 0 || i === n - 1; }).map(d => d.t);
+  const firstV = chartData.length ? chartData[0].v : 0;
+  const lastV = chartData.length ? chartData[chartData.length - 1].v : 0;
+  const tabChangePct = firstV > 0 ? ((lastV - firstV) / firstV) * 100 : 0;
+  const isPos = tabChangePct >= 0;
+  const color = isPos ? "#22c55e" : "#ef4444";
+
+  // Rechte Achse: %-Werte bei min/mid/max
+  const pctAt = (v) => firstV > 0 ? ((v - firstV) / firstV * 100) : 0;
+  const fmtPct = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+
+  const xTicks = chartData.filter((_, i) => {
+    const n = chartData.length;
+    if (n <= 8) return true;
+    return i % Math.floor(n / 5) === 0 || i === n - 1;
+  }).map(d => d.t);
+
   const fmtAxis = (usdVal) => {
     const converted = niceRound(toDisplay(usdVal * usdChf, currency, usdChf, eurUsd));
     return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted);
   };
   const fmtTooltip = (usdVal) => {
     const converted = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
-    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)}`;
+    const pct = fmtPct(pctAt(usdVal));
+    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)} (${pct})`;
   };
 
   return (
@@ -706,27 +700,32 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             </div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
+          {/* Badge: Tab-%-Änderung statt fix 24h */}
           <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
-            <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
+            <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
-        {currency === "CHF" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
-        {currency === "EUR" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
-        {currency === "USD" && <div style={{ marginBottom: 14 }} />}
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {fmtPrice(btcDisplay, currency)}</div>
+        {showSecondary && btcSecondary > 0 && (
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
+        )}
+        {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
+        <div style={{ marginBottom: 14 }} />
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
-          {TABS.map(t => (
-            <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("marketTab", t); } catch {} }} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
+          {TABS.map(tab => (
+            <button key={tab} onClick={() => { setActiveTab(tab); try { localStorage.setItem("marketTab", tab); } catch {} }}
+              style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === tab ? T.input : "transparent", color: activeTab === tab ? T.text : T.textFaint }}>{tab}</button>
           ))}
         </div>
       </div>
-      <div style={{ height: 160, position: "relative" }}>
+
+      <div style={{ height: 180, position: "relative" }}>
         {loadingChart ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: T.textFaint, fontSize: 13 }}>{t("market.lade")}</div>
         ) : chartData.length > 0 ? (
           <>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 52, left: 0, bottom: 20 }}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 48, left: 48, bottom: 20 }}>
                 <defs>
                   <linearGradient id="marketGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={color} stopOpacity="0.25" />
@@ -734,14 +733,35 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
-                <YAxis domain={["auto", "auto"]} hide />
+                <YAxis domain={[minV, maxV]} hide />
                 <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
+                {firstV > 0 && firstV >= minV && firstV <= maxV && (
+                  <ReferenceLine y={firstV} stroke={T.textFaint} strokeDasharray="4 3" strokeOpacity={0.5} strokeWidth={1} />
+                )}
                 <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill="url(#marketGrad)" dot={false} activeDot={{ r: 3, fill: color }} />
               </AreaChart>
             </ResponsiveContainer>
-            <div style={{ position: "absolute", right: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
-              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtAxis(v)}</span>))}
+
+            {/* Linke Y-Achse: absoluter Kurs */}
+            <div style={{ position: "absolute", left: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {[maxV, (minV + maxV) / 2, minV].map((v, i) => (
+                <span key={i} style={{ fontSize: 9, color: T.textMuted, textAlign: "left" }}>{fmtAxis(v)}</span>
+              ))}
             </div>
+
+            {/* Rechte Y-Achse: %-Änderung */}
+            <div style={{ position: "absolute", right: 4, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {[maxV, (minV + maxV) / 2, minV].map((v, i) => {
+                const pct = pctAt(v);
+                const isZero = Math.abs(pct) < 0.5;
+                return (
+                  <span key={i} style={{ fontSize: 9, color: isZero ? T.textMuted : pct > 0 ? "#22c55e" : "#ef4444", textAlign: "right", fontWeight: isZero ? 600 : 400 }}>
+                    {fmtPct(pct)}
+                  </span>
+                );
+              })}
+            </div>
+
           </>
         ) : null}
       </div>
@@ -763,7 +783,13 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const rawData = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
   const data = rawData.map(([d, p]) => [d, Math.round(convertPrice(p))]);
   const prices = data.map(d => d[1]);
-  const minP = Math.min(...prices) * 0.92, maxP = Math.max(...prices) * 1.06;
+  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
+  const isAbove = currentChf >= avgChf;
+  if (prices.length === 0) return null;
+  const chartMin = Math.min(...prices);
+  const chartMax = Math.max(...prices);
+  const minP = Math.min(chartMin * 0.92, avgDisplay > 0 ? avgDisplay * 0.95 : chartMin * 0.92);
+  const maxP = chartMax * 1.06;
   const W = 340, H = 160, PAD_L = 46, PAD_R = 12, PAD_T = 12, PAD_B = 24;
   const cw = W - PAD_L - PAD_R, ch = H - PAD_T - PAD_B;
   const xScale = (i) => PAD_L + (i / (data.length - 1)) * cw;
@@ -771,8 +797,6 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const linePoints = data.map((d, i) => `${xScale(i)},${yScale(d[1])}`).join(" ");
   const areaPoints = [`${xScale(0)},${PAD_T + ch}`, ...data.map((d, i) => `${xScale(i)},${yScale(d[1])}`), `${xScale(data.length - 1)},${PAD_T + ch}`].join(" ");
   const buyMarkers = transactions.filter(t => t.type === "buy").map(t => { const idx = data.findIndex(d => d[0] === t.date.slice(0, 7)); if (idx < 0) return null; return { x: xScale(idx), y: yScale(data[idx][1]) }; }).filter(Boolean);
-  const avgDisplay = Math.round(toDisplay(avgChf, currency, usdChf, eurUsd));
-  const isAbove = currentChf >= avgChf;
   const avgY = yScale(avgDisplay);
   const yTicks = [minP, (minP + maxP) / 2, maxP].map(v => { const nr = niceRound(v); return { v: nr, y: yScale(nr), label: nr >= 1000 ? `${Math.round(nr / 1000)}k` : Math.round(nr) }; });
   const xTicks = data.map((d, i) => ({ i, label: d[0] })).filter((_, i) => i % 6 === 0 || i === data.length - 1);
@@ -808,7 +832,7 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
         {xTicks.map(t => (<text key={t.i} x={xScale(t.i)} y={H - 4} fill={T.textFaint} fontSize="8" textAnchor="middle">{t.label.slice(2)}</text>))}
         <polygon points={areaPoints} fill="url(#areaGrad)" clipPath="url(#chartClip)" />
         <polyline points={linePoints} fill="none" stroke={isAbove ? "#22c55e" : "#ef4444"} strokeWidth="1.5" strokeLinejoin="round" clipPath="url(#chartClip)" opacity="0.9" />
-        {avgDisplay >= minP && avgDisplay <= maxP && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgDisplay / 1000)}k</text></g>)}
+        {avgChf > 0 && (<g><line x1={PAD_L} y1={avgY} x2={PAD_L + cw} y2={avgY} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" /><text x={PAD_L + cw + 2} y={avgY + 4} fill="#f59e0b" fontSize="8">{Math.round(avgDisplay / 1000)}k</text></g>)}
         {buyMarkers.map((m, i) => (<g key={i}><circle cx={m.x} cy={m.y} r="4" fill="#22c55e" opacity="0.85" /><circle cx={m.x} cy={m.y} r="7" fill="none" stroke="#22c55e" strokeWidth="1" opacity="0.3" /></g>))}
         {tooltip && (<g><line x1={tooltip.x} y1={PAD_T} x2={tooltip.x} y2={PAD_T + ch} stroke={T.textFaint} strokeWidth="1" strokeDasharray="3 3" /><circle cx={tooltip.x} cy={tooltip.y} r="4" fill={T.text} opacity="0.95" /></g>)}
       </svg>
@@ -1187,7 +1211,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1265,7 +1289,32 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      {/* PORTFOLIO */}
+      {/* DARSTELLUNG — Dark/Light + Schriftgrösse zusammen */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.darstellung")}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{darkMode ? t("settings.darkMode") : t("settings.lightMode")}</div>
+            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{darkMode ? t("settings.darkModeAktiv") : t("settings.lightModeAktiv")}</div>
+          </div>
+          <div onClick={() => setDarkMode(!darkMode)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: darkMode ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+            <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: darkMode ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
+          </div>
+        </div>
+        <div style={{ padding: "14px 18px" }}>
+          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 10 }}>{language === "en" ? "Text Size" : "Schriftgrösse"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {[["S", language === "en" ? "Small" : "Klein"], ["M", language === "en" ? "Medium" : "Mittel"], ["L", language === "en" ? "Large" : "Gross"]].map(([scale, label]) => (
+              <button key={scale} onClick={() => setFontScale(scale)}
+                style={{ padding: "10px 0", background: fontScale === scale ? "#f7931a" : T.input, border: `1px solid ${fontScale === scale ? "#f7931a" : T.border}`, borderRadius: 10, color: fontScale === scale ? "#000" : T.textMuted, fontSize: scale === "S" ? 13 : scale === "M" ? 15 : 17, fontWeight: fontScale === scale ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PORTFOLIO-WÄHRUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>{t("settings.portfolioWaehrung")}</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.portfolioWaehrungHint")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1324,20 +1373,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       )}
 
-      {/* DARSTELLUNG */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.darstellung")}</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px" }}>
-          <div>
-            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{darkMode ? t("settings.darkMode") : t("settings.lightMode")}</div>
-            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{darkMode ? t("settings.darkModeAktiv") : t("settings.lightModeAktiv")}</div>
-          </div>
-          <div onClick={() => setDarkMode(!darkMode)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: darkMode ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
-            <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: darkMode ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
-          </div>
-        </div>
-      </div>
-
       {/* SPRACHE */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -1391,7 +1426,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.6.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2017,6 +2052,11 @@ export default function App() {
   });
   const setSecondaryCurrency = (c) => { setSecondaryCurrencyState(c); try { localStorage.setItem("secondaryCurrency", c); } catch {} };
 
+  const [fontScale, setFontScaleState] = useState(() => {
+    try { return localStorage.getItem("fontScale") || "M"; } catch { return "M"; }
+  });
+  const setFontScale = (s) => { setFontScaleState(s); try { localStorage.setItem("fontScale", s); } catch {} };
+
   const [language, setLanguageState] = useState(() => {
     try {
       const saved = localStorage.getItem("language");
@@ -2049,6 +2089,13 @@ export default function App() {
     document.body.style.background = T.bg;
     document.body.style.color = T.text;
   }, [darkMode, T]);
+
+  useEffect(() => {
+    const scale = { S: "0.9", M: "1.0", L: "1.15" }[fontScale] || "1.0";
+    document.documentElement.style.setProperty("--font-scale", scale);
+    document.documentElement.style.fontSize = `calc(16px * ${scale})`;
+    document.body.style.fontSize = `calc(16px * ${scale})`;
+  }, [fontScale]);
 
   useEffect(() => {
     let meta = document.querySelector('meta[name="viewport"]');
@@ -2412,7 +2459,8 @@ export default function App() {
       )}
       */}
       <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
-        <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
+        <div style={{ zoom: { S: 0.9, M: 1.0, L: 1.15 }[fontScale] || 1.0 }}>
+        <Header lastUpdated={lastUpdated} loading={loading} T={T} onSettingsOpen={() => setShowSettings(true)} language={language} />
 
         {dbLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -2422,9 +2470,9 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
+                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
-                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
               </div>
             )}
             {view === "analyse" && (
@@ -2558,23 +2606,24 @@ export default function App() {
                 )}
               </div>
             )}
-            {/* Settings Modal */}
-            {showSettings && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSettings(false)}>
-                <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
-                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
-                    <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
-                    <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
-                  </div>
-                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} />
-                </div>
-              </div>
-            )}
           </>
         )}
-      </div>
+        </div> {/* zoom div */}
+      </div> {/* maxWidth div */}
 
+      {/* Modals ausserhalb zoom — werden nicht mitskaliert */}
+      {showSettings && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSettings(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.bg, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+              <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
+              <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
+            </div>
+            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} />
+          </div>
+        </div>
+      )}
       {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} language={language} />}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
