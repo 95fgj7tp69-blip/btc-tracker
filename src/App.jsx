@@ -890,7 +890,152 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
   );
 }
 
-function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T, currency = "CHF", eurUsd = 0.92, language }) {
+// ── Szenario-Rechner ──────────────────────────────────────────────────────────
+function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, eurUsd, T, currency = "CHF", secondaryCurrency = "none", language }) {
+  const t = tr(translations, language);
+  const sym = CURRENCIES[currency].symbol;
+  const showSecondary = secondaryCurrency && secondaryCurrency !== "none" && secondaryCurrency !== currency;
+  const symSec = showSecondary && CURRENCIES[secondaryCurrency] ? CURRENCIES[secondaryCurrency].symbol : "";
+
+  const [zielInput, setZielInput] = useState("");
+  const [zielCurrency, setZielCurrency] = useState(currency);
+  const [zeitraum, setZeitraum] = useState("1J");
+  const [sparplan, setSparplan] = useState("kein");
+  const [sparInput, setSparInput] = useState("");
+
+  const ZEITRAEUME = ["6M", "1J", "2J", "5J", "10J"];
+  const MONATE = { "6M": 6, "1J": 12, "2J": 24, "5J": 60, "10J": 120 };
+  const PERIODEN_PRO_MONAT = { "kein": 0, "woechentlich": 4.33, "monatlich": 1 };
+
+  // Zielkurs immer in CHF intern
+  const zielVal = parseFloat(zielInput.replace(/'/g, "")) || 0;
+  const zielChf = zielVal > 0
+    ? (zielCurrency === "CHF" ? zielVal
+      : zielCurrency === "USD" ? zielVal * usdChf
+      : zielVal * usdChf / eurUsd)
+    : 0;
+
+  // Sparplan
+  const sparVal = parseFloat(sparInput.replace(/'/g, "")) || 0;
+  const sparChfProPeriode = sparVal > 0
+    ? (currency === "CHF" ? sparVal : currency === "USD" ? sparVal * usdChf : sparVal * usdChf / eurUsd)
+    : 0;
+  const anzahlMonate = MONATE[zeitraum] || 12;
+  const periodenTotal = sparplan !== "kein" ? Math.round(anzahlMonate * PERIODEN_PRO_MONAT[sparplan]) : 0;
+  const sparTotal = sparChfProPeriode * periodenTotal;
+  const zusätzlicheBtc = zielChf > 0 && sparTotal > 0 ? sparTotal / zielChf : 0;
+
+  // Resultate
+  const gesamtBtc = totalBtc + zusätzlicheBtc;
+  const portfolioWert = gesamtBtc * zielChf;
+  const investiertGesamt = totalInvested + sparTotal;
+  const gewinn = portfolioWert - investiertGesamt;
+  const gewinnPct = investiertGesamt > 0 ? (gewinn / investiertGesamt) * 100 : 0;
+  const isPos = gewinn >= 0;
+
+  const fmt = (chfVal) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toDisplay(chfVal, currency, usdChf, eurUsd))}`;
+  const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
+  const hasInput = zielChf > 0;
+
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
+      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>
+        {language === "en" ? "SCENARIO CALCULATOR" : "SZENARIO-RECHNER"}
+      </div>
+
+      {/* Zielkurs */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>
+          {language === "en" ? "TARGET BTC PRICE" : "ZIEL-BTC-KURS"}
+        </div>
+        {showSecondary && (
+          <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 10, gap: 3 }}>
+            {[currency, secondaryCurrency].map((c) => (
+              <button key={c} onClick={() => setZielCurrency(c)}
+                style={{ flex: 1, padding: "8px 0", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit", background: zielCurrency === c ? T.surface : "transparent", color: zielCurrency === c ? T.text : T.textMuted, border: "none", fontWeight: zielCurrency === c ? 500 : 400 }}>
+                {CURRENCIES[c]?.symbol} {c}
+              </button>
+            ))}
+          </div>
+        )}
+        <input type="number" step="any" inputMode="decimal"
+          placeholder={zielCurrency === "CHF" ? "z.B. 150'000" : zielCurrency === "USD" ? "e.g. 200,000" : "z.B. 180'000"}
+          value={zielInput} onChange={e => setZielInput(e.target.value)} style={iStyle} />
+      </div>
+
+      {/* Zeitraum */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>
+          {language === "en" ? "TIME HORIZON" : "ZEITHORIZONT"}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {ZEITRAEUME.map(z => (
+            <button key={z} onClick={() => setZeitraum(z)}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${zeitraum === z ? "#f7931a" : T.border}`, background: zeitraum === z ? "#f7931a" : T.input, color: zeitraum === z ? "#000" : T.textMuted, fontSize: 13, fontWeight: zeitraum === z ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+              {z}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sparplan */}
+      <div style={{ marginBottom: hasInput ? 20 : 0 }}>
+        <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>
+          {language === "en" ? "SAVINGS PLAN" : "SPARPLAN"}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginBottom: sparplan !== "kein" ? 10 : 0 }}>
+          {[["kein", language === "en" ? "None" : "Kein"], ["woechentlich", language === "en" ? "Weekly" : "Wöchentl."], ["monatlich", language === "en" ? "Monthly" : "Monatlich"]].map(([val, label]) => (
+            <button key={val} onClick={() => setSparplan(val)}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${sparplan === val ? "#f7931a" : T.border}`, background: sparplan === val ? "#f7931a" : T.input, color: sparplan === val ? "#000" : T.textMuted, fontSize: 12, fontWeight: sparplan === val ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {sparplan !== "kein" && (
+          <input type="number" step="any" inputMode="decimal"
+            placeholder={`${sym} ${language === "en" ? "e.g. 500" : "z.B. 500"}`}
+            value={sparInput} onChange={e => setSparInput(e.target.value)} style={iStyle} />
+        )}
+      </div>
+
+      {/* Resultate */}
+      {hasInput && (
+        <div style={{ background: T.input, borderRadius: 14, padding: "16px 14px", marginTop: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "BTC HOLDINGS" : "BTC BESTAND"}</div>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{gesamtBtc.toFixed(5)} BTC</div>
+              {zusätzlicheBtc > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{zusätzlicheBtc.toFixed(5)} Sparplan</div>}
+            </div>
+            <div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "PORTFOLIO VALUE" : "PORTFOLIOWERT"}</div>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{fmt(portfolioWert)}</div>
+            </div>
+            <div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "TOTAL INVESTED" : "INVESTIERT TOTAL"}</div>
+              <div style={{ color: T.text, fontSize: 15 }}>{fmt(investiertGesamt)}</div>
+              {sparTotal > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{fmt(sparTotal)} Sparplan</div>}
+            </div>
+            <div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "GAIN / LOSS" : "GEWINN / VERLUST"}</div>
+              <div style={{ color: isPos ? "#22c55e" : "#ef4444", fontSize: 15, fontWeight: 600 }}>
+                {isPos ? "+" : ""}{fmt(gewinn)}
+              </div>
+              <div style={{ color: isPos ? "#22c55e" : "#ef4444", fontSize: 12, marginTop: 2 }}>
+                {isPos ? "+" : ""}{gewinnPct.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10, color: T.textFaint, fontSize: 11, textAlign: "center" }}>
+            {language === "en" ? "Hypothetical scenario — not financial advice" : "Hypothetisches Szenario — keine Anlageberatung"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const fmt = (v) => `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd))}`;
@@ -1426,7 +1571,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.6.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.7.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2019,7 +2164,8 @@ export default function App() {
   const [lastUpdated, setLastUpdated]       = useState(null);
   const [view, setView]                     = useState("dashboard");
   const [showModal, setShowModal]           = useState(false);
-  const [showDcaModal, setShowDcaModal]     = useState(false);
+  const [showDcaModal, setShowDcaModal]         = useState(false);
+  const [showSzenarioModal, setShowSzenarioModal] = useState(false);
   const [showSettings, setShowSettings]     = useState(false);
   const [aiResult, setAiResult]             = useState(null);
   const [aiLoading, setAiLoading]           = useState(false);
@@ -2498,6 +2644,20 @@ export default function App() {
                 </div>
               </div>
             )}
+            {showSzenarioModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowSzenarioModal(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}>
+                  <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "12px auto 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0" }}>
+                    <div style={{ color: T.text, fontSize: 17, fontWeight: 600 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
+                    <button onClick={() => setShowSzenarioModal(false)} style={{ background: T.input, border: "none", color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("dca.close")}</button>
+                  </div>
+                  <div style={{ padding: "12px 12px 24px" }}>
+                    <SzenarioCalculator totalBtc={totalBtc} totalInvested={totalInvested} avgChf={avgChf} btcChf={btcChf} usdChf={usdChf} eurUsd={eurUsd} T={T} currency={currency} secondaryCurrency={secondaryCurrency} language={language} />
+                  </div>
+                </div>
+              </div>
+            )}
             {view === "verlauf" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 16, paddingTop: 4 }}>
@@ -2530,6 +2690,16 @@ export default function App() {
                   <div style={{ flex: 1 }}>
                     <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.kaufSimulator")}</div>
                     <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.kaufSimulatorHint")}</div>
+                  </div>
+                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
+                </button>
+
+                {/* Szenario-Rechner */}
+                <button onClick={() => setShowSzenarioModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🎯</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
+                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{language === "en" ? "Portfolio value at target BTC price" : "Portfoliowert bei Ziel-BTC-Kurs berechnen"}</div>
                   </div>
                   <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
                 </button>
