@@ -4,7 +4,11 @@ import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
 // ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
-const API_BASE = import.meta.env.VITE_API_BASE ?? "https://bb-btc-tracker.netlify.app";
+// Im Browser (Web/PWA): leerer String → relative URLs → kein CORS
+// In Capacitor (native App): absolute URL nötig, weil kein Netlify-Backend lokal
+const API_BASE = (typeof window !== "undefined" && window.location.protocol === "capacitor:")
+  ? "https://bb-btc-tracker.netlify.app"
+  : (import.meta.env.VITE_API_BASE ?? "");
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
 const supabase = createClient(
