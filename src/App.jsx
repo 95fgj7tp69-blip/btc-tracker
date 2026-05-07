@@ -663,8 +663,6 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
   });
   const [chartData, setChartData] = useState([]);
   const [loadingChart, setLoadingChart] = useState(false);
-  const isPos = dayChangePct >= 0;
-  const color = isPos ? "#22c55e" : "#ef4444";
   const TABS = ["1T", "1W", "1M", "3M", "6M", "1J"];
 
   const fetchMarketChart = useCallback(async (tab) => {
@@ -683,27 +681,42 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
   useEffect(() => {
     fetchMarketChart(activeTab);
-    // Retry after 3s if rate limited
-    const retry = setTimeout(() => {
-      setChartData(prev => prev.length === 0 ? prev : prev);
-      fetchMarketChart(activeTab);
-    }, 3000);
+    const retry = setTimeout(() => { fetchMarketChart(activeTab); }, 3000);
     return () => clearTimeout(retry);
   }, [activeTab, fetchMarketChart]);
 
+  // Berechnungen
   const vals = chartData.map(d => d.v);
   const minV = vals.length ? Math.min(...vals) : 0;
   const maxV = vals.length ? Math.max(...vals) : 0;
-  const midV = Math.round((minV + maxV) / 2);
-  const xTicks = chartData.filter((_, i) => { const n = chartData.length; if (n <= 8) return true; return i % Math.floor(n / 5) === 0 || i === n - 1; }).map(d => d.t);
+  const firstV = chartData.length ? chartData[0].v : 0;
+  const lastV = chartData.length ? chartData[chartData.length - 1].v : 0;
+  const tabChangePct = firstV > 0 ? ((lastV - firstV) / firstV) * 100 : 0;
+  const isPos = tabChangePct >= 0;
+  const color = isPos ? "#22c55e" : "#ef4444";
+
+  // Rechte Achse: %-Werte bei min/mid/max
+  const pctAt = (v) => firstV > 0 ? ((v - firstV) / firstV * 100) : 0;
+  const fmtPct = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+
+  const xTicks = chartData.filter((_, i) => {
+    const n = chartData.length;
+    if (n <= 8) return true;
+    return i % Math.floor(n / 5) === 0 || i === n - 1;
+  }).map(d => d.t);
+
   const fmtAxis = (usdVal) => {
     const converted = niceRound(toDisplay(usdVal * usdChf, currency, usdChf, eurUsd));
     return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted);
   };
   const fmtTooltip = (usdVal) => {
     const converted = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
-    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)}`;
+    const pct = fmtPct(pctAt(usdVal));
+    return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)} (${pct})`;
   };
+
+  // 0%-Linie Position (y-Wert = firstV, normiert auf Chart-Domain)
+  const zeroLinePct = maxV > minV ? ((firstV - minV) / (maxV - minV)) * 100 : 50;
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -715,27 +728,29 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             </div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
+          {/* Badge: Tab-%-Änderung statt fix 24h */}
           <div style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
-            <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
+            <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
         <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
-        {currency === "CHF" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
-        {currency === "EUR" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
+        {currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
         {currency === "USD" && <div style={{ marginBottom: 14 }} />}
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
-          {TABS.map(t => (
-            <button key={t} onClick={() => { setActiveTab(t); try { localStorage.setItem("marketTab", t); } catch {} }} style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === t ? T.input : "transparent", color: activeTab === t ? T.text : T.textFaint }}>{t}</button>
+          {TABS.map(tab => (
+            <button key={tab} onClick={() => { setActiveTab(tab); try { localStorage.setItem("marketTab", tab); } catch {} }}
+              style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === tab ? T.input : "transparent", color: activeTab === tab ? T.text : T.textFaint }}>{tab}</button>
           ))}
         </div>
       </div>
-      <div style={{ height: 160, position: "relative" }}>
+
+      <div style={{ height: 180, position: "relative" }}>
         {loadingChart ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: T.textFaint, fontSize: 13 }}>{t("market.lade")}</div>
         ) : chartData.length > 0 ? (
           <>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 52, left: 0, bottom: 20 }}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 48, left: 48, bottom: 20 }}>
                 <defs>
                   <linearGradient id="marketGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={color} stopOpacity="0.25" />
@@ -743,14 +758,43 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
-                <YAxis domain={["auto", "auto"]} hide />
+                <YAxis domain={[minV, maxV]} hide />
                 <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
                 <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill="url(#marketGrad)" dot={false} activeDot={{ r: 3, fill: color }} />
               </AreaChart>
             </ResponsiveContainer>
-            <div style={{ position: "absolute", right: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
-              {[maxV, midV, minV].map(v => (<span key={v} style={{ fontSize: 10, color: T.textMuted, textAlign: "right" }}>{fmtAxis(v)}</span>))}
+
+            {/* Linke Y-Achse: absoluter Kurs */}
+            <div style={{ position: "absolute", left: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {[maxV, (minV + maxV) / 2, minV].map((v, i) => (
+                <span key={i} style={{ fontSize: 9, color: T.textMuted, textAlign: "left" }}>{fmtAxis(v)}</span>
+              ))}
             </div>
+
+            {/* Rechte Y-Achse: %-Änderung */}
+            <div style={{ position: "absolute", right: 4, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {[maxV, (minV + maxV) / 2, minV].map((v, i) => {
+                const pct = pctAt(v);
+                const isZero = Math.abs(pct) < 0.5;
+                return (
+                  <span key={i} style={{ fontSize: 9, color: isZero ? T.textMuted : pct > 0 ? "#22c55e" : "#ef4444", textAlign: "right", fontWeight: isZero ? 600 : 400 }}>
+                    {fmtPct(pct)}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* 0%-Linie */}
+            {firstV >= minV && firstV <= maxV && (
+              <div style={{
+                position: "absolute",
+                left: 48, right: 48,
+                bottom: `calc(24px + ${zeroLinePct}% * (100% - 32px) / 100)`,
+                borderTop: `1px dashed ${T.textFaint}`,
+                pointerEvents: "none",
+                opacity: 0.5
+              }} />
+            )}
           </>
         ) : null}
       </div>
@@ -1411,7 +1455,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.4.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.5.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
