@@ -70,9 +70,9 @@ const DARK = {
   surface:   "#1c1c1e",
   border:    "#3a3a3c",
   text:      "#ffffff",
-  textSub:   "#d1d1d6",
-  textMuted: "#98989f",
-  textFaint: "#636366",
+  textSub:   "#e5e5ea",
+  textMuted: "#aeaeb2",
+  textFaint: "#8e8e93",
   input:     "#2c2c2e",
   inputBorder: "#48484a",
   navBg:     "rgba(18,18,18,0.97)",
@@ -83,10 +83,10 @@ const LIGHT = {
   bg:        "#f2f2f7",
   surface:   "#fff",
   border:    "#e0e0e0",
-  text:      "#000",
-  textSub:   "#3a3a3a",
-  textMuted: "#555",
-  textFaint: "#888",
+  text:      "#000000",
+  textSub:   "#1c1c1e",
+  textMuted: "#3a3a3a",
+  textFaint: "#636366",
   input:     "#f5f5f5",
   inputBorder: "#d0d0d0",
   navBg:     "rgba(242,242,247,0.97)",
@@ -524,8 +524,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ color: T.textMuted, fontSize: 13 }}>{t("portfolio.gesamtwert")}</div>
         </div>
-        <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
+        <div style={{ fontSize: fs(36), fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          <span style={{ fontSize: fs(22), fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 16 }}>
@@ -625,7 +625,7 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, curren
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
         <div style={{ borderRight: `1px solid ${T.divider}`, paddingRight: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>{t("position.bestand")}</div>
-          <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
+          <div style={{ color: T.text, fontSize: fs(20), fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: fs(13), fontWeight: 400, color: T.textSub }}>BTC</span></div>
           <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ {sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}</div>
         </div>
         <div style={{ paddingLeft: 16 }}>
@@ -710,7 +710,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(dayChangePct).toFixed(2)}%
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
+        <div style={{ fontSize: fs(28), fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(btcDisplay)}</div>
         {currency === "CHF" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
         {currency === "EUR" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3, marginBottom: 14 }}>${fmtUsd(btcUsd)}</div>}
         {currency === "USD" && <div style={{ marginBottom: 14 }} />}
@@ -850,7 +850,7 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
         <div style={{ flex: 1 }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{language === "en" ? "CURRENT VS. COST BASIS" : "AKTUELL VS. EINSTAND"}</div>
-            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 22, fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: 14, marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
+            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: fs(22), fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: fs(14), marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
             <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 14, opacity: 0.7, marginTop: 3 }}>{isAbove ? "+" : ""}{diffPct.toFixed(1)}%</div>
           </div>
           <div style={{ background: isAbove ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${isAbove ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "10px 12px" }}>
@@ -950,7 +950,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
       <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
+          <div style={{ fontSize: fs(32), fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
             {isPos ? "+" : ""}{fmt(realizedPnl)}
           </div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{language === "en" ? `from ${sells.length} sale${sells.length > 1 ? "s" : ""}` : `aus ${sells.length} Verkauf${sells.length > 1 ? "en" : ""}`}</div>
@@ -1187,7 +1187,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1249,7 +1249,19 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
     <>
     <div style={{ padding: "8px 16px", overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", paddingBottom: 100 }}>
 
-      {/* KONTO */}
+      {/* SCHRIFTGRÖSSE */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{language === "en" ? "TEXT SIZE" : "SCHRIFTGRÖSSE"}</div>
+      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{language === "en" ? "Adjust text size for better readability" : "Schriftgrösse für bessere Lesbarkeit anpassen"}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
+          {[["S", language === "en" ? "Small" : "Klein"], ["M", language === "en" ? "Medium" : "Mittel"], ["L", language === "en" ? "Large" : "Gross"]].map(([scale, label], i) => (
+            <button key={scale} onClick={() => setFontScale(scale)}
+              style={{ padding: "14px 0", background: fontScale === scale ? "#f7931a" : "none", border: "none", borderRight: i < 2 ? `1px solid ${T.border}` : "none", color: fontScale === scale ? "#000" : T.textMuted, fontSize: scale === "S" ? 13 : scale === "M" ? 15 : 17, fontWeight: fontScale === scale ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.konto")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
@@ -1391,7 +1403,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.4.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2017,6 +2029,13 @@ export default function App() {
   });
   const setSecondaryCurrency = (c) => { setSecondaryCurrencyState(c); try { localStorage.setItem("secondaryCurrency", c); } catch {} };
 
+  const [fontScale, setFontScaleState] = useState(() => {
+    try { return localStorage.getItem("fontScale") || "M"; } catch { return "M"; }
+  });
+  const setFontScale = (s) => { setFontScaleState(s); try { localStorage.setItem("fontScale", s); } catch {} };
+  const FONT_SCALES = { S: 0.9, M: 1.0, L: 1.15 };
+  const fs = (n) => Math.round(n * (FONT_SCALES[fontScale] || 1.0));
+
   const [language, setLanguageState] = useState(() => {
     try {
       const saved = localStorage.getItem("language");
@@ -2049,6 +2068,13 @@ export default function App() {
     document.body.style.background = T.bg;
     document.body.style.color = T.text;
   }, [darkMode, T]);
+
+  useEffect(() => {
+    const scale = { S: "0.9", M: "1.0", L: "1.15" }[fontScale] || "1.0";
+    document.documentElement.style.setProperty("--font-scale", scale);
+    document.documentElement.style.fontSize = `calc(16px * ${scale})`;
+    document.body.style.fontSize = `calc(16px * ${scale})`;
+  }, [fontScale]);
 
   useEffect(() => {
     let meta = document.querySelector('meta[name="viewport"]');
@@ -2411,7 +2437,7 @@ export default function App() {
         </div>
       )}
       */}
-      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)" }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: T.bg, paddingTop: "env(safe-area-inset-top)", fontSize: `${({ S: 14, M: 16, L: 18 }[fontScale] || 16)}px` }}>
         <Header lastUpdated={lastUpdated} btcUsd={btcUsd} btcChf={btcChf} dayChangePct={dayChangePct} loading={loading} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} onSettingsOpen={() => setShowSettings(true)} language={language} secondaryCurrency={secondaryCurrency} />
 
         {dbLoading ? (
@@ -2567,7 +2593,7 @@ export default function App() {
                     <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
                     <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
                   </div>
-                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} />
+                  <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} />
                 </div>
               </div>
             )}
