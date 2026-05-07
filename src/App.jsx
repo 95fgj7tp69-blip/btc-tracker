@@ -816,8 +816,11 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   const rawData = chartData?.length ? chartData : FALLBACK_PRICES_CHF;
   const data = rawData.map(([d, p]) => [d, Math.round(convertPrice(p))]);
   const prices = data.map(d => d[1]);
-  const minP = Math.min(Math.min(...prices) * 0.92, avgDisplay > 0 ? avgDisplay * 0.95 : Infinity);
-  const maxP = Math.max(...prices) * 1.06;
+  if (prices.length === 0) return null;
+  const chartMin = Math.min(...prices);
+  const chartMax = Math.max(...prices);
+  const minP = Math.min(chartMin * 0.92, avgDisplay > 0 ? avgDisplay * 0.95 : chartMin * 0.92);
+  const maxP = chartMax * 1.06;
   const W = 340, H = 160, PAD_L = 46, PAD_R = 12, PAD_T = 12, PAD_B = 24;
   const cw = W - PAD_L - PAD_R, ch = H - PAD_T - PAD_B;
   const xScale = (i) => PAD_L + (i / (data.length - 1)) * cw;
@@ -1456,7 +1459,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.5.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.5.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
