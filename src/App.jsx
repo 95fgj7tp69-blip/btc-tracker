@@ -34,6 +34,15 @@ const niceRound = (v) => {
   return Math.round(v / mag) * mag;
 };
 
+// Globaler Font-Scale Helper — liest aus localStorage damit er in allen Komponenten verfügbar ist
+const FONT_SCALES = { S: 0.9, M: 1.0, L: 1.15 };
+const fs = (n) => {
+  try {
+    const scale = FONT_SCALES[localStorage.getItem("fontScale") || "M"] || 1.0;
+    return Math.round(n * scale);
+  } catch { return n; }
+};
+
 // ── Währungs-Konfiguration ────────────────────────────────────────────────────
 const CURRENCIES = {
   CHF: { label: "CHF", symbol: "CHF", locale: "de-CH", rate: (usdChf) => usdChf },
@@ -2033,8 +2042,6 @@ export default function App() {
     try { return localStorage.getItem("fontScale") || "M"; } catch { return "M"; }
   });
   const setFontScale = (s) => { setFontScaleState(s); try { localStorage.setItem("fontScale", s); } catch {} };
-  const FONT_SCALES = { S: 0.9, M: 1.0, L: 1.15 };
-  const fs = (n) => Math.round(n * (FONT_SCALES[fontScale] || 1.0));
 
   const [language, setLanguageState] = useState(() => {
     try {
