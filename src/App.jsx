@@ -101,8 +101,8 @@ const LIGHT = {
   border:    "#e0e0e0",
   text:      "#000000",
   textSub:   "#1c1c1e",
-  textMuted: "#3a3a3a",
-  textFaint: "#636366",
+  textMuted: "#2c2c2e",
+  textFaint: "#48484a",
   input:     "#f5f5f5",
   inputBorder: "#d0d0d0",
   navBg:     "rgba(242,242,247,0.97)",
@@ -1625,7 +1625,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.5" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.6" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2724,68 +2724,71 @@ export default function App() {
             )}
             {view === "tools" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
-                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.finanzTools")}</div>
-                {/* Kauf-Simulator */}
-                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                      <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
-                      <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
-                      <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.kaufSimulator")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.kaufSimulatorHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
 
-                {/* Szenario-Rechner */}
-                <button onClick={() => setShowSzenarioModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🎯</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{language === "en" ? "Portfolio value at target BTC price" : "Portfoliowert bei Ziel-BTC-Kurs berechnen"}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                {/* Finanz-Tools */}
+                <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginTop: 20, marginBottom: 10 }}>{t("tools.finanzTools")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
+
+                  {/* Kauf-Simulator */}
+                  <button onClick={() => setShowDcaModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+                        <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
+                        <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.kaufSimulator")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.kaufSimulatorHint")}</div>
+                    </div>
+                  </button>
+
+                  {/* Szenario-Rechner */}
+                  <button onClick={() => setShowSzenarioModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🎯</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{language === "en" ? "Portfolio value at target price" : "Portfoliowert bei Zielkurs"}</div>
+                    </div>
+                  </button>
+                </div>
 
                 {/* KI-Tools */}
-                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.aiTools")}</div>
+                <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 10 }}>{t("tools.aiTools")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
 
-                {/* Button: Portfolio analysieren */}
-                <button
-                  onClick={() => callClaudeAI("portfolio")}
-                  disabled={aiLoading || totalBtc === 0}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
-                >
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>📊</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiPortfolioBtn")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiPortfolioBtnHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                  {/* Portfolio analysieren */}
+                  <button
+                    onClick={() => callClaudeAI("portfolio")}
+                    disabled={aiLoading || totalBtc === 0}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📊</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiPortfolioBtn")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiPortfolioBtnHint")}</div>
+                    </div>
+                  </button>
 
-                {/* Button: Markt-Kommentar */}
-                <button
-                  onClick={() => callClaudeAI("market")}
-                  disabled={aiLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
-                >
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🌐</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiMarketBtn")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiMarketBtnHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                  {/* Markt-Kommentar */}
+                  <button
+                    onClick={() => callClaudeAI("market")}
+                    disabled={aiLoading}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🌐</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiMarketBtnHint")}</div>
+                    </div>
+                  </button>
+                </div>
 
                 {/* Loading */}
                 {aiLoading && (
