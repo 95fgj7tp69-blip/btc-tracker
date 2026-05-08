@@ -566,9 +566,21 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis hide domain={[0, "auto"]} />
             <Tooltip
-              contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
-              labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? t("portfolio.investiert") : name === "portfolio" ? t("portfolio.portfoliowert") : t("portfolio.heute")]}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div style={{ background: "rgba(28,28,30,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: "8px 12px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginBottom: 5 }}>{label}</div>
+                    {payload.map((p, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 3 : 0 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: p.color || p.stroke, flexShrink: 0 }} />
+                        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10 }}>{p.name === "invested" ? t("portfolio.investiert") : p.name === "portfolio" ? t("portfolio.portfoliowert") : t("portfolio.heute")}</span>
+                        <span style={{ color: "#fff", fontSize: 11, fontWeight: 600, marginLeft: "auto", paddingLeft: 8 }}>{sym} {fmtY(p.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
             />
             <Area type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={1.5} strokeDasharray="4 3" fill="none" dot={false} activeDot={{ r: 3 }} />
             {chartData?.[0]?.portfolio !== undefined ? (
@@ -765,7 +777,17 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
                 <YAxis domain={[minV, maxV]} hide />
-                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div style={{ background: "rgba(28,28,30,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: "8px 12px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>
+                        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginBottom: 4 }}>{label}</div>
+                        <div style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>{fmtTooltip(payload[0].value)}</div>
+                      </div>
+                    );
+                  }}
+                />
                 {firstV > 0 && firstV >= minV && firstV <= maxV && (
                   <ReferenceLine y={firstV} stroke={T.textFaint} strokeDasharray="4 3" strokeOpacity={0.5} strokeWidth={1} />
                 )}
@@ -841,7 +863,7 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em" }}>{t("priceChart.title")}</div>
+        <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 2 }}>{t("priceChart.title")}</div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 16, height: 2, background: "#f59e0b", borderRadius: 1 }} /><span style={{ color: T.textMuted, fontSize: 12 }}>{t("priceChart.einstand")}</span></div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", opacity: 0.8 }} /><span style={{ color: T.textMuted, fontSize: 12 }}>{t("priceChart.kauf")}</span></div>
@@ -891,7 +913,7 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
   const nx = cx + (R - 6) * Math.cos(nRad), ny = cy + (R - 6) * Math.sin(nRad);
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("breakEven.title")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("breakEven.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <svg viewBox="0 0 160 88" style={{ width: 160, flexShrink: 0 }}>
           <path d={arcPath(-90, 0, R)} fill="none" stroke={isAbove ? "rgba(239,68,68,0.2)" : "#ef4444"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 1 : 0.85} />
@@ -1034,21 +1056,21 @@ function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, e
         <div style={{ background: T.input, borderRadius: 14, padding: "16px 14px", marginTop: 4 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "BTC HOLDINGS" : "BTC BESTAND"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "BTC holdings" : "BTC Bestand"}</div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{gesamtBtc.toFixed(5)} BTC</div>
               {zusätzlicheBtc > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{zusätzlicheBtc.toFixed(5)} Sparplan</div>}
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "PORTFOLIO VALUE" : "PORTFOLIOWERT"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Portfolio value" : "Portfoliowert"}</div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{fmt(portfolioWert)}</div>
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "TOTAL INVESTED" : "INVESTIERT TOTAL"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Total invested" : "Investiert total"}</div>
               <div style={{ color: T.text, fontSize: 15 }}>{fmt(investiertGesamt)}</div>
               {sparTotal > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{fmt(sparTotal)} Sparplan</div>}
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "GAIN / LOSS" : "GEWINN / VERLUST"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Gain / Loss" : "Gewinn / Verlust"}</div>
               <div style={{ color: isPos ? "#22c55e" : "#ef4444", fontSize: 15, fontWeight: 600 }}>
                 {isPos ? "+" : ""}{fmt(gewinn)}
               </div>
@@ -1089,7 +1111,7 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("dca.chartTitle")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("dca.chartTitle")}</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
         {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
@@ -1140,7 +1162,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
   if (sells.length === 0) {
     return (
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
-        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 12 }}>{t("realizedPnl.title")}</div>
+        <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 12 }}>{t("realizedPnl.title")}</div>
         <div style={{ color: T.textFaint, fontSize: 14, textAlign: "center", padding: "16px 0" }}>{t("realizedPnl.keinVerkauf")}</div>
       </div>
     );
@@ -1148,7 +1170,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
@@ -1199,7 +1221,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>{language === "en" ? "PURCHASE PRICE EFFICIENCY" : "KAUFPREIS-EFFIZIENZ"}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 4 }}>{language === "en" ? "Purchase price efficiency" : "Kaufpreis-Effizienz"}</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 16 }}>{language === "en" ? `Avg. purchase price per year in ${sym}` : `Ø Kaufpreis pro Jahr in ${sym}`}</div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, paddingRight: 48, position: "relative" }}>
         {/* Gridlines */}
@@ -1603,7 +1625,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.5" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
