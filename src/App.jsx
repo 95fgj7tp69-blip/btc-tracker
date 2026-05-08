@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
 // ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
-// Im Browser (Web/PWA): leerer String → relative URLs → kein CORS
-// In Capacitor (native App): absolute URL nötig, weil kein Netlify-Backend lokal
-const API_BASE = (typeof window !== "undefined" && window.location.protocol === "capacitor:")
-  ? "https://bb-btc-tracker.netlify.app"
+// capacitor://localhost = native App (iOS/Android) → absolute URL nötig
+// https: = Browser/PWA → relative URLs, kein CORS
+const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
+  ? "https://trackoshi.netlify.app"
   : (import.meta.env.VITE_API_BASE ?? "");
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
@@ -227,9 +227,7 @@ function AuthScreen({ T, language }) {
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>
-            <svg width="36" height="36" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
-          </div>
+          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 64, height: 64, borderRadius: 18, boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }} />
           <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi</div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t("auth.tagline")}</div>
         </div>
@@ -1574,7 +1572,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2570,9 +2568,7 @@ export default function App() {
         @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
-        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>
-          <svg width="44" height="44" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
-        </div>
+        <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 80, height: 80, borderRadius: 22, boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }} />
         <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi</div>
         <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
       </div>
