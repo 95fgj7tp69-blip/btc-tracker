@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
 // ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
-// capacitor: oder capacitor://localhost = native App → absolute URL nötig
-// https: = Browser/PWA → relative URLs, kein CORS
-const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
-  ? "https://trackoshi.netlify.app"
+// Im Browser (Web/PWA): leerer String → relative URLs → kein CORS
+// In Capacitor (native App): absolute URL nötig, weil kein Netlify-Backend lokal
+const API_BASE = (typeof window !== "undefined" && window.location.protocol === "capacitor:")
+  ? "https://bb-btc-tracker.netlify.app"
   : (import.meta.env.VITE_API_BASE ?? "");
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
@@ -510,8 +510,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ color: T.textMuted, fontSize: 13 }}>{t("portfolio.gesamtwert")}</div>
         </div>
-        <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          <span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 16 }}>
@@ -1579,7 +1579,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
