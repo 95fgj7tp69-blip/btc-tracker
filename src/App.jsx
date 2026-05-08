@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine } from "recharts";
+import { Area, AreaChart, Line, LineChart, ComposedChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
+
+// ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
+// capacitor://localhost = native App (iOS/Android) → absolute URL nötig
+// https: = Browser/PWA → relative URLs, kein CORS
+const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
+  ? "https://trackoshi.netlify.app"
+  : (import.meta.env.VITE_API_BASE ?? "");
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
 const supabase = createClient(
@@ -16,10 +23,10 @@ const authHeaders = (token) => ({
 });
 
 const api = {
-  getAll: (token) => fetch("/api/transactions", { headers: authHeaders(token) }).then(r => r.json()),
-  create: (tx, token) => fetch("/api/transactions", { method: "POST", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
-  update: (tx, token) => fetch(`/api/transactions/${tx.id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
-  remove: (id, token) => fetch(`/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
+  getAll: (token) => fetch(`${API_BASE}/api/transactions`, { headers: authHeaders(token) }).then(r => r.json()),
+  create: (tx, token) => fetch(`${API_BASE}/api/transactions`, { method: "POST", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  update: (tx, token) => fetch(`${API_BASE}/api/transactions/${tx.id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(tx) }).then(r => r.json()),
+  remove: (id, token) => fetch(`${API_BASE}/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,8 +101,8 @@ const LIGHT = {
   border:    "#e0e0e0",
   text:      "#000000",
   textSub:   "#1c1c1e",
-  textMuted: "#3a3a3a",
-  textFaint: "#636366",
+  textMuted: "#2c2c2e",
+  textFaint: "#48484a",
   input:     "#f5f5f5",
   inputBorder: "#d0d0d0",
   navBg:     "rgba(242,242,247,0.97)",
@@ -220,9 +227,7 @@ function AuthScreen({ T, language }) {
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: "#f7931a", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }}>
-            <svg width="36" height="36" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
-          </div>
+          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 64, height: 64, borderRadius: 18, boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }} />
           <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi</div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t("auth.tagline")}</div>
         </div>
@@ -325,9 +330,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>
-            <svg width="20" height="20" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3.5" fill="#000"/></svg>
-          </div>
+          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }} />
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{t("header.portfolio")}</div>
             <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
@@ -342,7 +345,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language, darkMode = false }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
@@ -503,8 +506,8 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ color: T.textMuted, fontSize: 13 }}>{t("portfolio.gesamtwert")}</div>
         </div>
-        <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          <span style={{ fontSize: 22, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          <span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>
           {new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 16 }}>
@@ -552,28 +555,71 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       })()}
       <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
+          <AreaChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
+            <defs>
+              <linearGradient id="gradPortfolio" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0.15} />
+                <stop offset="95%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth={0.8} vertical={false} />
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis hide domain={[0, "auto"]} />
             <Tooltip
-              contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }}
-              labelStyle={{ color: T.textMuted, marginBottom: 4 }}
-              formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? t("portfolio.investiert") : name === "portfolio" ? t("portfolio.portfoliowert") : t("portfolio.heute")]}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div style={{ background: "rgba(28,28,30,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: "8px 12px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginBottom: 5 }}>{label}</div>
+                    {payload.map((p, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 3 : 0 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: p.color || p.stroke, flexShrink: 0 }} />
+                        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10 }}>{p.name === "invested" ? t("portfolio.investiert") : p.name === "portfolio" ? t("portfolio.portfoliowert") : t("portfolio.heute")}</span>
+                        <span style={{ color: "#fff", fontSize: 11, fontWeight: 600, marginLeft: "auto", paddingLeft: 8 }}>{sym} {fmtY(p.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
             />
-            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+            <Area type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={1.5} strokeDasharray="4 3" fill="none" dot={false} activeDot={{ r: 3 }} />
             {chartData?.[0]?.portfolio !== undefined ? (
-              <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
+              <Area
+                type="monotone"
+                dataKey="portfolio"
+                stroke={isNeg ? "#ef4444" : "#22c55e"}
+                strokeWidth={2}
+                fill="url(#gradPortfolio)"
+                dot={(props) => {
+                  const { cx, cy, index } = props;
+                  if (index !== (chartData?.length ?? 0) - 1) return null;
+                  return (
+                    <g key="today-dot">
+                      <circle cx={cx} cy={cy} r={8} fill={isNeg ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)"} />
+                      <circle cx={cx} cy={cy} r={4.5} fill={isNeg ? "#ef4444" : "#22c55e"} />
+                      <circle cx={cx} cy={cy} r={2} fill={T.surface} />
+                    </g>
+                  );
+                }}
+                activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }}
+              />
             ) : (
-              <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
+              <Area type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0} fill="none"
                 dot={(props) => {
                   const { cx, cy, payload } = props;
                   if (!payload.today) return null;
-                  return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
+                  return (
+                    <g key="today-dot">
+                      <circle cx={cx} cy={cy} r={8} fill={isNeg ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)"} />
+                      <circle cx={cx} cy={cy} r={4.5} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={2} fill={T.surface} />
+                    </g>
+                  );
                 }}
                 activeDot={false}
               />
             )}
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
       {/* Legende */}
@@ -646,7 +692,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
     try {
       const daysMap = { "1T": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1J": 365 };
       const days = daysMap[tab];
-      const r = await fetch(`/api/market?days=${days}`);
+      const r = await fetch(`${API_BASE}/api/market?days=${days}`);
       const d = await r.json();
       if (!d.prices?.length) { setLoadingChart(false); return; }
       setChartData(d.prices);
@@ -695,9 +741,6 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
       <div style={{ padding: "18px 20px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="4" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="4" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="4" fill="#000"/></svg>
-            </div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
           {/* Badge: Tab-%-Änderung statt fix 24h */}
@@ -734,7 +777,17 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
                 </defs>
                 <XAxis dataKey="t" tick={{ fill: T.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" ticks={xTicks} />
                 <YAxis domain={[minV, maxV]} hide />
-                <Tooltip contentStyle={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: T.textMuted }} itemStyle={{ color: T.text }} formatter={(v) => [fmtTooltip(v), ""]} />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div style={{ background: "rgba(28,28,30,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: "8px 12px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>
+                        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginBottom: 4 }}>{label}</div>
+                        <div style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>{fmtTooltip(payload[0].value)}</div>
+                      </div>
+                    );
+                  }}
+                />
                 {firstV > 0 && firstV >= minV && firstV <= maxV && (
                   <ReferenceLine y={firstV} stroke={T.textFaint} strokeDasharray="4 3" strokeOpacity={0.5} strokeWidth={1} />
                 )}
@@ -810,7 +863,7 @@ function PriceChart({ avgChf, currentChf, transactions, chartData, T, language, 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em" }}>{t("priceChart.title")}</div>
+        <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 2 }}>{t("priceChart.title")}</div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 16, height: 2, background: "#f59e0b", borderRadius: 1 }} /><span style={{ color: T.textMuted, fontSize: 12 }}>{t("priceChart.einstand")}</span></div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", opacity: 0.8 }} /><span style={{ color: T.textMuted, fontSize: 12 }}>{t("priceChart.kauf")}</span></div>
@@ -860,7 +913,7 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
   const nx = cx + (R - 6) * Math.cos(nRad), ny = cy + (R - 6) * Math.sin(nRad);
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("breakEven.title")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("breakEven.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <svg viewBox="0 0 160 88" style={{ width: 160, flexShrink: 0 }}>
           <path d={arcPath(-90, 0, R)} fill="none" stroke={isAbove ? "rgba(239,68,68,0.2)" : "#ef4444"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 1 : 0.85} />
@@ -1003,21 +1056,21 @@ function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, e
         <div style={{ background: T.input, borderRadius: 14, padding: "16px 14px", marginTop: 4 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "BTC HOLDINGS" : "BTC BESTAND"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "BTC holdings" : "BTC Bestand"}</div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{gesamtBtc.toFixed(5)} BTC</div>
               {zusätzlicheBtc > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{zusätzlicheBtc.toFixed(5)} Sparplan</div>}
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "PORTFOLIO VALUE" : "PORTFOLIOWERT"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Portfolio value" : "Portfoliowert"}</div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{fmt(portfolioWert)}</div>
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "TOTAL INVESTED" : "INVESTIERT TOTAL"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Total invested" : "Investiert total"}</div>
               <div style={{ color: T.text, fontSize: 15 }}>{fmt(investiertGesamt)}</div>
               {sparTotal > 0 && <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>+{fmt(sparTotal)} Sparplan</div>}
             </div>
             <div>
-              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "GAIN / LOSS" : "GEWINN / VERLUST"}</div>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{language === "en" ? "Gain / Loss" : "Gewinn / Verlust"}</div>
               <div style={{ color: isPos ? "#22c55e" : "#ef4444", fontSize: 15, fontWeight: 600 }}>
                 {isPos ? "+" : ""}{fmt(gewinn)}
               </div>
@@ -1058,7 +1111,7 @@ function DcaCalculator({ totalBtc, totalInvested, avgChf, currentChf, usdChf, T,
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("dca.chartTitle")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("dca.chartTitle")}</div>
       <div style={{ display: "flex", background: T.input, borderRadius: 10, padding: 3, marginBottom: 16, gap: 3 }}>
         {[["chf", `Betrag (${sym})`], ["btc", "Menge (BTC)"]].map(([m, label]) => (
           <button key={m} onClick={() => { setMode(m); setInput(""); }} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit", background: mode === m ? T.surface : "transparent", color: mode === m ? T.text : T.textMuted, border: "none", fontWeight: mode === m ? 500 : 400 }}>{label}</button>
@@ -1109,7 +1162,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
   if (sells.length === 0) {
     return (
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
-        <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 12 }}>{t("realizedPnl.title")}</div>
+        <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 12 }}>{t("realizedPnl.title")}</div>
         <div style={{ color: T.textFaint, fontSize: 14, textAlign: "center", padding: "16px 0" }}>{t("realizedPnl.keinVerkauf")}</div>
       </div>
     );
@@ -1117,7 +1170,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("realizedPnl.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
@@ -1168,7 +1221,7 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 4 }}>{language === "en" ? "PURCHASE PRICE EFFICIENCY" : "KAUFPREIS-EFFIZIENZ"}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 4 }}>{language === "en" ? "Purchase price efficiency" : "Kaufpreis-Effizienz"}</div>
       <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 16 }}>{language === "en" ? `Avg. purchase price per year in ${sym}` : `Ø Kaufpreis pro Jahr in ${sym}`}</div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: barH + 40, paddingBottom: 24, paddingRight: 48, position: "relative" }}>
         {/* Gridlines */}
@@ -1572,7 +1625,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.7.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.6" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1722,7 +1775,7 @@ function DeleteAccountModal({ onClose, onLogout, T, language }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const res = await fetch("/api/transactions/account", { method: "DELETE", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
+      const res = await fetch(`${API_BASE}/api/transactions/account`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!res.ok) throw new Error(t("deleteAccount.fehler"));
       await supabase.auth.signOut();
       onLogout();
@@ -1782,7 +1835,7 @@ function ClearDataModal({ onClose, onImport, T, language }) {
       if (total === 0) { setStatus("ok"); setTimeout(() => { onClose(); window.location.reload(); }, 1000); return; }
       setProgressLabel(`0 / ${total}`);
       for (let i = 0; i < rows.length; i++) {
-        await fetch(`/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+        await fetch(`${API_BASE}/api/transactions/${rows[i].id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
         const pct = Math.round(((i + 1) / total) * 100);
         setProgress(pct);
         setProgressLabel(`${i + 1} / ${total}`);
@@ -1855,7 +1908,7 @@ function DemoImportModal({ onClose, onImport, transactions, T, language }) {
       setProgress(animPct);
     }, 150);
     try {
-      const res = await fetch("/demo-transaktionen.csv");
+      const res = await fetch(`${API_BASE}/demo-transaktionen.csv`);
       if (!res.ok) throw new Error("CSV nicht gefunden");
       const text = await res.text();
       const lines = text.replace(/^\uFEFF/, "").split("\n").filter(l => l.trim());
@@ -2263,7 +2316,7 @@ export default function App() {
     setLoading(true);
     try {
       // Eigener Proxy mit 60s Cache -- schützt vor Rate Limiting bei vielen Usern
-      const r = await fetch("/api/prices");
+      const r = await fetch(`${API_BASE}/api/prices`);
       const d = await r.json();
       if (d.usd) {
         setBtcUsd(d.usd);
@@ -2279,7 +2332,7 @@ export default function App() {
   // Holt taegl. historische BTC/USD Kurse (24h gecacht via Netlify Function)
   const fetchHistory = useCallback(async () => {
     try {
-      const r = await fetch("/api/history");
+      const r = await fetch(`${API_BASE}/api/history`);
       const d = await r.json();
       if (!d.prices?.length) return;
       // Tägliche Preise für Portfolio-Chart
@@ -2535,7 +2588,7 @@ export default function App() {
       currency,
     };
     try {
-      const res = await fetch("/api/claude", {
+      const res = await fetch(`${API_BASE}/api/claude`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tool, portfolio: portfolioPayload, lang: language }),
@@ -2568,9 +2621,7 @@ export default function App() {
         @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
-        <div style={{ width: 80, height: 80, background: "#f7931a", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }}>
-          <svg width="44" height="44" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3" fill="#000"/></svg>
-        </div>
+        <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 80, height: 80, borderRadius: 22, boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }} />
         <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi</div>
         <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
       </div>
@@ -2618,7 +2669,7 @@ export default function App() {
             {view === "dashboard" && (
               <div style={scrollStyle}>
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
               </div>
             )}
@@ -2673,68 +2724,71 @@ export default function App() {
             )}
             {view === "tools" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
-                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.finanzTools")}</div>
-                {/* Kauf-Simulator */}
-                <button onClick={() => setShowDcaModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                      <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
-                      <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
-                      <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
-                      <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.kaufSimulator")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.kaufSimulatorHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
 
-                {/* Szenario-Rechner */}
-                <button onClick={() => setShowSzenarioModal(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🎯</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{language === "en" ? "Portfolio value at target BTC price" : "Portfoliowert bei Ziel-BTC-Kurs berechnen"}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                {/* Finanz-Tools */}
+                <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginTop: 20, marginBottom: 10 }}>{t("tools.finanzTools")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
+
+                  {/* Kauf-Simulator */}
+                  <button onClick={() => setShowDcaModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+                        <rect x="5" y="5" width="18" height="6" rx="2" fill="white" opacity="0.9"/>
+                        <rect x="5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="11.5" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="18" y="14" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="11.5" y="20" width="5" height="4" rx="1.5" fill="white" opacity="0.9"/>
+                        <rect x="18" y="20" width="5" height="8" rx="1.5" fill="rgba(0,0,0,0.3)"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.kaufSimulator")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.kaufSimulatorHint")}</div>
+                    </div>
+                  </button>
+
+                  {/* Szenario-Rechner */}
+                  <button onClick={() => setShowSzenarioModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🎯</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{language === "en" ? "Portfolio value at target price" : "Portfoliowert bei Zielkurs"}</div>
+                    </div>
+                  </button>
+                </div>
 
                 {/* KI-Tools */}
-                <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginTop: 24, marginBottom: 12 }}>{t("tools.aiTools")}</div>
+                <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 10 }}>{t("tools.aiTools")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
 
-                {/* Button: Portfolio analysieren */}
-                <button
-                  onClick={() => callClaudeAI("portfolio")}
-                  disabled={aiLoading || totalBtc === 0}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
-                >
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>📊</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiPortfolioBtn")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiPortfolioBtnHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                  {/* Portfolio analysieren */}
+                  <button
+                    onClick={() => callClaudeAI("portfolio")}
+                    disabled={aiLoading || totalBtc === 0}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📊</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiPortfolioBtn")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiPortfolioBtnHint")}</div>
+                    </div>
+                  </button>
 
-                {/* Button: Markt-Kommentar */}
-                <button
-                  onClick={() => callClaudeAI("market")}
-                  disabled={aiLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 12, textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
-                >
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 26 }}>🌐</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("tools.aiMarketBtn")}</div>
-                    <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t("tools.aiMarketBtnHint")}</div>
-                  </div>
-                  <span style={{ color: T.textFaint, fontSize: 20 }}>›</span>
-                </button>
+                  {/* Markt-Kommentar */}
+                  <button
+                    onClick={() => callClaudeAI("market")}
+                    disabled={aiLoading}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🌐</div>
+                    <div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
+                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiMarketBtnHint")}</div>
+                    </div>
+                  </button>
+                </div>
 
                 {/* Loading */}
                 {aiLoading && (
