@@ -7,7 +7,7 @@ import { translations, tr } from "./i18n";
 // capacitor: oder capacitor://localhost = native App → absolute URL nötig
 // https: = Browser/PWA → relative URLs, kein CORS
 const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
-  ? "https://bb-btc-tracker.netlify.app"
+  ? "https://trackoshi.netlify.app"
   : (import.meta.env.VITE_API_BASE ?? "");
 
 // ── Supabase Auth Client ──────────────────────────────────────────────────────
