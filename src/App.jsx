@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Area, AreaChart, Line, LineChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine } from "recharts";
+import { Area, AreaChart, Line, LineChart, ComposedChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
@@ -345,7 +345,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language, darkMode = false }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
@@ -555,7 +555,14 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
       })()}
       <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
+          <AreaChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
+            <defs>
+              <linearGradient id="gradPortfolio" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0.15} />
+                <stop offset="95%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth={0.8} vertical={false} />
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis hide domain={[0, "auto"]} />
             <Tooltip
@@ -563,20 +570,44 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
               labelStyle={{ color: T.textMuted, marginBottom: 4 }}
               formatter={(v, name) => [`${sym} ${fmtY(v)}`, name === "invested" ? t("portfolio.investiert") : name === "portfolio" ? t("portfolio.portfoliowert") : t("portfolio.heute")]}
             />
-            <Line type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+            <Area type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={1.5} strokeDasharray="4 3" fill="none" dot={false} activeDot={{ r: 3 }} />
             {chartData?.[0]?.portfolio !== undefined ? (
-              <Line type="monotone" dataKey="portfolio" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }} />
+              <Area
+                type="monotone"
+                dataKey="portfolio"
+                stroke={isNeg ? "#ef4444" : "#22c55e"}
+                strokeWidth={2}
+                fill="url(#gradPortfolio)"
+                dot={(props) => {
+                  const { cx, cy, index } = props;
+                  if (index !== (chartData?.length ?? 0) - 1) return null;
+                  return (
+                    <g key="today-dot">
+                      <circle cx={cx} cy={cy} r={8} fill={isNeg ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)"} />
+                      <circle cx={cx} cy={cy} r={4.5} fill={isNeg ? "#ef4444" : "#22c55e"} />
+                      <circle cx={cx} cy={cy} r={2} fill={T.surface} />
+                    </g>
+                  );
+                }}
+                activeDot={{ r: 4, fill: isNeg ? "#ef4444" : "#22c55e" }}
+              />
             ) : (
-              <Line type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0}
+              <Area type="monotone" dataKey="today" stroke={isNeg ? "#ef4444" : "#22c55e"} strokeWidth={0} fill="none"
                 dot={(props) => {
                   const { cx, cy, payload } = props;
                   if (!payload.today) return null;
-                  return <circle key="today-dot" cx={cx} cy={cy} r={7} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />;
+                  return (
+                    <g key="today-dot">
+                      <circle cx={cx} cy={cy} r={8} fill={isNeg ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)"} />
+                      <circle cx={cx} cy={cy} r={4.5} fill={isNeg ? "#ef4444" : "#22c55e"} stroke={T.surface} strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={2} fill={T.surface} />
+                    </g>
+                  );
                 }}
                 activeDot={false}
               />
             )}
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
       {/* Legende */}
@@ -1572,7 +1603,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2616,7 +2647,7 @@ export default function App() {
             {view === "dashboard" && (
               <div style={scrollStyle}>
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
               </div>
             )}
