@@ -4,9 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
 // ── API Base URL (absolut für Capacitor Native App) ───────────────────────────
-// Im Browser (Web/PWA): leerer String → relative URLs → kein CORS
-// In Capacitor (native App): absolute URL nötig, weil kein Netlify-Backend lokal
-const API_BASE = (typeof window !== "undefined" && window.location.protocol === "capacitor:")
+// capacitor: oder capacitor://localhost = native App → absolute URL nötig
+// https: = Browser/PWA → relative URLs, kein CORS
+const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
   ? "https://bb-btc-tracker.netlify.app"
   : (import.meta.env.VITE_API_BASE ?? "");
 
