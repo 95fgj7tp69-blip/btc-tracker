@@ -332,9 +332,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#f7931a", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }}>
-            <svg width="20" height="20" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="3.5" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="3.5" fill="#000"/></svg>
-          </div>
+          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }} />
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{t("header.portfolio")}</div>
             <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
@@ -702,9 +700,6 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
       <div style={{ padding: "18px 20px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: "#f7931a", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 44 44"><line x1="8" y1="36" x2="8" y2="8" stroke="#000" strokeWidth="4" strokeLinecap="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="#000" strokeWidth="4" strokeLinecap="round"/><polyline points="14,26 20,18 26,22 36,10" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="36" cy="10" r="4" fill="#000"/></svg>
-            </div>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
           {/* Badge: Tab-%-Änderung statt fix 24h */}
@@ -1579,7 +1574,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
