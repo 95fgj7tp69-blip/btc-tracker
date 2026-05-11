@@ -1,6 +1,6 @@
 // netlify/functions/claude.js
-// Claude AI Tools: Portfolio-Analyse + Markt-Kommentar
-// Version: 1.19.0 — CommonJS Format
+// Claude AI Tools: Portfolio-Analyse + Markt-Kommentar + News-Briefing
+// Version: 1.21.0 — CommonJS Format
 
 const headers = {
   "Content-Type": "application/json",
@@ -32,22 +32,24 @@ exports.handler = async (event) => {
 
   const { tool, portfolio, lang = "de" } = body;
 
-  if (!tool || !["portfolio", "market"].includes(tool)) {
+  if (!tool || !["portfolio", "market", "news"].includes(tool)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid tool" }) };
   }
+
+  const p = portfolio || {};
 
   const portfolioPromptDe = `Du bist ein sachlicher Bitcoin-Portfolio-Analyst. Analysiere das folgende Portfolio und gib eine klare, ehrliche Einschätzung auf Deutsch.
 
 Portfolio-Daten:
-- BTC-Bestand: ${portfolio.totalBtc} BTC
-- Investiert: ${portfolio.invested} ${portfolio.currency}
-- Portfoliowert heute: ${portfolio.value} ${portfolio.currency}
-- Unrealisierter Gewinn/Verlust: ${portfolio.pnl} ${portfolio.currency} (${portfolio.pnlPct}%)
-- Ø Einstandspreis (${portfolio.method}): ${portfolio.breakEven} ${portfolio.currency}/BTC
-- Aktueller BTC-Kurs: ${portfolio.btcPrice} ${portfolio.currency}
-- Anzahl Transaktionen: ${portfolio.txCount}
-- Erste Transaktion: ${portfolio.firstTx}
-- Realisierter Gewinn/Verlust: ${portfolio.realizedPnl} ${portfolio.currency}
+- BTC-Bestand: ${p.totalBtc} BTC
+- Investiert: ${p.invested} ${p.currency}
+- Portfoliowert heute: ${p.value} ${p.currency}
+- Unrealisierter Gewinn/Verlust: ${p.pnl} ${p.currency} (${p.pnlPct}%)
+- Ø Einstandspreis (${p.method}): ${p.breakEven} ${p.currency}/BTC
+- Aktueller BTC-Kurs: ${p.btcPrice} ${p.currency}
+- Anzahl Transaktionen: ${p.txCount}
+- Erste Transaktion: ${p.firstTx}
+- Realisierter Gewinn/Verlust: ${p.realizedPnl} ${p.currency}
 
 Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
 1. **Aktuelle Position** — Wo steht das Portfolio heute?
@@ -59,15 +61,15 @@ Kein Finanzberatungs-Disclaimer nötig. Direkt und auf den Punkt.`;
   const portfolioPromptEn = `You are a factual Bitcoin portfolio analyst. Analyze the following portfolio and provide a clear, honest assessment in English.
 
 Portfolio data:
-- BTC balance: ${portfolio.totalBtc} BTC
-- Invested: ${portfolio.invested} ${portfolio.currency}
-- Portfolio value today: ${portfolio.value} ${portfolio.currency}
-- Unrealized gain/loss: ${portfolio.pnl} ${portfolio.currency} (${portfolio.pnlPct}%)
-- Avg. cost basis (${portfolio.method}): ${portfolio.breakEven} ${portfolio.currency}/BTC
-- Current BTC price: ${portfolio.btcPrice} ${portfolio.currency}
-- Number of transactions: ${portfolio.txCount}
-- First transaction: ${portfolio.firstTx}
-- Realized gain/loss: ${portfolio.realizedPnl} ${portfolio.currency}
+- BTC balance: ${p.totalBtc} BTC
+- Invested: ${p.invested} ${p.currency}
+- Portfolio value today: ${p.value} ${p.currency}
+- Unrealized gain/loss: ${p.pnl} ${p.currency} (${p.pnlPct}%)
+- Avg. cost basis (${p.method}): ${p.breakEven} ${p.currency}/BTC
+- Current BTC price: ${p.btcPrice} ${p.currency}
+- Number of transactions: ${p.txCount}
+- First transaction: ${p.firstTx}
+- Realized gain/loss: ${p.realizedPnl} ${p.currency}
 
 Structure your response in exactly 3 short sections (2-3 sentences each):
 1. **Current Position** — Where does the portfolio stand today?
@@ -76,9 +78,27 @@ Structure your response in exactly 3 short sections (2-3 sentences each):
 
 No financial advice disclaimer needed. Direct and to the point.`;
 
+  const newsPromptDe = `Du bist ein prägnanter Bitcoin-News-Analyst. Fasse die wichtigsten aktuellen BTC-News der letzten 24-48 Stunden auf Deutsch zusammen.
+
+Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
+1. **Top-News** — Was sind die wichtigsten Schlagzeilen?
+2. **Markt-Reaktion** — Wie hat der Markt reagiert?
+3. **Was beobachten** — Welche Entwicklungen sollte man im Auge behalten?
+
+Bleib sachlich und präzise. Nur verifizierte Informationen.`;
+
+  const newsPromptEn = `You are a concise Bitcoin news analyst. Summarize the most important current BTC news from the last 24-48 hours in English.
+
+Structure your response in exactly 3 short sections (2-3 sentences each):
+1. **Top News** — What are the most important headlines?
+2. **Market Reaction** — How has the market reacted?
+3. **What to Watch** — Which developments should be monitored?
+
+Stay factual and precise. Only verified information.`;
+
   const marketPromptDe = `Du bist ein prägnanter Bitcoin-Marktbeobachter. Nutze dein aktuelles Wissen über den BTC-Markt und gib einen kurzen Markt-Kommentar auf Deutsch.
 
-Aktueller BTC-Kurs laut App: ${portfolio.btcPrice} ${portfolio.currency} (24h: ${portfolio.change24h}%)
+Aktueller BTC-Kurs laut App: ${p.btcPrice} ${p.currency} (24h: ${p.change24h}%)
 
 Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
 1. **Marktlage** — Wie ist die aktuelle Situation?
@@ -89,7 +109,7 @@ Bleib sachlich. Kein Finanzberatungs-Disclaimer nötig.`;
 
   const marketPromptEn = `You are a concise Bitcoin market observer. Provide a brief market commentary in English.
 
-Current BTC price per app: ${portfolio.btcPrice} ${portfolio.currency} (24h: ${portfolio.change24h}%)
+Current BTC price per app: ${p.btcPrice} ${p.currency} (24h: ${p.change24h}%)
 
 Structure your response in exactly 3 short sections (2-3 sentences each):
 1. **Market Situation** — What is the current situation?
@@ -101,9 +121,11 @@ Stay factual. No financial advice disclaimer needed.`;
   const prompt =
     tool === "portfolio"
       ? (lang === "de" ? portfolioPromptDe : portfolioPromptEn)
+      : tool === "news"
+      ? (lang === "de" ? newsPromptDe : newsPromptEn)
       : (lang === "de" ? marketPromptDe : marketPromptEn);
 
-  const useWebSearch = tool === "market";
+  const useWebSearch = tool === "market" || tool === "news";
 
   const requestBody = {
     model: "claude-sonnet-4-5",
