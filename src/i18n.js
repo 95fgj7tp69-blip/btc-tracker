@@ -84,7 +84,7 @@ export const translations = {
 
     // ── Price Chart ─────────────────────────────────────────────────────────────
     priceChart: {
-      title:          "KURSVERLAUF VS. EINSTAND",
+      title:          "Kursverlauf vs. Einstand",
       einstand:       "Einstand",
       kauf:           "Kauf",
       fingerHint:     "Finger ziehen zum Ablesen",
@@ -92,7 +92,7 @@ export const translations = {
 
     // ── Break-Even Card ─────────────────────────────────────────────────────────
     breakEven: {
-      title:       "BREAK-EVEN ANALYSE",
+      title:       "Break-even Analyse",
       aktuellerKurs: "Aktueller Kurs",
       einstandspreis: "Einstandspreis",
       differenz:    "Differenz",
@@ -106,7 +106,7 @@ export const translations = {
 
     // ── Realized PnL Card ───────────────────────────────────────────────────────
     realizedPnl: {
-      title:         "REALISIERTER GEWINN/VERLUST",
+      title:         "Realisierter Gewinn/Verlust",
       keinVerkauf:   "Noch keine Verkäufe erfasst.",
       gesamt:        "Gesamt",
       transaktionen: "Transaktionen",
@@ -463,14 +463,14 @@ export const translations = {
     },
 
     priceChart: {
-      title:          "PRICE HISTORY VS. COST BASIS",
+      title:          "Price history vs. cost basis",
       einstand:       "Cost Basis",
       kauf:           "Buy",
       fingerHint:     "Drag to read values",
     },
 
     breakEven: {
-      title:          "BREAK-EVEN ANALYSIS",
+      title:          "Break-even analysis",
       aktuellerKurs:  "Current Price",
       einstandspreis: "Cost Basis",
       differenz:      "Difference",
@@ -483,7 +483,7 @@ export const translations = {
     },
 
     realizedPnl: {
-      title:         "REALIZED GAIN/LOSS",
+      title:         "Realized gain/loss",
       keinVerkauf:   "No sales recorded yet.",
       gesamt:        "Total",
       transaktionen: "Transactions",

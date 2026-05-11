@@ -1042,40 +1042,70 @@ function BreakEvenCard({ avgChf, currentChf, T, currency = "CHF", usdChf = 0.9, 
   const diffPct = avgChf > 0 ? (diff / avgChf) * 100 : 0;
   const isAbove = diff >= 0;
   const toBreakEvenPct = avgChf > 0 ? ((avgChf - currentChf) / currentChf) * 100 : 0;
+  const color = isAbove ? "#22c55e" : "#ef4444";
+
+  // Needle: 0% = ganz links (180°), 100% = ganz rechts (0°)
+  // ratio: -1 = max verlust, +1 = max gewinn, 0 = break-even
   const ratio = Math.max(-1, Math.min(1, diff / (avgChf * 0.8)));
-  const R = 54, cx = 80, cy = 72;
-  const toRad = (d) => (d * Math.PI) / 180;
-  const arcPath = (s, e, r) => { const sr = toRad(s - 90), er = toRad(e - 90); const x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr), x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er); return `M ${x1} ${y1} A ${r} ${r} 0 ${e - s > 180 ? 1 : 0} 1 ${x2} ${y2}`; };
-  const needleAngle = isAbove ? ratio * 90 : -90 + (ratio + 1) * 90;
-  const nRad = toRad(needleAngle - 90);
-  const nx = cx + (R - 6) * Math.cos(nRad), ny = cy + (R - 6) * Math.sin(nRad);
+  const fgAngle = 180 - ((ratio + 1) / 2) * 180;
+  const cx = 65, cy = 60, r = 50;
+  const nx = cx + (r - 8) * Math.cos((fgAngle * Math.PI) / 180);
+  const ny = cy - (r - 8) * Math.sin((fgAngle * Math.PI) / 180);
+
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 16px", marginBottom: 12 }}>
       <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 16 }}>{t("breakEven.title")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <svg viewBox="0 0 160 88" style={{ width: 160, flexShrink: 0 }}>
-          <path d={arcPath(-90, 0, R)} fill="none" stroke={isAbove ? "rgba(239,68,68,0.2)" : "#ef4444"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 1 : 0.85} />
-          <path d={arcPath(0, 90, R)} fill="none" stroke={isAbove ? "#22c55e" : "rgba(34,197,94,0.2)"} strokeWidth="10" strokeLinecap="round" opacity={isAbove ? 0.85 : 1} />
-          <line x1={cx} y1={cy - R + 5} x2={cx} y2={cy - R + 14} stroke={T.border} strokeWidth="1.5" />
-          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={T.text} strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
-          <circle cx={cx} cy={cy} r="4" fill={T.surface} stroke={T.textFaint} strokeWidth="1.5" />
-          <text x={cx - R - 2} y={cy + 10} fill={T.textFaint} fontSize="8" textAnchor="middle">-80%</text>
-          <text x={cx + R + 2} y={cy + 10} fill={T.textFaint} fontSize="8" textAnchor="middle">+80%</text>
+        {/* Gauge */}
+        <svg width="130" height="72" viewBox="0 0 130 72" style={{ flexShrink: 0 }}>
+          <defs>
+            <linearGradient id="beGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#ef4444"/>
+              <stop offset="50%" stopColor="#eab308"/>
+              <stop offset="100%" stopColor="#22c55e"/>
+            </linearGradient>
+          </defs>
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={T.border} strokeWidth="8" strokeLinecap="round"/>
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#beGrad)" strokeWidth="8" strokeLinecap="round"/>
+          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={T.text} strokeWidth="2" strokeLinecap="round" opacity="0.7"/>
+          <circle cx={cx} cy={cy} r="4" fill={color}/>
+          <circle cx={cx} cy={cy} r="2" fill={T.surface}/>
+          <text x={cx - r - 2} y={cy + 14} fill={T.textFaint} fontSize="8" textAnchor="middle">-80%</text>
+          <text x={cx + r + 2} y={cy + 14} fill={T.textFaint} fontSize="8" textAnchor="middle">+80%</text>
         </svg>
+        {/* Werte */}
         <div style={{ flex: 1 }}>
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 6 }}>{language === "en" ? "CURRENT VS. COST BASIS" : "AKTUELL VS. EINSTAND"}</div>
-            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 22, fontWeight: 300 }}>{isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}<span style={{ fontSize: 14, marginLeft: 4, opacity: 0.7 }}>{sym}</span></div>
-            <div style={{ color: isAbove ? "#22c55e" : "#ef4444", fontSize: 14, opacity: 0.7, marginTop: 3 }}>{isAbove ? "+" : ""}{diffPct.toFixed(1)}%</div>
+          <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "Current vs. cost basis" : "Aktuell vs. Einstand"}</div>
+          <div style={{ color, fontSize: 24, fontWeight: 600, lineHeight: 1, marginBottom: 2 }}>
+            {isAbove ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(diff, currency, usdChf, eurUsd))}
+            <span style={{ fontSize: 14, marginLeft: 4, fontWeight: 400, opacity: 0.8 }}>{sym}</span>
           </div>
-          <div style={{ background: isAbove ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${isAbove ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "10px 12px" }}>
-            {isAbove ? (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>{language === "en" ? "IN PROFIT SINCE" : "IM GEWINN SEIT"}</div><div style={{ color: "#22c55e", fontSize: 17 }}>{fmt(avgChf)}</div></>) : (<><div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>{language === "en" ? "BTC NEEDS TO RISE BY" : "BTC MUSS STEIGEN UM"}</div><div style={{ color: "#ef4444", fontSize: 17 }}>+{toBreakEvenPct.toFixed(1)}%</div><div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>{language === "en" ? "to" : "auf"} {fmt(avgChf)}</div></>)}
+          <div style={{ color, fontSize: 13, opacity: 0.8, marginBottom: 10 }}>{isAbove ? "+" : ""}{diffPct.toFixed(1)}%</div>
+          <div style={{ background: isAbove ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${isAbove ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "8px 12px" }}>
+            {isAbove ? (
+              <>
+                <div style={{ color: T.textFaint, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>{language === "en" ? "In profit since" : "Im Gewinn seit"}</div>
+                <div style={{ color, fontSize: 15, fontWeight: 500 }}>{fmt(avgChf)}</div>
+              </>
+            ) : (
+              <>
+                <div style={{ color: T.textFaint, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>{language === "en" ? "BTC needs to rise" : "BTC muss steigen um"}</div>
+                <div style={{ color, fontSize: 15, fontWeight: 500 }}>+{toBreakEvenPct.toFixed(1)}%</div>
+                <div style={{ color: T.textFaint, fontSize: 11, marginTop: 2 }}>{language === "en" ? "to" : "auf"} {fmt(avgChf)}</div>
+              </>
+            )}
           </div>
         </div>
       </div>
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: T.textMuted, fontSize: 12 }}>{t("position.einstandspreis")} {fmt(avgChf)}</span><span style={{ color: T.textMuted, fontSize: 12 }}>{language === "en" ? "Current" : "Aktuell"} {fmt(currentChf)}</span></div>
-        <div style={{ height: 4, background: T.input, borderRadius: 2, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.min(100, Math.max(2, (currentChf / (avgChf * 1.5)) * 100))}%`, background: isAbove ? "linear-gradient(90deg,#15803d,#22c55e)" : "linear-gradient(90deg,#991b1b,#ef4444)", borderRadius: 2 }} /></div>
+      {/* Progress bar */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+          <span style={{ color: T.textFaint, fontSize: 11 }}>{language === "en" ? "Cost basis" : "Einstand"} {fmt(avgChf)}</span>
+          <span style={{ color: T.textFaint, fontSize: 11 }}>{language === "en" ? "Current" : "Aktuell"} {fmt(currentChf)}</span>
+        </div>
+        <div style={{ height: 4, background: T.input, borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${Math.min(100, Math.max(2, (currentChf / (avgChf * 1.5)) * 100))}%`, background: `linear-gradient(to right, #ef4444, #eab308, ${isAbove ? "#22c55e" : "#ef4444"})`, borderRadius: 2 }} />
+        </div>
       </div>
     </div>
   );
@@ -1781,7 +1811,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.1.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.1.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
