@@ -195,10 +195,13 @@ export const translations = {
       sekundaerkurs:        "SEKUNDÄRKURS",
       sekundaerkursHint:    "Zweiten Kurs im Header anzeigen",
       sekundaerkursAus:     "Aus",
+      fearGreedHint:        "Fear & Greed Index im Dashboard anzeigen",
+      fearGreedAn:          "An",
 
       einstandsMethode:     "EINSTANDSPREIS-METHODE",
 
-      darstellung:      "DARSTELLUNG",
+      darstellung:      "Darstellung",
+      dashboard:        "Dashboard",
       darkMode:         "Dark Mode",
       lightMode:        "Light Mode",
       darkModeAktiv:    "Dunkles Design aktiv",
@@ -562,10 +565,13 @@ export const translations = {
       sekundaerkurs:        "SECONDARY PRICE",
       sekundaerkursHint:    "Show a second currency in the header",
       sekundaerkursAus:     "Off",
+      fearGreedHint:        "Show Fear & Greed Index on dashboard",
+      fearGreedAn:          "On",
 
       einstandsMethode:      "COST BASIS METHOD",
 
-      darstellung:      "APPEARANCE",
+      darstellung:      "Appearance",
+      dashboard:        "Dashboard",
       darkMode:         "Dark Mode",
       lightMode:        "Light Mode",
       darkModeAktiv:    "Dark theme active",

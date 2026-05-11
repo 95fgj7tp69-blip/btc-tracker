@@ -723,6 +723,90 @@ function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, curren
 }
 
 // ── Market Card mit Live Chart ────────────────────────────────────────────────
+// ── Fear & Greed Card ─────────────────────────────────────────────────────────
+function FearGreedCard({ T, language }) {
+  const t = tr(translations, language);
+  const [fearGreed, setFearGreed] = useState(null);
+  useEffect(() => {
+    fetch("https://api.alternative.me/fng/?limit=8")
+      .then(r => r.json())
+      .then(d => { if (d?.data?.length) setFearGreed(d.data); })
+      .catch(() => {});
+  }, []);
+
+  const fgCurrent = fearGreed?.[0];
+  const fgValue = fgCurrent ? parseInt(fgCurrent.value) : null;
+  const fgLabel = fgCurrent ? ({
+    "Extreme Fear": t("market.fearGreedExtremeAngst"),
+    "Fear": t("market.fearGreedAngst"),
+    "Neutral": t("market.fearGreedNeutral"),
+    "Greed": t("market.fearGreedGier"),
+    "Extreme Greed": t("market.fearGreedExtremeGier"),
+  }[fgCurrent.value_classification] || fgCurrent.value_classification) : null;
+  const fgPrev = fearGreed?.[7] ? parseInt(fearGreed[7].value) : null;
+  const fgColor = fgValue === null ? T.textFaint : fgValue <= 25 ? "#ef4444" : fgValue <= 45 ? "#f97316" : fgValue <= 55 ? "#eab308" : fgValue <= 75 ? "#84cc16" : "#22c55e";
+  const fgAngle = fgValue !== null ? 180 - (fgValue / 100) * 180 : 180;
+  const cx = 80, cy = 75, r = 60;
+  const fgNeedleX = cx + (r - 10) * Math.cos((fgAngle * Math.PI) / 180);
+  const fgNeedleY = cy - (r - 10) * Math.sin((fgAngle * Math.PI) / 180);
+
+  if (fgValue === null) return (
+    <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px", display: "flex", alignItems: "center", justifyContent: "center", height: 80 }}>
+      <div style={{ color: T.textFaint, fontSize: 13 }}>{t("market.lade")}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 20px 16px" }}>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 14 }}>{t("market.fearGreedLabel")}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        {/* Grosser Gauge */}
+        <svg width="160" height="90" viewBox="0 0 160 90" style={{ flexShrink: 0 }}>
+          <defs>
+            <linearGradient id="fgGradLarge" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#ef4444"/>
+              <stop offset="25%" stopColor="#f97316"/>
+              <stop offset="50%" stopColor="#eab308"/>
+              <stop offset="75%" stopColor="#84cc16"/>
+              <stop offset="100%" stopColor="#22c55e"/>
+            </linearGradient>
+          </defs>
+          {/* Hintergrund */}
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={T.border} strokeWidth="10" strokeLinecap="round"/>
+          {/* Eingefärbt */}
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#fgGradLarge)" strokeWidth="10" strokeLinecap="round"
+            strokeDasharray={Math.PI * r}
+            strokeDashoffset={Math.PI * r * (1 - fgValue / 100)}/>
+          {/* Labels */}
+          <text x={cx - r - 4} y={cy + 16} fontSize="9" fill={T.textFaint} textAnchor="middle">0</text>
+          <text x={cx + r + 4} y={cy + 16} fontSize="9" fill={T.textFaint} textAnchor="middle">100</text>
+          {/* Zeiger */}
+          <line x1={cx} y1={cy} x2={fgNeedleX} y2={fgNeedleY} stroke={fgColor} strokeWidth="2.5" strokeLinecap="round"/>
+          <circle cx={cx} cy={cy} r="4" fill={fgColor}/>
+          <circle cx={cx} cy={cy} r="2" fill={T.surface}/>
+        </svg>
+        {/* Werte */}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 8 }}>
+            <span style={{ fontSize: 40, fontWeight: 700, color: fgColor, lineHeight: 1 }}>{fgValue}</span>
+            <span style={{ fontSize: 14, color: fgColor, fontWeight: 600 }}>{fgLabel}</span>
+          </div>
+          {fgPrev !== null && (
+            <div style={{ display: "flex", align: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: T.textFaint }}>7{t("market.fearGreedDaysAgo")}: </span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: T.textMuted }}>{fgPrev}</span>
+              <span style={{ fontSize: 12, color: fgValue > fgPrev ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
+                {fgValue > fgPrev ? " ▲" : " ▼"}{Math.abs(fgValue - fgPrev)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Market Card ───────────────────────────────────────────────────────────────
 function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language, secondaryCurrency = "none" }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
@@ -789,28 +873,6 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
     return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)} (${pct})`;
   };
 
-  const [fearGreed, setFearGreed] = useState(null);
-  useEffect(() => {
-    fetch("https://api.alternative.me/fng/?limit=8")
-      .then(r => r.json())
-      .then(d => { if (d?.data?.length) setFearGreed(d.data); })
-      .catch(() => {});
-  }, []);
-  const fgCurrent = fearGreed?.[0];
-  const fgValue = fgCurrent ? parseInt(fgCurrent.value) : null;
-  const fgLabel = fgCurrent ? ({
-    "Extreme Fear": t("market.fearGreedExtremeAngst"),
-    "Fear": t("market.fearGreedAngst"),
-    "Neutral": t("market.fearGreedNeutral"),
-    "Greed": t("market.fearGreedGier"),
-    "Extreme Greed": t("market.fearGreedExtremeGier"),
-  }[fgCurrent.value_classification] || fgCurrent.value_classification) : null;
-  const fgPrev = fearGreed?.[7] ? parseInt(fearGreed[7].value) : null;
-  const fgColor = fgValue === null ? T.textFaint : fgValue <= 25 ? "#ef4444" : fgValue <= 45 ? "#f97316" : fgValue <= 55 ? "#eab308" : fgValue <= 75 ? "#84cc16" : "#22c55e";
-  const fgAngle = fgValue !== null ? 180 - (fgValue / 100) * 180 : 180;
-  const fgNeedleX = 28 + 20 * Math.cos((fgAngle * Math.PI) / 180);
-  const fgNeedleY = 27 - 20 * Math.sin((fgAngle * Math.PI) / 180);
-
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "18px 20px 12px" }}>
@@ -823,60 +885,13 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted }}>{sym}</span> {fmtPrice(btcDisplay, currency)}</div>
-        {showSecondary && btcSecondary > 0 && (
-          <div style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
-        )}
-        {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
-
-        {/* Fear & Greed Index */}
-        {fgValue !== null && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.divider}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <svg width="56" height="32" viewBox="0 0 56 32">
-                <defs>
-                  <linearGradient id="fgGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#ef4444"/>
-                    <stop offset="25%" stopColor="#f97316"/>
-                    <stop offset="50%" stopColor="#eab308"/>
-                    <stop offset="75%" stopColor="#84cc16"/>
-                    <stop offset="100%" stopColor="#22c55e"/>
-                  </linearGradient>
-                </defs>
-                {/* Hintergrund-Bogen grau */}
-                <path d="M 5 27 A 23 23 0 0 1 51 27" fill="none" stroke={T.border} strokeWidth="5" strokeLinecap="round"/>
-                {/* Eingefärbter Bogen bis zum aktuellen Wert */}
-                <path d="M 5 27 A 23 23 0 0 1 51 27" fill="none" stroke="url(#fgGrad)" strokeWidth="5" strokeLinecap="round"
-                  strokeDasharray="72.3"
-                  strokeDashoffset={72.3 * (1 - fgValue / 100)}/>
-                {/* Zeiger */}
-                <line x1="28" y1="27" x2={fgNeedleX} y2={fgNeedleY} stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" strokeLinecap="round"/>
-                <circle cx="28" cy="27" r="2.5" fill="rgba(0,0,0,0.5)"/>
-              </svg>
-              <div>
-                <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600 }}>{t("market.fearGreedLabel")}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                  <span style={{ fontSize: 20, fontWeight: 700, color: fgColor, lineHeight: 1 }}>{fgValue}</span>
-                  <span style={{ fontSize: 11, color: fgColor, fontWeight: 600 }}>{fgLabel}</span>
-                </div>
-              </div>
-            </div>
-            {fgPrev !== null && (
-              <>
-                <div style={{ width: 1, height: 32, background: T.divider }} />
-                <div>
-                  <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600, marginBottom: 2 }}>7{t("market.fearGreedDaysAgo")}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: T.textMuted }}>{fgPrev}</span>
-                    <span style={{ fontSize: 11, color: fgValue > fgPrev ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
-                      {fgValue > fgPrev ? "▲" : "▼"} {Math.abs(fgValue - fgPrev)}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted }}>{sym}</span> {fmtPrice(btcDisplay, currency)}</div>
+          {showSecondary && btcSecondary > 0 && (
+            <div style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, letterSpacing: "-0.01em" }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
+          )}
+          {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 16, fontWeight: 500 }}>${fmtUsd(btcUsd)}</div>}
+        </div>
 
         <div style={{ marginBottom: 14 }} />
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
@@ -1535,7 +1550,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale, showFearGreed = false, setShowFearGreed }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1613,7 +1628,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      {/* DARSTELLUNG — Dark/Light + Schriftgrösse zusammen */}
+      {/* DARSTELLUNG */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.darstellung")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", borderBottom: `1px solid ${T.border}` }}>
@@ -1638,48 +1653,66 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       </div>
 
-      {/* PORTFOLIO-WÄHRUNG */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 24 }}>{t("settings.portfolioWaehrung")}</div>
-      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.portfolioWaehrungHint")}</div>
+      {/* DASHBOARD */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.dashboard")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
-          {["CHF", "EUR", "USD"].map((c, i) => (
-            <button key={c} onClick={() => setCurrency(c)} style={{ padding: "14px 0", background: currency === c ? "#f7931a" : "none", border: "none", borderRight: i < 2 ? `1px solid ${T.border}` : "none", color: currency === c ? "#000" : T.textMuted, fontSize: 15, fontWeight: currency === c ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{c}</button>
-          ))}
+
+        {/* Portfolio-Währung */}
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, marginBottom: 8 }}>{t("settings.portfolioWaehrung")}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+            {["CHF", "EUR", "USD"].map((c) => (
+              <button key={c} onClick={() => setCurrency(c)} style={{ padding: "10px 0", background: currency === c ? "#f7931a" : T.input, border: `1px solid ${currency === c ? "#f7931a" : T.border}`, borderRadius: 10, color: currency === c ? "#000" : T.textMuted, fontSize: 14, fontWeight: currency === c ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{c}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sekundärkurs */}
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>{t("settings.sekundaerkurs")}</div>
+          <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 8 }}>{t("settings.sekundaerkursHint")}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+            {["none", "CHF", "EUR", "USD"].map((c) => {
+              const isActive = secondaryCurrency === c;
+              const isDisabled = c !== "none" && c === currency;
+              const label = c === "none" ? t("settings.sekundaerkursAus") : c;
+              return (
+                <button key={c} onClick={() => !isDisabled && setSecondaryCurrency(c)}
+                  style={{ padding: "10px 0", background: isActive ? "#f7931a" : T.input, border: `1px solid ${isActive ? "#f7931a" : T.border}`, borderRadius: 10, color: isActive ? "#000" : isDisabled ? T.textFaint : T.textMuted, fontSize: 13, fontWeight: isActive ? 600 : 400, cursor: isDisabled ? "default" : "pointer", fontFamily: "inherit", opacity: isDisabled ? 0.35 : 1 }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Fear & Greed */}
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: T.text, fontSize: 15 }}>{t("market.fearGreedLabel")}</div>
+              <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>{t("settings.fearGreedHint")}</div>
+            </div>
+            <div onClick={() => setShowFearGreed(!showFearGreed)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: showFearGreed ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+              <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showFearGreed ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Einstandspreis-Methode */}
+        <div style={{ padding: "14px 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600 }}>{t("settings.einstandsMethode")}</div>
+            <button onClick={() => setShowCostInfo(true)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 20, height: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0, lineHeight: 1 }}>?</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {["FIFO", "AVCO"].map((key) => (
+              <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "10px 0", background: costMethod === key ? "#f7931a" : T.input, border: `1px solid ${costMethod === key ? "#f7931a" : T.border}`, borderRadius: 10, color: costMethod === key ? "#000" : T.textMuted, fontSize: 14, fontWeight: costMethod === key ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{key}</button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* SEKUNDÄRKURS */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 4, marginTop: 16 }}>{t("settings.sekundaerkurs")}</div>
-      <div style={{ color: T.textFaint, fontSize: 12, marginBottom: 8 }}>{t("settings.sekundaerkursHint")}</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0 }}>
-          {["none", "CHF", "EUR", "USD"].map((c, i) => {
-            const isActive = secondaryCurrency === c;
-            const isDisabled = c !== "none" && c === currency;
-            const label = c === "none" ? t("settings.sekundaerkursAus") : c;
-            return (
-              <button key={c} onClick={() => !isDisabled && setSecondaryCurrency(c)}
-                style={{ padding: "14px 0", background: isActive ? "#f7931a" : "none", border: "none", borderRight: i < 3 ? `1px solid ${T.border}` : "none", color: isActive ? "#000" : isDisabled ? T.textFaint : T.textMuted, fontSize: 14, fontWeight: isActive ? 600 : 400, cursor: isDisabled ? "default" : "pointer", fontFamily: "inherit", opacity: isDisabled ? 0.35 : 1 }}>
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* EINSTANDSPREIS-METHODE */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, marginTop: 24 }}>
-        <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em" }}>{t("settings.einstandsMethode")}</div>
-        <button onClick={() => setShowCostInfo(true)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 24, height: 24, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0, padding: 0, lineHeight: 1 }}>?</button>
-      </div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {["FIFO", "AVCO"].map((key, i) => (
-            <button key={key} onClick={() => setCostMethod(key)} style={{ padding: "14px 0", background: costMethod === key ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: costMethod === key ? "#000" : T.textMuted, fontSize: 15, fontWeight: costMethod === key ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{key}</button>
-          ))}
-        </div>
-      </div>
       {showCostInfo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowCostInfo(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
@@ -1750,7 +1783,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.9.6" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.1.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2377,6 +2410,11 @@ export default function App() {
   });
   const setSecondaryCurrency = (c) => { setSecondaryCurrencyState(c); try { localStorage.setItem("secondaryCurrency", c); } catch {} };
 
+  const [showFearGreed, setShowFearGreedState] = useState(() => {
+    try { return localStorage.getItem("showFearGreed") === "true"; } catch { return false; }
+  });
+  const setShowFearGreed = (v) => { setShowFearGreedState(v); try { localStorage.setItem("showFearGreed", String(v)); } catch {} };
+
   const [fontScale, setFontScaleState] = useState(() => {
     try { return localStorage.getItem("fontScale") || "M"; } catch { return "M"; }
   });
@@ -2794,6 +2832,7 @@ export default function App() {
             {view === "dashboard" && (
               <div style={scrollStyle}>
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
+                {showFearGreed && <FearGreedCard T={T} language={language} />}
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
               </div>
@@ -2984,7 +3023,7 @@ export default function App() {
               <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
               <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
             </div>
-            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} />
+            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} showFearGreed={showFearGreed} setShowFearGreed={setShowFearGreed} />
           </div>
         </div>
       )}
