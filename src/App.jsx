@@ -553,14 +553,62 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           </div>
         );
       })()}
+      {(() => {
+        // Berechne dynamischen Gradient: grün wo Portfolio > Investiert, rot wo darunter
+        const data = chartData || [];
+        const gradStops = [];
+        if (data.length > 1) {
+          for (let i = 0; i < data.length; i++) {
+            const pct = i / (data.length - 1);
+            const val = data[i].portfolio ?? data[i].today ?? 0;
+            const inv = data[i].invested ?? 0;
+            const isAbove = val >= inv;
+            if (i === 0 || isAbove !== ((data[i-1].portfolio ?? data[i-1].today ?? 0) >= (data[i-1].invested ?? 0))) {
+              gradStops.push({ offset: `${(pct * 100).toFixed(1)}%`, above: isAbove });
+            }
+          }
+        }
+        return null;
+      })()}
       <div style={{ height: 150 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData || []} margin={{ top: 5, right: 16, left: 0, bottom: 20 }}>
             <defs>
-              <linearGradient id="gradPortfolio" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0.15} />
-                <stop offset="95%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0} />
-              </linearGradient>
+              {(() => {
+                const data = chartData || [];
+                if (data.length < 2) return (
+                  <linearGradient id="gradPortfolio" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={isNeg ? "#ef4444" : "#22c55e"} stopOpacity={0.1} />
+                  </linearGradient>
+                );
+                // Berechne Kreuzungspunkte für dynamischen Gradient
+                const stops = [];
+                for (let i = 0; i < data.length; i++) {
+                  const pct = (i / (data.length - 1) * 100).toFixed(1) + "%";
+                  const val = data[i].portfolio ?? data[i].today ?? 0;
+                  const inv = data[i].invested ?? 0;
+                  const above = val >= inv;
+                  if (i === 0 || above !== ((data[i-1].portfolio ?? data[i-1].today ?? 0) >= (data[i-1].invested ?? 0))) {
+                    if (i > 0) stops.push({ offset: pct, color: above ? "#22c55e" : "#ef4444" });
+                    stops.push({ offset: pct, color: above ? "#22c55e" : "#ef4444" });
+                  }
+                }
+                if (stops.length === 0) {
+                  const above = (data[data.length-1].portfolio ?? 0) >= (data[data.length-1].invested ?? 0);
+                  stops.push({ offset: "0%", color: above ? "#22c55e" : "#ef4444" });
+                  stops.push({ offset: "100%", color: above ? "#22c55e" : "#ef4444" });
+                } else {
+                  stops[stops.length-1].offset = "100%";
+                }
+                return (
+                  <linearGradient id="gradPortfolio" x1="0" y1="0" x2="1" y2="0">
+                    {stops.map((s, i) => (
+                      <stop key={i} offset={s.offset} stopColor={s.color} stopOpacity={0.25} />
+                    ))}
+                  </linearGradient>
+                );
+              })()}
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth={0.8} vertical={false} />
             <XAxis dataKey="t" tick={{ fontSize: 10, fill: T.textFaint }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -582,7 +630,7 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
                 );
               }}
             />
-            <Area type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={1.5} strokeDasharray="4 3" fill="none" dot={false} activeDot={{ r: 3 }} />
+            <Area type="stepAfter" dataKey="invested" stroke="#f7931a" strokeWidth={2.5} strokeDasharray="4 3" fill="none" dot={false} activeDot={{ r: 3 }} />
             {chartData?.[0]?.portfolio !== undefined ? (
               <Area
                 type="monotone"
@@ -748,9 +796,9 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{sym} {fmtPrice(btcDisplay, currency)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>{fmtPrice(btcDisplay, currency)}</div>
         {showSecondary && btcSecondary > 0 && (
-          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}><span style={{ fontSize: 18, fontWeight: 500, marginRight: 3 }}>{symSecondary}</span>{fmtPrice(btcSecondary, secondaryCurrency)}</div>
         )}
         {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
         <div style={{ marginBottom: 14 }} />
@@ -1174,7 +1222,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
-            {isPos ? "+" : ""}{fmt(realizedPnl)}
+            <span style={{ fontSize: 18, fontWeight: 500, marginRight: 3, opacity: 0.8 }}>{sym}</span>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(realizedPnl, currency, usdChf, eurUsd))}
           </div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{language === "en" ? `from ${sells.length} sale${sells.length > 1 ? "s" : ""}` : `aus ${sells.length} Verkauf${sells.length > 1 ? "en" : ""}`}</div>
         </div>
@@ -1625,7 +1673,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.6" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.9" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2730,7 +2778,7 @@ export default function App() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
 
                   {/* Kauf-Simulator */}
-                  <button onClick={() => setShowDcaModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <button onClick={() => setShowDcaModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
                         <rect x="3" y="3" width="22" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
@@ -2744,17 +2792,17 @@ export default function App() {
                       </svg>
                     </div>
                     <div>
-                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.kaufSimulator")}</div>
-                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.kaufSimulatorHint")}</div>
+                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.kaufSimulator")}</div>
+                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.kaufSimulatorHint")}</div>
                     </div>
                   </button>
 
                   {/* Szenario-Rechner */}
-                  <button onClick={() => setShowSzenarioModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <button onClick={() => setShowSzenarioModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🎯</div>
                     <div>
-                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
-                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{language === "en" ? "Portfolio value at target price" : "Portfoliowert bei Zielkurs"}</div>
+                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}</div>
+                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{language === "en" ? "Portfolio value at target price" : "Portfoliowert bei Zielkurs"}</div>
                     </div>
                   </button>
                 </div>
@@ -2767,12 +2815,12 @@ export default function App() {
                   <button
                     onClick={() => callClaudeAI("portfolio")}
                     disabled={aiLoading || totalBtc === 0}
-                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
                   >
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📊</div>
                     <div>
-                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiPortfolioBtn")}</div>
-                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiPortfolioBtnHint")}</div>
+                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiPortfolioBtn")}</div>
+                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiPortfolioBtnHint")}</div>
                     </div>
                   </button>
 
@@ -2780,12 +2828,12 @@ export default function App() {
                   <button
                     onClick={() => callClaudeAI("market")}
                     disabled={aiLoading}
-                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", aspectRatio: "1", padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
                   >
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🌐</div>
                     <div>
-                      <div style={{ color: T.text, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
-                      <div style={{ color: T.textFaint, fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiMarketBtnHint")}</div>
+                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
+                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiMarketBtnHint")}</div>
                     </div>
                   </button>
                 </div>
