@@ -807,9 +807,9 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
   }[fgCurrent.value_classification] || fgCurrent.value_classification) : null;
   const fgPrev = fearGreed?.[7] ? parseInt(fearGreed[7].value) : null;
   const fgColor = fgValue === null ? T.textFaint : fgValue <= 25 ? "#ef4444" : fgValue <= 45 ? "#f97316" : fgValue <= 55 ? "#eab308" : fgValue <= 75 ? "#84cc16" : "#22c55e";
-  const fgAngle = fgValue !== null ? (fgValue / 100) * 180 - 90 : -90;
+  const fgAngle = fgValue !== null ? 180 - (fgValue / 100) * 180 : 180;
   const fgNeedleX = 26 + 18 * Math.cos((fgAngle * Math.PI) / 180);
-  const fgNeedleY = 26 + 18 * Math.sin((fgAngle * Math.PI) / 180);
+  const fgNeedleY = 26 - 18 * Math.sin((fgAngle * Math.PI) / 180);
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -1743,7 +1743,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.9.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.9.5" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
