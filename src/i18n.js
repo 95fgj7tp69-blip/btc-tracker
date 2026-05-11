@@ -73,6 +73,13 @@ export const translations = {
     // ── Market Card ─────────────────────────────────────────────────────────────
     market: {
       lade:    "Lade...",
+      fearGreedLabel: "Fear & Greed",
+      fearGreedDaysAgo: "T zuvor",
+      fearGreedExtremeAngst: "Extreme Angst",
+      fearGreedAngst: "Angst",
+      fearGreedNeutral: "Neutral",
+      fearGreedGier: "Gier",
+      fearGreedExtremeGier: "Extreme Gier",
     },
 
     // ── Price Chart ─────────────────────────────────────────────────────────────
@@ -330,16 +337,18 @@ export const translations = {
 
     // ── Tools ───────────────────────────────────────────────────────────────────
     tools: {
-      finanzTools:    "FINANZ-TOOLS",
+      finanzTools:    "Finanz-Tools",
       kaufSimulator:  "Kauf-Simulator",
       kaufSimulatorHint: "Einstandspreis bei Nachkauf berechnen",
 
       // KI-Tools
-      aiTools:        "KI-TOOLS",
+      aiTools:        "KI-Tools",
       aiPortfolioBtn: "Portfolio analysieren",
       aiPortfolioBtnHint: "Stärken, Risiken & aktuelle Position",
       aiMarketBtn:    "Markt-Kommentar",
       aiMarketBtnHint: "Aktuelle BTC-Marktlage & Ausblick",
+      aiNewsBtn:      "News-Briefing",
+      aiNewsBtnHint:  "Aktuelle BTC-News, von KI zusammengefasst",
       aiLoading:      "Claude denkt...",
       aiError:        "Fehler beim Laden. Bitte erneut versuchen.",
       aiPoweredBy:    "Powered by Claude AI",
@@ -441,6 +450,13 @@ export const translations = {
 
     market: {
       lade:    "Loading...",
+      fearGreedLabel: "Fear & Greed",
+      fearGreedDaysAgo: "d ago",
+      fearGreedExtremeAngst: "Extreme Fear",
+      fearGreedAngst: "Fear",
+      fearGreedNeutral: "Neutral",
+      fearGreedGier: "Greed",
+      fearGreedExtremeGier: "Extreme Greed",
     },
 
     priceChart: {
@@ -681,16 +697,18 @@ export const translations = {
     },
 
     tools: {
-      finanzTools:        "FINANCIAL TOOLS",
+      finanzTools:        "Finanz tools",
       kaufSimulator:      "Buy Simulator",
       kaufSimulatorHint:  "Calculate cost basis after additional purchase",
 
       // AI Tools
-      aiTools:        "AI TOOLS",
+      aiTools:        "AI tools",
       aiPortfolioBtn: "Analyse Portfolio",
       aiPortfolioBtnHint: "Strengths, risks & current position",
       aiMarketBtn:    "Market Commentary",
       aiMarketBtnHint: "Current BTC market situation & outlook",
+      aiNewsBtn:      "News Briefing",
+      aiNewsBtnHint:  "Current BTC news summarized by AI",
       aiLoading:      "Claude is thinking...",
       aiError:        "Error loading. Please try again.",
       aiPoweredBy:    "Powered by Claude AI",

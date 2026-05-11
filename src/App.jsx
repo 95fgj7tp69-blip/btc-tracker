@@ -789,10 +789,30 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
     return `${sym} ${new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted)} (${pct})`;
   };
 
+  const [fearGreed, setFearGreed] = useState(null);
+  useEffect(() => {
+    fetch("https://api.alternative.me/fng/?limit=8")
+      .then(r => r.json())
+      .then(d => { if (d?.data?.length) setFearGreed(d.data); })
+      .catch(() => {});
+  }, []);
+  const fgCurrent = fearGreed?.[0];
+  const fgValue = fgCurrent ? parseInt(fgCurrent.value) : null;
+  const fgLabel = fgCurrent ? ({
+    "Extreme Fear": t("market.fearGreedExtremeAngst"),
+    "Fear": t("market.fearGreedAngst"),
+    "Neutral": t("market.fearGreedNeutral"),
+    "Greed": t("market.fearGreedGier"),
+    "Extreme Greed": t("market.fearGreedExtremeGier"),
+  }[fgCurrent.value_classification] || fgCurrent.value_classification) : null;
+  const fgPrev = fearGreed?.[7] ? parseInt(fearGreed[7].value) : null;
+  const fgColor = fgValue === null ? T.textFaint : fgValue <= 25 ? "#ef4444" : fgValue <= 45 ? "#f97316" : fgValue <= 55 ? "#eab308" : fgValue <= 75 ? "#84cc16" : "#22c55e";
+  const fgAngle = fgValue !== null ? (fgValue / 100) * 180 - 90 : -90;
+  const fgNeedleX = 26 + 18 * Math.cos((fgAngle * Math.PI) / 180);
+  const fgNeedleY = 26 + 18 * Math.sin((fgAngle * Math.PI) / 180);
+
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
-      <div style={{ padding: "18px 20px 12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ color: T.textSub, fontSize: 14 }}>Bitcoin (BTC)</span>
           </div>
@@ -806,6 +826,49 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
           <div style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
         )}
         {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
+
+        {/* Fear & Greed Index */}
+        {fgValue !== null && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.divider}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="52" height="30" viewBox="0 0 52 30">
+                <path d="M 4 26 A 22 22 0 0 1 48 26" fill="none" stroke={T.border} strokeWidth="5" strokeLinecap="round"/>
+                <path d="M 4 26 A 22 22 0 0 1 48 26" fill="none" stroke="url(#fgGrad)" strokeWidth="5" strokeLinecap="round" strokeDasharray="69.1" strokeDashoffset={69.1 * (1 - fgValue / 100)}/>
+                <defs>
+                  <linearGradient id="fgGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#ef4444"/>
+                    <stop offset="50%" stopColor="#eab308"/>
+                    <stop offset="100%" stopColor="#22c55e"/>
+                  </linearGradient>
+                </defs>
+                <line x1="26" y1="26" x2={fgNeedleX} y2={fgNeedleY} stroke={fgColor} strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="26" cy="26" r="2.5" fill={fgColor}/>
+              </svg>
+              <div>
+                <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600 }}>{t("market.fearGreedLabel")}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: fgColor, lineHeight: 1 }}>{fgValue}</span>
+                  <span style={{ fontSize: 11, color: fgColor, fontWeight: 600 }}>{fgLabel}</span>
+                </div>
+              </div>
+            </div>
+            {fgPrev !== null && (
+              <>
+                <div style={{ width: 1, height: 32, background: T.divider }} />
+                <div>
+                  <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600, marginBottom: 2 }}>7{t("market.fearGreedDaysAgo")}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: T.textMuted }}>{fgPrev}</span>
+                    <span style={{ fontSize: 11, color: fgValue > fgPrev ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
+                      {fgValue > fgPrev ? "▲" : "▼"} {Math.abs(fgValue - fgPrev)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <div style={{ marginBottom: 14 }} />
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(tab => (
@@ -1678,7 +1741,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.9.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.9.4" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2644,7 +2707,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/claude`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool, portfolio: portfolioPayload, lang: language }),
+        body: JSON.stringify({ tool, portfolio: tool === "news" ? null : portfolioPayload, lang: language }),
       });
       const data = await res.json();
       setAiResult(data.result || "error");
@@ -2814,6 +2877,20 @@ export default function App() {
 
                 {/* KI-Tools */}
                 <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 10 }}>{t("tools.aiTools")}</div>
+
+                {/* News-Briefing — volle Breite */}
+                <button
+                  onClick={() => callClaudeAI("news")}
+                  disabled={aiLoading}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, marginBottom: 10 }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📰</div>
+                  <div>
+                    <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiNewsBtn")}</div>
+                    <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiNewsBtnHint")}</div>
+                  </div>
+                </button>
+
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
 
                   {/* Portfolio analysieren */}
