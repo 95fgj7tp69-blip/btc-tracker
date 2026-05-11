@@ -771,12 +771,10 @@ function FearGreedCard({ T, language }) {
               <stop offset="100%" stopColor="#22c55e"/>
             </linearGradient>
           </defs>
-          {/* Hintergrund */}
+          {/* Hintergrund grau */}
           <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={T.border} strokeWidth="10" strokeLinecap="round"/>
-          {/* Eingefärbt */}
-          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#fgGradLarge)" strokeWidth="10" strokeLinecap="round"
-            strokeDasharray={Math.PI * r}
-            strokeDashoffset={Math.PI * r * (1 - fgValue / 100)}/>
+          {/* Voller Gradient-Bogen */}
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#fgGradLarge)" strokeWidth="10" strokeLinecap="round"/>
           {/* Labels */}
           <text x={cx - r - 4} y={cy + 16} fontSize="9" fill={T.textFaint} textAnchor="middle">0</text>
           <text x={cx + r + 4} y={cy + 16} fontSize="9" fill={T.textFaint} textAnchor="middle">100</text>
@@ -885,7 +883,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted }}>{sym}</span> {fmtPrice(btcDisplay, currency)}</div>
           {showSecondary && btcSecondary > 0 && (
             <div style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, letterSpacing: "-0.01em" }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
@@ -1783,7 +1781,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.1.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.1.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
