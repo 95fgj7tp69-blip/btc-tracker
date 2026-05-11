@@ -1222,7 +1222,7 @@ function RealizedPnlCard({ transactions, T, currency = "CHF", usdChf = 0.9, eurU
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
-            <span style={{ fontSize: 18, fontWeight: 500, marginRight: 3, opacity: 0.8 }}>{sym}</span>{isPos ? "+" : ""}{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(realizedPnl, currency, usdChf, eurUsd))}
+            <span style={{ fontSize: 18, fontWeight: 500, marginRight: 3, opacity: 0.8 }}>{sym}</span>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(realizedPnl, currency, usdChf, eurUsd))}
           </div>
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{language === "en" ? `from ${sells.length} sale${sells.length > 1 ? "s" : ""}` : `aus ${sells.length} Verkauf${sells.length > 1 ? "en" : ""}`}</div>
         </div>
@@ -1673,7 +1673,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.8" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.8.9" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
