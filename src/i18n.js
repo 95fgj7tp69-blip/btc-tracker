@@ -73,11 +73,18 @@ export const translations = {
     // ── Market Card ─────────────────────────────────────────────────────────────
     market: {
       lade:    "Lade...",
+      fearGreedLabel: "Fear & Greed",
+      fearGreedDaysAgo: "T zuvor",
+      fearGreedExtremeAngst: "Extreme Angst",
+      fearGreedAngst: "Angst",
+      fearGreedNeutral: "Neutral",
+      fearGreedGier: "Gier",
+      fearGreedExtremeGier: "Extreme Gier",
     },
 
     // ── Price Chart ─────────────────────────────────────────────────────────────
     priceChart: {
-      title:          "KURSVERLAUF VS. EINSTAND",
+      title:          "Kursverlauf vs. Einstand",
       einstand:       "Einstand",
       kauf:           "Kauf",
       fingerHint:     "Finger ziehen zum Ablesen",
@@ -85,7 +92,7 @@ export const translations = {
 
     // ── Break-Even Card ─────────────────────────────────────────────────────────
     breakEven: {
-      title:       "BREAK-EVEN ANALYSE",
+      title:       "Break-even Analyse",
       aktuellerKurs: "Aktueller Kurs",
       einstandspreis: "Einstandspreis",
       differenz:    "Differenz",
@@ -99,7 +106,7 @@ export const translations = {
 
     // ── Realized PnL Card ───────────────────────────────────────────────────────
     realizedPnl: {
-      title:         "REALISIERTER GEWINN/VERLUST",
+      title:         "Realisierter Gewinn/Verlust",
       keinVerkauf:   "Noch keine Verkäufe erfasst.",
       gesamt:        "Gesamt",
       transaktionen: "Transaktionen",
@@ -188,10 +195,13 @@ export const translations = {
       sekundaerkurs:        "SEKUNDÄRKURS",
       sekundaerkursHint:    "Zweiten Kurs im Header anzeigen",
       sekundaerkursAus:     "Aus",
+      fearGreedHint:        "Fear & Greed Index im Dashboard anzeigen",
+      fearGreedAn:          "An",
 
       einstandsMethode:     "EINSTANDSPREIS-METHODE",
 
-      darstellung:      "DARSTELLUNG",
+      darstellung:      "Darstellung",
+      dashboard:        "Dashboard",
       darkMode:         "Dark Mode",
       lightMode:        "Light Mode",
       darkModeAktiv:    "Dunkles Design aktiv",
@@ -330,16 +340,18 @@ export const translations = {
 
     // ── Tools ───────────────────────────────────────────────────────────────────
     tools: {
-      finanzTools:    "FINANZ-TOOLS",
+      finanzTools:    "Finanz-Tools",
       kaufSimulator:  "Kauf-Simulator",
       kaufSimulatorHint: "Einstandspreis bei Nachkauf berechnen",
 
       // KI-Tools
-      aiTools:        "KI-TOOLS",
+      aiTools:        "KI-Tools",
       aiPortfolioBtn: "Portfolio analysieren",
       aiPortfolioBtnHint: "Stärken, Risiken & aktuelle Position",
       aiMarketBtn:    "Markt-Kommentar",
       aiMarketBtnHint: "Aktuelle BTC-Marktlage & Ausblick",
+      aiNewsBtn:      "News-Briefing",
+      aiNewsBtnHint:  "Aktuelle BTC-News, von KI zusammengefasst",
       aiLoading:      "Claude denkt...",
       aiError:        "Fehler beim Laden. Bitte erneut versuchen.",
       aiPoweredBy:    "Powered by Claude AI",
@@ -441,17 +453,24 @@ export const translations = {
 
     market: {
       lade:    "Loading...",
+      fearGreedLabel: "Fear & Greed",
+      fearGreedDaysAgo: "d ago",
+      fearGreedExtremeAngst: "Extreme Fear",
+      fearGreedAngst: "Fear",
+      fearGreedNeutral: "Neutral",
+      fearGreedGier: "Greed",
+      fearGreedExtremeGier: "Extreme Greed",
     },
 
     priceChart: {
-      title:          "PRICE HISTORY VS. COST BASIS",
+      title:          "Price history vs. cost basis",
       einstand:       "Cost Basis",
       kauf:           "Buy",
       fingerHint:     "Drag to read values",
     },
 
     breakEven: {
-      title:          "BREAK-EVEN ANALYSIS",
+      title:          "Break-even analysis",
       aktuellerKurs:  "Current Price",
       einstandspreis: "Cost Basis",
       differenz:      "Difference",
@@ -464,7 +483,7 @@ export const translations = {
     },
 
     realizedPnl: {
-      title:         "REALIZED GAIN/LOSS",
+      title:         "Realized gain/loss",
       keinVerkauf:   "No sales recorded yet.",
       gesamt:        "Total",
       transaktionen: "Transactions",
@@ -546,10 +565,13 @@ export const translations = {
       sekundaerkurs:        "SECONDARY PRICE",
       sekundaerkursHint:    "Show a second currency in the header",
       sekundaerkursAus:     "Off",
+      fearGreedHint:        "Show Fear & Greed Index on dashboard",
+      fearGreedAn:          "On",
 
       einstandsMethode:      "COST BASIS METHOD",
 
-      darstellung:      "APPEARANCE",
+      darstellung:      "Appearance",
+      dashboard:        "Dashboard",
       darkMode:         "Dark Mode",
       lightMode:        "Light Mode",
       darkModeAktiv:    "Dark theme active",
@@ -681,16 +703,18 @@ export const translations = {
     },
 
     tools: {
-      finanzTools:        "FINANCIAL TOOLS",
+      finanzTools:        "Finanz tools",
       kaufSimulator:      "Buy Simulator",
       kaufSimulatorHint:  "Calculate cost basis after additional purchase",
 
       // AI Tools
-      aiTools:        "AI TOOLS",
+      aiTools:        "AI tools",
       aiPortfolioBtn: "Analyse Portfolio",
       aiPortfolioBtnHint: "Strengths, risks & current position",
       aiMarketBtn:    "Market Commentary",
       aiMarketBtnHint: "Current BTC market situation & outlook",
+      aiNewsBtn:      "News Briefing",
+      aiNewsBtnHint:  "Current BTC news summarized by AI",
       aiLoading:      "Claude is thinking...",
       aiError:        "Error loading. Please try again.",
       aiPoweredBy:    "Powered by Claude AI",
