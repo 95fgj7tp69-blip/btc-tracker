@@ -808,8 +808,8 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
   const fgPrev = fearGreed?.[7] ? parseInt(fearGreed[7].value) : null;
   const fgColor = fgValue === null ? T.textFaint : fgValue <= 25 ? "#ef4444" : fgValue <= 45 ? "#f97316" : fgValue <= 55 ? "#eab308" : fgValue <= 75 ? "#84cc16" : "#22c55e";
   const fgAngle = fgValue !== null ? 180 - (fgValue / 100) * 180 : 180;
-  const fgNeedleX = 26 + 18 * Math.cos((fgAngle * Math.PI) / 180);
-  const fgNeedleY = 26 - 18 * Math.sin((fgAngle * Math.PI) / 180);
+  const fgNeedleX = 28 + 20 * Math.cos((fgAngle * Math.PI) / 180);
+  const fgNeedleY = 27 - 20 * Math.sin((fgAngle * Math.PI) / 180);
 
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
@@ -833,18 +833,25 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
         {fgValue !== null && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.divider}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <svg width="52" height="30" viewBox="0 0 52 30">
-                <path d="M 4 26 A 22 22 0 0 1 48 26" fill="none" stroke={T.border} strokeWidth="5" strokeLinecap="round"/>
-                <path d="M 4 26 A 22 22 0 0 1 48 26" fill="none" stroke="url(#fgGrad)" strokeWidth="5" strokeLinecap="round" strokeDasharray="69.1" strokeDashoffset={69.1 * (1 - fgValue / 100)}/>
+              <svg width="56" height="32" viewBox="0 0 56 32">
                 <defs>
                   <linearGradient id="fgGrad" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#ef4444"/>
+                    <stop offset="25%" stopColor="#f97316"/>
                     <stop offset="50%" stopColor="#eab308"/>
+                    <stop offset="75%" stopColor="#84cc16"/>
                     <stop offset="100%" stopColor="#22c55e"/>
                   </linearGradient>
                 </defs>
-                <line x1="26" y1="26" x2={fgNeedleX} y2={fgNeedleY} stroke={fgColor} strokeWidth="2" strokeLinecap="round"/>
-                <circle cx="26" cy="26" r="2.5" fill={fgColor}/>
+                {/* Hintergrund-Bogen grau */}
+                <path d="M 5 27 A 23 23 0 0 1 51 27" fill="none" stroke={T.border} strokeWidth="5" strokeLinecap="round"/>
+                {/* Eingefärbter Bogen bis zum aktuellen Wert */}
+                <path d="M 5 27 A 23 23 0 0 1 51 27" fill="none" stroke="url(#fgGrad)" strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray="72.3"
+                  strokeDashoffset={72.3 * (1 - fgValue / 100)}/>
+                {/* Zeiger */}
+                <line x1="28" y1="27" x2={fgNeedleX} y2={fgNeedleY} stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" strokeLinecap="round"/>
+                <circle cx="28" cy="27" r="2.5" fill="rgba(0,0,0,0.5)"/>
               </svg>
               <div>
                 <div style={{ fontSize: 10, color: T.textFaint, fontWeight: 600 }}>{t("market.fearGreedLabel")}</div>
@@ -1743,7 +1750,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.9.5" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.9.6" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
