@@ -338,7 +338,12 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
             </div>
           </div>
         </div>
-        <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, color: T.textMuted }}>⚙</button>
+        <button onClick={onSettingsOpen} style={{ width: 42, height: 42, background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.textMuted }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -671,16 +676,16 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
         </ResponsiveContainer>
       </div>
       {/* Legende */}
-      <div style={{ display: "flex", gap: 16, padding: "0 16px 16px", justifyContent: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 20, height: 2, background: "#f7931a", borderRadius: 1 }} />
-          <span style={{ fontSize: 12, color: T.textMuted }}>{t("portfolio.investiert")}</span>
+      <div style={{ display: "flex", gap: 12, padding: "0 16px 12px", justifyContent: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ width: 14, height: 2, background: "#f7931a", borderRadius: 1 }} />
+          <span style={{ fontSize: 10, color: T.textFaint }}>{t("portfolio.investiert")}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           {chartData?.[0]?.portfolio !== undefined ? (
-            <><div style={{ width: 20, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 12, color: T.textMuted }}>{t("portfolio.portfoliowert")}</span></>
+            <><div style={{ width: 14, height: 2, background: isNeg ? "#ef4444" : "#22c55e", borderRadius: 1 }} /><span style={{ fontSize: 10, color: T.textFaint }}>{t("portfolio.portfoliowert")}</span></>
           ) : (
-            <><div style={{ width: 8, height: 8, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} /><span style={{ fontSize: 12, color: T.textMuted }}>{t("portfolio.heute")}</span></>
+            <><div style={{ width: 6, height: 6, borderRadius: "50%", background: isNeg ? "#ef4444" : "#22c55e" }} /><span style={{ fontSize: 10, color: T.textFaint }}>{t("portfolio.heute")}</span></>
           )}
         </div>
       </div>
@@ -796,9 +801,9 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, marginRight: 3 }}>{sym}</span>{fmtPrice(btcDisplay, currency)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted }}>{sym}</span> {fmtPrice(btcDisplay, currency)}</div>
         {showSecondary && btcSecondary > 0 && (
-          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}><span style={{ fontSize: 18, fontWeight: 500, marginRight: 3 }}>{symSecondary}</span>{fmtPrice(btcSecondary, secondaryCurrency)}</div>
+          <div style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, letterSpacing: "-0.01em", marginTop: 2 }}>{symSecondary} {fmtPrice(btcSecondary, secondaryCurrency)}</div>
         )}
         {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
         <div style={{ marginBottom: 14 }} />
@@ -1673,7 +1678,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.8.9" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.9.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
