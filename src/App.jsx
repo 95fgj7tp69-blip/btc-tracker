@@ -801,9 +801,9 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
             <span>{isPos ? "▲" : "▼"}</span>{Math.abs(tabChangePct).toFixed(2)}% <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>{activeTab}</span>
           </div>
         </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, display: "inline-block", minWidth: 44 }}>{sym}</span>{fmtPrice(btcDisplay, currency)}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}><span style={{ fontSize: 18, fontWeight: 500, color: T.textMuted, display: "inline-block", minWidth: 44, textAlign: "right", marginRight: 6 }}>{sym}</span>{fmtPrice(btcDisplay, currency)}</div>
         {showSecondary && btcSecondary > 0 && (
-          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}><span style={{ fontSize: 18, fontWeight: 500, display: "inline-block", minWidth: 44 }}>{symSecondary}</span>{fmtPrice(btcSecondary, secondaryCurrency)}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.textMuted, letterSpacing: "-0.02em", marginTop: 2 }}><span style={{ fontSize: 18, fontWeight: 500, display: "inline-block", minWidth: 44, textAlign: "right", marginRight: 6 }}>{symSecondary}</span>{fmtPrice(btcSecondary, secondaryCurrency)}</div>
         )}
         {!showSecondary && currency !== "USD" && <div style={{ color: T.textMuted, fontSize: 13, marginTop: 3 }}>${fmtUsd(btcUsd)}</div>}
         <div style={{ marginBottom: 14 }} />
@@ -1678,7 +1678,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "2.9.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "2.9.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
