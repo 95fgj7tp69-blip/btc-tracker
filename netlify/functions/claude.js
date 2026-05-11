@@ -1,6 +1,6 @@
 // netlify/functions/claude.js
-// Claude AI Tools: Portfolio-Analyse + Markt-Kommentar
-// Version: 1.19.0 — CommonJS Format
+// Claude AI Tools: Portfolio-Analyse + Markt-Kommentar + News-Briefing
+// Version: 1.20.0 — CommonJS Format
 
 const headers = {
   "Content-Type": "application/json",
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
 
   const { tool, portfolio, lang = "de" } = body;
 
-  if (!tool || !["portfolio", "market"].includes(tool)) {
+  if (!tool || !["portfolio", "market", "news"].includes(tool)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid tool" }) };
   }
 
@@ -76,6 +76,24 @@ Structure your response in exactly 3 short sections (2-3 sentences each):
 
 No financial advice disclaimer needed. Direct and to the point.`;
 
+  const newsPromptDe = `Du bist ein prägnanter Bitcoin-News-Analyst. Fasse die wichtigsten aktuellen BTC-News der letzten 24-48 Stunden auf Deutsch zusammen.
+
+Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
+1. **Top-News** — Was sind die wichtigsten Schlagzeilen?
+2. **Markt-Reaktion** — Wie hat der Markt reagiert?
+3. **Was beobachten** — Welche Entwicklungen sollte man im Auge behalten?
+
+Bleib sachlich und präzise. Nur verifizierte Informationen.`;
+
+  const newsPromptEn = `You are a concise Bitcoin news analyst. Summarize the most important current BTC news from the last 24-48 hours in English.
+
+Structure your response in exactly 3 short sections (2-3 sentences each):
+1. **Top News** — What are the most important headlines?
+2. **Market Reaction** — How has the market reacted?
+3. **What to Watch** — Which developments should be monitored?
+
+Stay factual and precise. Only verified information.`;
+
   const marketPromptDe = `Du bist ein prägnanter Bitcoin-Marktbeobachter. Nutze dein aktuelles Wissen über den BTC-Markt und gib einen kurzen Markt-Kommentar auf Deutsch.
 
 Aktueller BTC-Kurs laut App: ${portfolio.btcPrice} ${portfolio.currency} (24h: ${portfolio.change24h}%)
@@ -101,9 +119,11 @@ Stay factual. No financial advice disclaimer needed.`;
   const prompt =
     tool === "portfolio"
       ? (lang === "de" ? portfolioPromptDe : portfolioPromptEn)
+      : tool === "news"
+      ? (lang === "de" ? newsPromptDe : newsPromptEn)
       : (lang === "de" ? marketPromptDe : marketPromptEn);
 
-  const useWebSearch = tool === "market";
+  const useWebSearch = tool === "market" || tool === "news";
 
   const requestBody = {
     model: "claude-sonnet-4-5",
