@@ -1477,152 +1477,160 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
 }
 
 // ── Onboarding ───────────────────────────────────────────────────────────────
-function OnboardingScreen({ onFinish, T, language }) {
+function OnboardingScreen({ onFinish, T, language, onShowDemo }) {
   const t = tr(translations, language);
   const [slide, setSlide] = useState(0);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const privacyContent = t("privacy.sections");
+  const isLast = slide === 4;
+
   const slidesData = t("onboarding.slides");
   const slides = [
-    { icon: "t",       iconBg: "#f7931a", title: slidesData[0].title, text: slidesData[0].text },
-    { icon: "chart",   iconBg: null,      title: slidesData[1].title, text: slidesData[1].text },
-    { icon: "analyse", iconBg: null,      title: slidesData[2].title, text: slidesData[2].text },
-    { icon: "currency",iconBg: null,      title: slidesData[3].title, text: slidesData[3].text },
-    { icon: "privacy", iconBg: null,      title: slidesData[4].title, text: slidesData[4].text },
+    { title: slidesData[0].title, text: slidesData[0].text, svg: (
+        <svg viewBox="0 0 280 200" width="260" style={{ display: "block" }}>
+          <rect x="90" y="10" width="100" height="100" rx="24" fill="#f7931a"/>
+          <polyline points="110,90 125,72 140,81 165,52" fill="none" stroke="#000" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="165" cy="52" r="5" fill="#000"/>
+          <circle cx="140" cy="60" r="65" fill="none" stroke="#f7931a" strokeWidth="0.5" strokeOpacity="0.3"/>
+          <circle cx="140" cy="60" r="85" fill="none" stroke="#f7931a" strokeWidth="0.5" strokeOpacity="0.15"/>
+          <text x="22" y="72" fontSize="12" fill="#f7931a" opacity="0.7" fontFamily="monospace">+89.6%</text>
+          <text x="196" y="52" fontSize="10" fill="#555" fontFamily="monospace">CHF 87'914</text>
+          <text x="193" y="118" fontSize="10" fill="#f7931a" opacity="0.5" fontFamily="monospace">1.3799 BTC</text>
+          <text x="20" y="128" fontSize="10" fill="#555" fontFamily="monospace">↑ +49'032</text>
+          <text x="140" y="165" fontSize="22" fontWeight="700" fill="#fff" textAnchor="middle" letterSpacing="-0.5">Trackoshi</text>
+          <text x="140" y="186" fontSize="12" fill="#555" textAnchor="middle">BTC Portfolio Tracker</text>
+        </svg>
+    )},
+    { title: slidesData[1].title, text: slidesData[1].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="100" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="32" fontSize="10" fill="#555">BTC Kurs</text>
+          <text x="36" y="52" fontSize="20" fontWeight="700" fill="#fff" letterSpacing="-0.5">CHF 63'693</text>
+          <text x="36" y="67" fontSize="11" fill="#888">$ 81'849</text>
+          <polyline points="36,96 65,81 90,86 120,66 150,71 180,56 210,61 244,49" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="244" cy="49" r="3" fill="#22c55e"/>
+          <rect x="188" y="13" width="66" height="20" rx="10" fill="#f7931a" fillOpacity="0.15"/>
+          <text x="221" y="26" fontSize="9" fill="#f7931a" textAnchor="middle" fontWeight="600">Fear &amp; Greed 48</text>
+          <rect x="20" y="120" width="115" height="78" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="32" y="140" fontSize="9" fill="#555">Gesamtwert</text>
+          <text x="32" y="158" fontSize="16" fontWeight="700" fill="#fff" letterSpacing="-0.3">87'914</text>
+          <text x="32" y="173" fontSize="9" fill="#22c55e">↑ +91.2%</text>
+          <text x="32" y="188" fontSize="9" fill="#444">CHF 37'965 investiert</text>
+          <rect x="145" y="120" width="115" height="78" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="157" y="140" fontSize="9" fill="#555">BTC Bestand</text>
+          <text x="157" y="158" fontSize="16" fontWeight="700" fill="#fff" letterSpacing="-0.3">1.3799</text>
+          <text x="157" y="173" fontSize="9" fill="#555">BTC</text>
+          <text x="157" y="188" fontSize="9" fill="#555">Einstand CHF 35'693</text>
+        </svg>
+    )},
+    { title: slidesData[2].title, text: slidesData[2].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="115" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="30" fontSize="9" fill="#555">Break-even Analyse</text>
+          <defs><linearGradient id="beg3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#ef4444"/><stop offset="50%" stopColor="#eab308"/><stop offset="100%" stopColor="#22c55e"/></linearGradient></defs>
+          <path d="M 48 95 A 52 52 0 0 1 152 95" fill="none" stroke="#222" strokeWidth="9" strokeLinecap="round"/>
+          <path d="M 48 95 A 52 52 0 0 1 152 95" fill="none" stroke="url(#beg3)" strokeWidth="9" strokeLinecap="round"/>
+          <line x1="100" y1="95" x2="138" y2="62" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>
+          <circle cx="100" cy="95" r="5" fill="#22c55e"/>
+          <circle cx="100" cy="95" r="2.5" fill="#1c1c1e"/>
+          <text x="165" y="68" fontSize="22" fontWeight="700" fill="#22c55e">+91%</text>
+          <text x="165" y="82" fontSize="9" fill="#555">seit Einstand</text>
+          <text x="36" y="110" fontSize="9" fill="#444">Einstand CHF 35'693</text>
+          <text x="155" y="110" fontSize="9" fill="#444">Aktuell CHF 63'693</text>
+          <rect x="20" y="135" width="240" height="65" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="152" fontSize="9" fill="#555">Kursverlauf vs. Einstand</text>
+          <polyline points="36,190 65,178 95,183 125,162 155,167 185,150 215,155 244,143" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="36" y1="184" x2="244" y2="184" stroke="#f7931a" strokeWidth="1" strokeDasharray="4 3" opacity="0.6"/>
+          <circle cx="244" cy="143" r="3" fill="#22c55e"/>
+        </svg>
+    )},
+    { title: slidesData[3].title, text: slidesData[3].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="130" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <rect x="32" y="22" width="32" height="32" rx="8" fill="#f7931a"/>
+          <text x="48" y="43" fontSize="14" fill="#000" textAnchor="middle" fontWeight="700">AI</text>
+          <text x="72" y="34" fontSize="11" fontWeight="600" fill="#fff">Portfolio-Analyse</text>
+          <text x="72" y="48" fontSize="9" fill="#555">Powered by Claude AI</text>
+          <rect x="32" y="64" width="185" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="78" width="155" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="92" width="200" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="106" width="125" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="120" width="165" height="7" rx="3" fill="#f7931a" fillOpacity="0.25"/>
+          <rect x="20" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="57" y="175" fontSize="20" textAnchor="middle">📊</text>
+          <text x="57" y="191" fontSize="9" fill="#555" textAnchor="middle">Portfolio</text>
+          <rect x="103" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="140" y="175" fontSize="20" textAnchor="middle">🌐</text>
+          <text x="140" y="191" fontSize="9" fill="#555" textAnchor="middle">Markt</text>
+          <rect x="186" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#f7931a" strokeWidth="1" strokeOpacity="0.5"/>
+          <text x="223" y="175" fontSize="20" textAnchor="middle">📰</text>
+          <text x="223" y="191" fontSize="9" fill="#f7931a" textAnchor="middle">BTC-News</text>
+        </svg>
+    )},
+    { title: slidesData[4].title, text: slidesData[4].text, svg: (
+        <svg viewBox="0 0 280 210" width="260" style={{ display: "block" }}>
+          <path d="M 140 15 L 205 42 L 205 112 C 205 150 140 178 140 178 C 140 178 75 150 75 112 L 75 42 Z" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1.5"/>
+          <path d="M 140 27 L 197 51 L 197 110 C 197 143 140 167 140 167 C 140 167 83 143 83 110 L 83 51 Z" fill="#111"/>
+          <polyline points="112,95 128,111 168,78" fill="none" stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <text x="140" y="140" fontSize="10" fill="#444" textAnchor="middle">Gespeichert in der EU</text>
+          <rect x="14" y="58" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="42" y="72" fontSize="9" fill="#555" textAnchor="middle">CSV Export</text>
+          <rect x="210" y="58" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="238" y="72" fontSize="9" fill="#555" textAnchor="middle">DSGVO ✓</text>
+          <rect x="14" y="98" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="42" y="112" fontSize="9" fill="#555" textAnchor="middle">Löschbar</text>
+          <rect x="210" y="98" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="238" y="112" fontSize="9" fill="#555" textAnchor="middle">Privat ✓</text>
+          <text x="140" y="200" fontSize="13" fontWeight="600" fill="#f7931a" textAnchor="middle">{t("onboarding.datenGehoeren")}</text>
+        </svg>
+    )},
   ];
+
   const s = slides[slide];
-  const isLast = slide === slides.length - 1;
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
-      {/* Slide content */}
+    <div style={{ position: "fixed", inset: 0, background: "#0a0a0a", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 360 }}>
-        <div style={{ marginBottom: 32 }}>
-          {slide === 0 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
-              <line x1="108" y1="90" x2="108" y2="32" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
-              <line x1="108" y1="90" x2="178" y2="90" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
-              <polyline points="118,72 132,54 148,64 168,36" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="168" cy="36" r="5" fill="#000"/>
-              <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
-              <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
-              <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
-              <text x="225" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#185FA5">USD</text>
-              <circle cx="55" cy="90" r="20" fill="#eaf3de" stroke="#639922" strokeWidth="1"/>
-              <text x="55" y="95" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">EUR</text>
-              <line x1="75" y1="30" x2="90" y2="55" stroke="#f7931a" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-              <line x1="205" y1="30" x2="190" y2="55" stroke="#378ADD" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-              <line x1="75" y1="90" x2="90" y2="88" stroke="#639922" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-            </svg>
-          )}
-          {slide === 1 && (
-            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
-              <rect x="80" y="4" width="120" height="152" rx="20" fill={T.surface} stroke={T.border} strokeWidth="1"/>
-              <rect x="92" y="16" width="96" height="10" rx="5" fill={T.border}/>
-              <text x="140" y="52" textAnchor="middle" fontSize="11" fill={T.textFaint}>Portfolio</text>
-              <text x="140" y="74" textAnchor="middle" fontSize="22" fontWeight="700" fill={T.text}>61'200</text>
-              <text x="140" y="74" textAnchor="middle" fontSize="11" fill={T.textMuted} dy="-28">CHF</text>
-              <text x="140" y="92" textAnchor="middle" fontSize="12" fill="#22c55e">↑ +28.4%</text>
-              <rect x="96" y="106" width="88" height="8" rx="4" fill="#22c55e" opacity="0.15"/>
-              <rect x="96" y="106" width="64" height="8" rx="4" fill="#22c55e" opacity="0.75"/>
-              <rect x="88" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <rect x="116" y="130" width="22" height="7" rx="3" fill="#f7931a" opacity="0.85"/>
-              <rect x="144" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <rect x="172" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <circle cx="32" cy="60" r="26" fill="rgba(34,197,94,0.12)" stroke="#22c55e" strokeWidth="1.5"/>
-              <text x="32" y="54" textAnchor="middle" fontSize="10" fill="#3B6D11">Kauf</text>
-              <text x="32" y="68" textAnchor="middle" fontSize="13" fontWeight="600" fill="#27500A">+0.25</text>
-              <text x="32" y="80" textAnchor="middle" fontSize="9" fill="#3B6D11">BTC</text>
-              <line x1="58" y1="62" x2="80" y2="72" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-              <circle cx="248" cy="100" r="26" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1.5"/>
-              <text x="248" y="94" textAnchor="middle" fontSize="10" fill="#991b1b">Verkauf</text>
-              <text x="248" y="108" textAnchor="middle" fontSize="13" fontWeight="600" fill="#7f1d1d">−0.1</text>
-              <text x="248" y="120" textAnchor="middle" fontSize="9" fill="#991b1b">BTC</text>
-              <line x1="200" y1="100" x2="222" y2="100" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-            </svg>
-          )}
-          {slide === 2 && (
-            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
-              <rect x="14" y="10" width="252" height="130" rx="18" fill={T.surface} stroke={T.border} strokeWidth="1"/>
-              <polyline points="30,120 65,100 100,108 135,75 168,82 202,45 235,52 262,24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-              <line x1="162" y1="10" x2="162" y2="140" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.8"/>
-              <text x="168" y="30" fontSize="11" fontWeight="500" fill="#BA7517">Break-Even</text>
-              <circle cx="202" cy="45" r="5" fill="#22c55e"/>
-              <circle cx="262" cy="24" r="5" fill="#22c55e"/>
-              <circle cx="262" cy="24" r="9" fill="#22c55e" opacity="0.2"/>
-              <rect x="22" y="16" width="70" height="24" rx="8" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="57" y="32" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">+28.4%</text>
-              <rect x="22" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="64" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="106" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="148" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="22" y="118" width="36" height="14" rx="4" fill="#f7931a" opacity="0.8"/>
-            </svg>
-          )}
-          {slide === 3 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <line x1="55" y1="60" x2="225" y2="60" stroke={T.border} strokeWidth="0.5"/>
-              <circle cx="55" cy="60" r="38" fill="#fef3e0" stroke="#f7931a" strokeWidth="1.5"/>
-              <text x="55" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#BA7517">₣</text>
-              <circle cx="140" cy="60" r="38" fill="#eeedfe" stroke="#534AB7" strokeWidth="1.5"/>
-              <text x="140" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#3C3489">€</text>
-              <circle cx="225" cy="60" r="38" fill="#e8f4ff" stroke="#185FA5" strokeWidth="1.5"/>
-              <text x="225" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#185FA5">$</text>
-            </svg>
-          )}
-          {slide === 4 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="30" y="20" width="220" height="80" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
-              <rect x="46" y="36" width="60" height="8" rx="4" fill={T.border}/>
-              <rect x="46" y="52" width="100" height="8" rx="4" fill={T.border}/>
-              <rect x="46" y="68" width="80" height="8" rx="4" fill={T.border}/>
-              <circle cx="220" cy="36" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="40" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <circle cx="220" cy="60" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="64" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <circle cx="220" cy="84" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="88" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <rect x="30" y="20" width="220" height="80" rx="16" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.4"/>
-            </svg>
-          )}
-        </div>
-        <div style={{ color: T.text, fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 16, lineHeight: 1.2 }}>{s.title}</div>
-        <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
+        <div style={{ marginBottom: 28 }}>{s.svg}</div>
+        <div style={{ color: "#fff", fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 14, lineHeight: 1.2, letterSpacing: "-0.02em", whiteSpace: "pre-line" }}>{s.title}</div>
+        <div style={{ color: "#666", fontSize: 15, textAlign: "center", lineHeight: 1.65, maxWidth: 280 }}>{s.text}</div>
       </div>
-      {/* Dots */}
-      {slide === 4 && (
-        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 14, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, textDecoration: "underline" }}>
+
+      {isLast && (
+        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 10, textDecoration: "underline" }}>
           {t("onboarding.datenschutzLink")}
         </button>
       )}
-      <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
         {slides.map((_, i) => (
-          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 24 : 8, height: 8, borderRadius: 4, background: i === slide ? "#f7931a" : T.border, cursor: "pointer", transition: "all 0.3s" }} />
+          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 28 : 8, height: 4, borderRadius: 2, background: i === slide ? "#f7931a" : "#333", cursor: "pointer", transition: "all 0.3s" }} />
         ))}
       </div>
-      {/* Buttons */}
+
       <div style={{ display: "grid", gridTemplateColumns: isLast ? "1fr" : "1fr 2fr", gap: 12, width: "100%", maxWidth: 360 }}>
         {!isLast && (
-          <button onClick={onFinish} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("onboarding.ueberspringen")}</button>
+          <button onClick={onFinish} style={{ padding: "15px 0", background: "#1c1c1e", border: "1px solid #333", color: "#666", borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("onboarding.ueberspringen")}</button>
         )}
         <button onClick={() => isLast ? onFinish() : setSlide(s => s + 1)} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 14, cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>
           {isLast ? t("onboarding.loslegen") : t("onboarding.weiter")}
         </button>
       </div>
-    {showPrivacy && (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
-        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
-          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("privacy.title")}</div>
-          {privacyContent.map(({ title, text }) => (
-            <div key={title} style={{ marginBottom: 16 }}>
-              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
-              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
-            </div>
-          ))}
-          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>{t("privacy.close")}</button>
+
+      {showPrivacy && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#1c1c1e", border: "1px solid #2a2a2a", borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ color: "#fff", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("privacy.title")}</div>
+            {privacyContent.map(({ title, text }) => (
+              <div key={title} style={{ marginBottom: 16 }}>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+                <div style={{ color: "#888", fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+              </div>
+            ))}
+            <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: "#2a2a2a", border: "1px solid #333", color: "#888", borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>{t("privacy.close")}</button>
+          </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 }
@@ -1891,7 +1899,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.4.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2506,9 +2514,12 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try { return localStorage.getItem("onboardingDone") !== "true"; } catch { return true; }
   });
+  const [showDemoAfterOnboarding, setShowDemoAfterOnboarding] = useState(false);
+
   const finishOnboarding = () => {
     try { localStorage.setItem("onboardingDone", "true"); } catch {}
     setShowOnboarding(false);
+    setShowDemoAfterOnboarding(true);
   };
   const resetOnboarding = () => {
     try { localStorage.removeItem("onboardingDone"); } catch {}
@@ -3152,6 +3163,16 @@ export default function App() {
         </div>
       )}
       {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} language={language} />}
+      {showDemoAfterOnboarding && (
+        <DemoImportModal
+          key="demo-after-onboarding"
+          onClose={() => setShowDemoAfterOnboarding(false)}
+          onImport={handleImportTransactions}
+          transactions={transactions}
+          T={T}
+          language={language}
+        />
+      )}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
     </>
