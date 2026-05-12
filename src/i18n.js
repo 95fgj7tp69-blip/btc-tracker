@@ -16,7 +16,7 @@ export const translations = {
 
     // ── Header ──────────────────────────────────────────────────────────────────
     header: {
-      portfolio:       "Trackoshi",
+      portfolio:       "Trackoshi BTC",
       aktualisiere:    "Aktualisiere...",
       aktualisiert:    "Aktualisiert",
     },
@@ -321,26 +321,27 @@ export const translations = {
       weiter:           "Weiter →",
       loslegen:         "Loslegen 🚀",
       datenschutzLink:  "Vollständige Datenschutzerklärung lesen",
+      datenGehoeren:    "Deine Daten gehören dir.",
       slides: [
         {
-          title: "Willkommen bei Trackoshi",
-          text:  "Dein persönlicher Bitcoin-Tracker. Erfasse Käufe, verfolge deinen Einstandspreis und behalte den Überblick.",
+          title: "Dein BTC-Portfolio.\nAuf einen Blick.",
+          text:  "Professionelles Bitcoin-Tracking in CHF, EUR oder USD — mit KI-Analyse und echten Marktdaten.",
         },
         {
-          title: "Transaktionen erfassen",
-          text:  "Tippe auf + um Käufe, Verkäufe oder Transfers einzutragen. Gebühren werden automatisch berücksichtigt.",
+          title: "Dashboard,\ndas alles zeigt.",
+          text:  "Live BTC-Kurs, dein Portfolio, Fear & Greed Index — alles auf einer Seite, immer aktuell.",
         },
         {
-          title: "Deine Währung wählen",
-          text:  "Alle Beträge in CHF, EUR oder USD — wählbar in den Einstellungen. Deine Daten bleiben immer in CHF gespeichert.",
+          title: "Analyse, die\nehrlich ist.",
+          text:  "Break-even, realisierter Gewinn, DCA-Effizienz — sieh genau wo du stehst.",
         },
         {
-          title: "Alles im Griff",
-          text:  "Dashboard, Analyse, Verlauf und Tools geben dir den vollen Überblick über dein Portfolio.",
+          title: "KI-Tools, die\nmitdenken.",
+          text:  "Portfolio-Analyse, Markt-Kommentar und BTC-News — von Claude AI, direkt in der App.",
         },
         {
-          title: "Deine Daten gehören dir",
-          text:  "Alle Daten werden sicher in der EU gespeichert. CSV-Export jederzeit möglich. Konto löschbar.",
+          title: "Sicher.\nPrivat. Deins.",
+          text:  "Alle Daten werden sicher in der EU gespeichert. CSV-Export, vollständige Kontrolle, jederzeit löschbar.",
         },
       ],
     },
@@ -412,7 +413,7 @@ export const translations = {
     },
 
     header: {
-      portfolio:       "Trackoshi",
+      portfolio:       "Trackoshi BTC",
       aktualisiere:    "Updating...",
       aktualisiert:    "Updated",
     },
@@ -697,26 +698,27 @@ export const translations = {
       weiter:           "Next →",
       loslegen:         "Get Started 🚀",
       datenschutzLink:  "Read full Privacy Policy",
+      datenGehoeren:    "Your data belongs to you.",
       slides: [
         {
-          title: "Welcome to Trackoshi",
-          text:  "Your personal Bitcoin tracker. Record purchases, track your cost basis, and stay on top of your portfolio.",
+          title: "Your BTC portfolio.\nAt a glance.",
+          text:  "Professional Bitcoin tracking in CHF, EUR or USD — with AI analysis and live market data.",
         },
         {
-          title: "Record Transactions",
-          text:  "Tap + to add buys, sells or transfers. Fees are automatically taken into account.",
+          title: "Dashboard that\nshows everything.",
+          text:  "Live BTC price, your portfolio, Fear & Greed Index — all on one page, always up to date.",
         },
         {
-          title: "Choose Your Currency",
-          text:  "All amounts in CHF, EUR or USD — selectable in Settings. Your data is always stored in CHF.",
+          title: "Analysis that\nis honest.",
+          text:  "Break-even, realized gain, DCA efficiency — see exactly where you stand.",
         },
         {
-          title: "Everything Under Control",
-          text:  "Dashboard, Analysis, History and Tools give you a complete overview of your portfolio.",
+          title: "AI tools that\nthink ahead.",
+          text:  "Portfolio analysis, market commentary and BTC news — from Claude AI, directly in the app.",
         },
         {
-          title: "Your Data Belongs to You",
-          text:  "All data is stored securely in the EU. CSV export available at any time. Account can be deleted.",
+          title: "Secure.\nPrivate. Yours.",
+          text:  "All data stored securely in the EU. CSV export, full control, deletable at any time.",
         },
       ],
     },

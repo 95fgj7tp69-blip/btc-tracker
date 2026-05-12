@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Area, AreaChart, Line, LineChart, ComposedChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine, CartesianGrid } from "recharts";
+const TRACKOSHI_ICON = "data:image/png;base64,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";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
 
@@ -227,8 +228,8 @@ function AuthScreen({ T, language }) {
       <div style={{ width: "100%", maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 64, height: 64, borderRadius: 18, boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }} />
-          <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi</div>
+          <img src="/icons/icon-192.png" alt="Trackoshi BTC" style={{ width: 64, height: 64, borderRadius: 18, boxShadow: "0 8px 24px rgba(247,147,26,0.35)", marginBottom: 16 }} />
+          <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>Trackoshi BTC</div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t("auth.tagline")}</div>
         </div>
 
@@ -330,7 +331,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
     <div style={{ padding: "14px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }} />
+          <img src="/icons/icon-192.png" alt="Trackoshi BTC" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, boxShadow: "0 4px 12px rgba(247,147,26,0.3)" }} />
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{t("header.portfolio")}</div>
             <div style={{ fontSize: 11, color: T.textFaint, marginTop: 1 }}>
@@ -1477,152 +1478,158 @@ function DcaEfficiencyChart({ transactions, T, currency = "CHF", usdChf = 0.9, e
 }
 
 // ── Onboarding ───────────────────────────────────────────────────────────────
-function OnboardingScreen({ onFinish, T, language }) {
+function OnboardingScreen({ onFinish, T, language, onShowDemo }) {
   const t = tr(translations, language);
   const [slide, setSlide] = useState(0);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const privacyContent = t("privacy.sections");
+  const isLast = slide === 4;
+
   const slidesData = t("onboarding.slides");
   const slides = [
-    { icon: "t",       iconBg: "#f7931a", title: slidesData[0].title, text: slidesData[0].text },
-    { icon: "chart",   iconBg: null,      title: slidesData[1].title, text: slidesData[1].text },
-    { icon: "analyse", iconBg: null,      title: slidesData[2].title, text: slidesData[2].text },
-    { icon: "currency",iconBg: null,      title: slidesData[3].title, text: slidesData[3].text },
-    { icon: "privacy", iconBg: null,      title: slidesData[4].title, text: slidesData[4].text },
+    { title: slidesData[0].title, text: slidesData[0].text, svg: (
+        <svg viewBox="0 0 280 200" width="260" style={{ display: "block" }}>
+          <circle cx="140" cy="90" r="75" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="1" opacity="0.6"/>
+          <circle cx="140" cy="90" r="95" fill="none" stroke="#f7931a" strokeWidth="0.5" strokeOpacity="0.2"/>
+          <image href={TRACKOSHI_ICON} x="90" y="40" width="100" height="100" style={{ borderRadius: 24 }}/>
+          <text x="22" y="68" fontSize="11" fill="#f7931a" opacity="0.6" fontFamily="monospace">+89.6%</text>
+          <text x="198" y="48" fontSize="10" fill="#555" fontFamily="monospace">CHF 87'914</text>
+          <text x="195" y="125" fontSize="10" fill="#f7931a" opacity="0.45" fontFamily="monospace">1.3799 BTC</text>
+          <text x="18" y="128" fontSize="10" fill="#555" fontFamily="monospace">↑ +49'032</text>
+          <text x="140" y="168" fontSize="22" fontWeight="700" fill="#fff" textAnchor="middle" letterSpacing="-0.5">Trackoshi BTC</text>
+          <text x="140" y="188" fontSize="12" fill="#555" textAnchor="middle">Bitcoin Portfolio Tracker</text>
+        </svg>
+    )},
+    { title: slidesData[1].title, text: slidesData[1].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="100" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="32" fontSize="10" fill="#555">BTC Kurs</text>
+          <text x="36" y="52" fontSize="20" fontWeight="700" fill="#fff" letterSpacing="-0.5">CHF 63'693</text>
+          <text x="36" y="67" fontSize="11" fill="#888">$ 81'849</text>
+          <polyline points="36,96 65,81 90,86 120,66 150,71 180,56 210,61 244,49" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="244" cy="49" r="3" fill="#22c55e"/>
+          <rect x="188" y="13" width="66" height="20" rx="10" fill="#f7931a" fillOpacity="0.15"/>
+          <text x="221" y="26" fontSize="9" fill="#f7931a" textAnchor="middle" fontWeight="600">Fear &amp; Greed 48</text>
+          <rect x="20" y="120" width="115" height="78" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="32" y="140" fontSize="9" fill="#555">Gesamtwert</text>
+          <text x="32" y="158" fontSize="16" fontWeight="700" fill="#fff" letterSpacing="-0.3">87'914</text>
+          <text x="32" y="173" fontSize="9" fill="#22c55e">↑ +91.2%</text>
+          <text x="32" y="188" fontSize="9" fill="#444">CHF 37'965 investiert</text>
+          <rect x="145" y="120" width="115" height="78" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="157" y="140" fontSize="9" fill="#555">BTC Bestand</text>
+          <text x="157" y="158" fontSize="16" fontWeight="700" fill="#fff" letterSpacing="-0.3">1.3799</text>
+          <text x="157" y="173" fontSize="9" fill="#555">BTC</text>
+          <text x="157" y="188" fontSize="9" fill="#555">Einstand CHF 35'693</text>
+        </svg>
+    )},
+    { title: slidesData[2].title, text: slidesData[2].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="115" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="30" fontSize="9" fill="#555">Break-even Analyse</text>
+          <defs><linearGradient id="beg3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#ef4444"/><stop offset="50%" stopColor="#eab308"/><stop offset="100%" stopColor="#22c55e"/></linearGradient></defs>
+          <path d="M 48 95 A 52 52 0 0 1 152 95" fill="none" stroke="#222" strokeWidth="9" strokeLinecap="round"/>
+          <path d="M 48 95 A 52 52 0 0 1 152 95" fill="none" stroke="url(#beg3)" strokeWidth="9" strokeLinecap="round"/>
+          <line x1="100" y1="95" x2="138" y2="62" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>
+          <circle cx="100" cy="95" r="5" fill="#22c55e"/>
+          <circle cx="100" cy="95" r="2.5" fill="#1c1c1e"/>
+          <text x="165" y="68" fontSize="22" fontWeight="700" fill="#22c55e">+91%</text>
+          <text x="165" y="82" fontSize="9" fill="#555">seit Einstand</text>
+          <text x="36" y="110" fontSize="9" fill="#444">Einstand CHF 35'693</text>
+          <text x="155" y="110" fontSize="9" fill="#444">Aktuell CHF 63'693</text>
+          <rect x="20" y="135" width="240" height="65" rx="12" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="36" y="152" fontSize="9" fill="#555">Kursverlauf vs. Einstand</text>
+          <polyline points="36,190 65,178 95,183 125,162 155,167 185,150 215,155 244,143" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="36" y1="184" x2="244" y2="184" stroke="#f7931a" strokeWidth="1" strokeDasharray="4 3" opacity="0.6"/>
+          <circle cx="244" cy="143" r="3" fill="#22c55e"/>
+        </svg>
+    )},
+    { title: slidesData[3].title, text: slidesData[3].text, svg: (
+        <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
+          <rect x="20" y="10" width="240" height="130" rx="14" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <rect x="32" y="22" width="32" height="32" rx="8" fill="#f7931a"/>
+          <text x="48" y="43" fontSize="14" fill="#000" textAnchor="middle" fontWeight="700">AI</text>
+          <text x="72" y="34" fontSize="11" fontWeight="600" fill="#fff">Portfolio-Analyse</text>
+          <text x="72" y="48" fontSize="9" fill="#555">Powered by Claude AI</text>
+          <rect x="32" y="64" width="185" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="78" width="155" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="92" width="200" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="106" width="125" height="7" rx="3" fill="#2a2a2a"/>
+          <rect x="32" y="120" width="165" height="7" rx="3" fill="#f7931a" fillOpacity="0.25"/>
+          <rect x="20" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="57" y="175" fontSize="20" textAnchor="middle">📊</text>
+          <text x="57" y="191" fontSize="9" fill="#555" textAnchor="middle">Portfolio</text>
+          <rect x="103" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="140" y="175" fontSize="20" textAnchor="middle">🌐</text>
+          <text x="140" y="191" fontSize="9" fill="#555" textAnchor="middle">Markt</text>
+          <rect x="186" y="152" width="74" height="50" rx="10" fill="#1c1c1e" stroke="#f7931a" strokeWidth="1" strokeOpacity="0.5"/>
+          <text x="223" y="175" fontSize="20" textAnchor="middle">📰</text>
+          <text x="223" y="191" fontSize="9" fill="#f7931a" textAnchor="middle">BTC-News</text>
+        </svg>
+    )},
+    { title: slidesData[4].title, text: slidesData[4].text, svg: (
+        <svg viewBox="0 0 280 210" width="260" style={{ display: "block" }}>
+          <path d="M 140 15 L 205 42 L 205 112 C 205 150 140 178 140 178 C 140 178 75 150 75 112 L 75 42 Z" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1.5"/>
+          <path d="M 140 27 L 197 51 L 197 110 C 197 143 140 167 140 167 C 140 167 83 143 83 110 L 83 51 Z" fill="#111"/>
+          <polyline points="112,95 128,111 168,78" fill="none" stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <text x="140" y="140" fontSize="10" fill="#444" textAnchor="middle">Gespeichert in der EU</text>
+          <rect x="14" y="58" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="42" y="72" fontSize="9" fill="#555" textAnchor="middle">CSV Export</text>
+          <rect x="210" y="58" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="238" y="72" fontSize="9" fill="#555" textAnchor="middle">DSGVO ✓</text>
+          <rect x="14" y="98" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="42" y="112" fontSize="9" fill="#555" textAnchor="middle">Löschbar</text>
+          <rect x="210" y="98" width="56" height="22" rx="11" fill="#1c1c1e" stroke="#2a2a2a" strokeWidth="1"/>
+          <text x="238" y="112" fontSize="9" fill="#555" textAnchor="middle">Privat ✓</text>
+          <text x="140" y="200" fontSize="13" fontWeight="600" fill="#f7931a" textAnchor="middle">{t("onboarding.datenGehoeren")}</text>
+        </svg>
+    )},
   ];
+
   const s = slides[slide];
-  const isLast = slide === slides.length - 1;
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
-      {/* Slide content */}
+    <div style={{ position: "fixed", inset: 0, background: "#0a0a0a", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 360 }}>
-        <div style={{ marginBottom: 32 }}>
-          {slide === 0 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="90" y="10" width="100" height="100" rx="26" fill="#f7931a"/>
-              <line x1="108" y1="90" x2="108" y2="32" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
-              <line x1="108" y1="90" x2="178" y2="90" stroke="#000" strokeWidth="4" strokeLinecap="round"/>
-              <polyline points="118,72 132,54 148,64 168,36" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="168" cy="36" r="5" fill="#000"/>
-              <circle cx="55" cy="30" r="20" fill="#fef3e0" stroke="#f7931a" strokeWidth="1"/>
-              <text x="55" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#BA7517">CHF</text>
-              <circle cx="225" cy="30" r="20" fill="#e8f4ff" stroke="#378ADD" strokeWidth="1"/>
-              <text x="225" y="35" textAnchor="middle" fontSize="12" fontWeight="600" fill="#185FA5">USD</text>
-              <circle cx="55" cy="90" r="20" fill="#eaf3de" stroke="#639922" strokeWidth="1"/>
-              <text x="55" y="95" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">EUR</text>
-              <line x1="75" y1="30" x2="90" y2="55" stroke="#f7931a" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-              <line x1="205" y1="30" x2="190" y2="55" stroke="#378ADD" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-              <line x1="75" y1="90" x2="90" y2="88" stroke="#639922" strokeWidth="1" strokeDasharray="3 2" opacity="0.5"/>
-            </svg>
-          )}
-          {slide === 1 && (
-            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
-              <rect x="80" y="4" width="120" height="152" rx="20" fill={T.surface} stroke={T.border} strokeWidth="1"/>
-              <rect x="92" y="16" width="96" height="10" rx="5" fill={T.border}/>
-              <text x="140" y="52" textAnchor="middle" fontSize="11" fill={T.textFaint}>Portfolio</text>
-              <text x="140" y="74" textAnchor="middle" fontSize="22" fontWeight="700" fill={T.text}>61'200</text>
-              <text x="140" y="74" textAnchor="middle" fontSize="11" fill={T.textMuted} dy="-28">CHF</text>
-              <text x="140" y="92" textAnchor="middle" fontSize="12" fill="#22c55e">↑ +28.4%</text>
-              <rect x="96" y="106" width="88" height="8" rx="4" fill="#22c55e" opacity="0.15"/>
-              <rect x="96" y="106" width="64" height="8" rx="4" fill="#22c55e" opacity="0.75"/>
-              <rect x="88" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <rect x="116" y="130" width="22" height="7" rx="3" fill="#f7931a" opacity="0.85"/>
-              <rect x="144" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <rect x="172" y="130" width="22" height="7" rx="3" fill={T.border}/>
-              <circle cx="32" cy="60" r="26" fill="rgba(34,197,94,0.12)" stroke="#22c55e" strokeWidth="1.5"/>
-              <text x="32" y="54" textAnchor="middle" fontSize="10" fill="#3B6D11">Kauf</text>
-              <text x="32" y="68" textAnchor="middle" fontSize="13" fontWeight="600" fill="#27500A">+0.25</text>
-              <text x="32" y="80" textAnchor="middle" fontSize="9" fill="#3B6D11">BTC</text>
-              <line x1="58" y1="62" x2="80" y2="72" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-              <circle cx="248" cy="100" r="26" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1.5"/>
-              <text x="248" y="94" textAnchor="middle" fontSize="10" fill="#991b1b">Verkauf</text>
-              <text x="248" y="108" textAnchor="middle" fontSize="13" fontWeight="600" fill="#7f1d1d">−0.1</text>
-              <text x="248" y="120" textAnchor="middle" fontSize="9" fill="#991b1b">BTC</text>
-              <line x1="200" y1="100" x2="222" y2="100" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-            </svg>
-          )}
-          {slide === 2 && (
-            <svg viewBox="0 0 280 160" width="280" style={{ display: "block" }}>
-              <rect x="14" y="10" width="252" height="130" rx="18" fill={T.surface} stroke={T.border} strokeWidth="1"/>
-              <polyline points="30,120 65,100 100,108 135,75 168,82 202,45 235,52 262,24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-              <line x1="162" y1="10" x2="162" y2="140" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.8"/>
-              <text x="168" y="30" fontSize="11" fontWeight="500" fill="#BA7517">Break-Even</text>
-              <circle cx="202" cy="45" r="5" fill="#22c55e"/>
-              <circle cx="262" cy="24" r="5" fill="#22c55e"/>
-              <circle cx="262" cy="24" r="9" fill="#22c55e" opacity="0.2"/>
-              <rect x="22" y="16" width="70" height="24" rx="8" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="57" y="32" textAnchor="middle" fontSize="12" fontWeight="600" fill="#3B6D11">+28.4%</text>
-              <rect x="22" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="64" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="106" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="148" y="118" width="36" height="14" rx="4" fill={T.input}/>
-              <rect x="22" y="118" width="36" height="14" rx="4" fill="#f7931a" opacity="0.8"/>
-            </svg>
-          )}
-          {slide === 3 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <line x1="55" y1="60" x2="225" y2="60" stroke={T.border} strokeWidth="0.5"/>
-              <circle cx="55" cy="60" r="38" fill="#fef3e0" stroke="#f7931a" strokeWidth="1.5"/>
-              <text x="55" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#BA7517">₣</text>
-              <circle cx="140" cy="60" r="38" fill="#eeedfe" stroke="#534AB7" strokeWidth="1.5"/>
-              <text x="140" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#3C3489">€</text>
-              <circle cx="225" cy="60" r="38" fill="#e8f4ff" stroke="#185FA5" strokeWidth="1.5"/>
-              <text x="225" y="70" textAnchor="middle" fontSize="30" fontWeight="700" fill="#185FA5">$</text>
-            </svg>
-          )}
-          {slide === 4 && (
-            <svg viewBox="0 0 280 120" width="260" style={{ display: "block" }}>
-              <rect x="30" y="20" width="220" height="80" rx="16" fill={T.surface} stroke={T.border} strokeWidth="0.5"/>
-              <rect x="46" y="36" width="60" height="8" rx="4" fill={T.border}/>
-              <rect x="46" y="52" width="100" height="8" rx="4" fill={T.border}/>
-              <rect x="46" y="68" width="80" height="8" rx="4" fill={T.border}/>
-              <circle cx="220" cy="36" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="40" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <circle cx="220" cy="60" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="64" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <circle cx="220" cy="84" r="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1"/>
-              <text x="220" y="88" textAnchor="middle" fontSize="12" fontWeight="700" fill="#27500A">✓</text>
-              <rect x="30" y="20" width="220" height="80" rx="16" fill="none" stroke="#22c55e" strokeWidth="1.5" opacity="0.4"/>
-            </svg>
-          )}
-        </div>
-        <div style={{ color: T.text, fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 16, lineHeight: 1.2 }}>{s.title}</div>
-        <div style={{ color: T.textMuted, fontSize: 16, textAlign: "center", lineHeight: 1.6 }}>{s.text}</div>
+        <div style={{ marginBottom: 28 }}>{s.svg}</div>
+        <div style={{ color: "#fff", fontSize: 26, fontWeight: 700, textAlign: "center", marginBottom: 14, lineHeight: 1.2, letterSpacing: "-0.02em", whiteSpace: "pre-line" }}>{s.title}</div>
+        <div style={{ color: "#aaa", fontSize: 15, textAlign: "center", lineHeight: 1.65, maxWidth: 280 }}>{s.text}</div>
       </div>
-      {/* Dots */}
-      {slide === 4 && (
-        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 14, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, textDecoration: "underline" }}>
+
+      {isLast && (
+        <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#f7931a", fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 10, textDecoration: "underline" }}>
           {t("onboarding.datenschutzLink")}
         </button>
       )}
-      <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
         {slides.map((_, i) => (
-          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 24 : 8, height: 8, borderRadius: 4, background: i === slide ? "#f7931a" : T.border, cursor: "pointer", transition: "all 0.3s" }} />
+          <div key={i} onClick={() => setSlide(i)} style={{ width: i === slide ? 28 : 8, height: 4, borderRadius: 2, background: i === slide ? "#f7931a" : "#333", cursor: "pointer", transition: "all 0.3s" }} />
         ))}
       </div>
-      {/* Buttons */}
+
       <div style={{ display: "grid", gridTemplateColumns: isLast ? "1fr" : "1fr 2fr", gap: 12, width: "100%", maxWidth: 360 }}>
         {!isLast && (
-          <button onClick={onFinish} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("onboarding.ueberspringen")}</button>
+          <button onClick={onFinish} style={{ padding: "15px 0", background: "#1c1c1e", border: "1px solid #333", color: "#666", borderRadius: 14, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("onboarding.ueberspringen")}</button>
         )}
         <button onClick={() => isLast ? onFinish() : setSlide(s => s + 1)} style={{ padding: "15px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 14, cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>
           {isLast ? t("onboarding.loslegen") : t("onboarding.weiter")}
         </button>
       </div>
-    {showPrivacy && (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
-        <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
-          <div style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("privacy.title")}</div>
-          {privacyContent.map(({ title, text }) => (
-            <div key={title} style={{ marginBottom: 16 }}>
-              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
-              <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5 }}>{text}</div>
-            </div>
-          ))}
-          <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>{t("privacy.close")}</button>
+
+      {showPrivacy && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowPrivacy(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#1c1c1e", border: "1px solid #2a2a2a", borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ color: "#fff", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{t("privacy.title")}</div>
+            {privacyContent.map(({ title, text }) => (
+              <div key={title} style={{ marginBottom: 16 }}>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+                <div style={{ color: "#888", fontSize: 14, lineHeight: 1.5 }}>{text}</div>
+              </div>
+            ))}
+            <button onClick={() => setShowPrivacy(false)} style={{ width: "100%", padding: "15px 0", background: "#2a2a2a", border: "1px solid #333", color: "#888", borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", marginTop: 8 }}>{t("privacy.close")}</button>
+          </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 }
@@ -1891,7 +1898,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.4.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2506,9 +2513,12 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try { return localStorage.getItem("onboardingDone") !== "true"; } catch { return true; }
   });
+  const [showDemoAfterOnboarding, setShowDemoAfterOnboarding] = useState(false);
+
   const finishOnboarding = () => {
     try { localStorage.setItem("onboardingDone", "true"); } catch {}
     setShowOnboarding(false);
+    setShowDemoAfterOnboarding(true);
   };
   const resetOnboarding = () => {
     try { localStorage.removeItem("onboardingDone"); } catch {}
@@ -2908,8 +2918,8 @@ export default function App() {
         @keyframes btc-fade { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, animation: "btc-fade 0.3s ease" }}>
-        <img src="/icons/icon-192.png" alt="Trackoshi" style={{ width: 80, height: 80, borderRadius: 22, boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }} />
-        <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi</div>
+        <img src="/icons/icon-192.png" alt="Trackoshi BTC" style={{ width: 80, height: 80, borderRadius: 22, boxShadow: "0 8px 32px rgba(247,147,26,0.35)", animation: "btc-pulse 1.8s ease-in-out infinite" }} />
+        <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Trackoshi BTC</div>
         <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite" }} />
       </div>
     </>
@@ -3152,6 +3162,16 @@ export default function App() {
         </div>
       )}
       {showOnboarding && <OnboardingScreen onFinish={finishOnboarding} T={T} language={language} />}
+      {showDemoAfterOnboarding && (
+        <DemoImportModal
+          key="demo-after-onboarding"
+          onClose={() => setShowDemoAfterOnboarding(false)}
+          onImport={handleImportTransactions}
+          transactions={transactions}
+          T={T}
+          language={language}
+        />
+      )}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
     </>
