@@ -16,7 +16,7 @@ export const translations = {
 
     // ── Header ──────────────────────────────────────────────────────────────────
     header: {
-      portfolio:       "Trackoshi",
+      portfolio:       "Trackoshi BTC",
       aktualisiere:    "Aktualisiere...",
       aktualisiert:    "Aktualisiert",
     },
@@ -413,7 +413,7 @@ export const translations = {
     },
 
     header: {
-      portfolio:       "Trackoshi",
+      portfolio:       "Trackoshi BTC",
       aktualisiere:    "Updating...",
       aktualisiert:    "Updated",
     },
