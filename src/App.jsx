@@ -1162,7 +1162,12 @@ function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, e
   const anzahlMonate = MONATE[zeitraum] || 12;
   const periodenTotal = sparplan !== "kein" ? Math.round(anzahlMonate * PERIODEN_PRO_MONAT[sparplan]) : 0;
   const sparTotal = sparChfProPeriode * periodenTotal;
-  const zusätzlicheBtc = zielChf > 0 && sparTotal > 0 ? sparTotal / zielChf : 0;
+  const [showHilfe, setShowHilfe] = useState(false);
+
+  // DCA-Durchschnittskurs: Mittelwert zwischen heute und Zielkurs
+  const btcChfHeute = btcChf;
+  const dcaKursChf = zielChf > 0 ? (btcChfHeute + zielChf) / 2 : 0;
+  const zusätzlicheBtc = dcaKursChf > 0 && sparTotal > 0 ? sparTotal / dcaKursChf : 0;
 
   // Resultate
   const gesamtBtc = totalBtc + zusätzlicheBtc;
@@ -1178,9 +1183,36 @@ function SzenarioCalculator({ totalBtc, totalInvested, avgChf, btcChf, usdChf, e
 
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "20px 16px 20px", marginBottom: 12 }}>
-      <div style={{ color: T.textSub, fontSize: 13, letterSpacing: "0.04em", marginBottom: 16 }}>
-        {language === "en" ? "SCENARIO CALCULATOR" : "SZENARIO-RECHNER"}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em" }}>
+          {language === "en" ? "Scenario Calculator" : "Szenario-Rechner"}
+        </div>
+        {sparplan !== "kein" && zielChf > 0 && (
+          <button onClick={() => setShowHilfe(true)} style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 20, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+            {t("tools.szenarioHilfe")}
+          </button>
+        )}
       </div>
+
+      {showHilfe && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }} onClick={() => setShowHilfe(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "28px 24px 24px", width: "100%", maxWidth: 380 }}>
+            <div style={{ color: T.text, fontSize: 17, fontWeight: 600, marginBottom: 14 }}>{t("tools.szenarioHilfeTitle")}</div>
+            <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>{t("tools.szenarioHilfeText")}</div>
+            <div style={{ background: T.input, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 20 }}>
+              <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{language === "en" ? "Formula" : "Formel"}</div>
+              <div style={{ color: T.text, fontSize: 14, fontWeight: 600, fontFamily: "monospace" }}>{t("tools.szenarioHilfeFormel")}</div>
+              {zielChf > 0 && btcChf > 0 && (
+                <div style={{ color: T.textFaint, fontSize: 12, marginTop: 8 }}>
+                  = ({new Intl.NumberFormat("de-CH", {maximumFractionDigits: 0}).format(toDisplay(btcChf, currency, usdChf, eurUsd))} + {new Intl.NumberFormat("de-CH", {maximumFractionDigits: 0}).format(toDisplay(zielChf, currency, usdChf, eurUsd))}) ÷ 2
+                  {" = "}<strong>{new Intl.NumberFormat("de-CH", {maximumFractionDigits: 0}).format(toDisplay(dcaKursChf, currency, usdChf, eurUsd))} {sym}</strong>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setShowHilfe(false)} style={{ width: "100%", padding: "14px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>{t("tools.szenarioHilfeClose")}</button>
+          </div>
+        </div>
+      )}
 
       {/* Zielkurs */}
       <div style={{ marginBottom: 16 }}>
@@ -1859,7 +1891,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.3.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.3.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
