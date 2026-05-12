@@ -56,6 +56,8 @@ export const translations = {
     portfolio: {
       gesamtwert:   "Gesamtwert",
       seitKauf:     "seit Kauf",
+      gewinn:       "Gewinn",
+      verlust:      "Verlust",
       investiert:   "Investiert",
       portfoliowert: "Portfoliowert",
       heute:        "Heute",
@@ -438,6 +440,8 @@ export const translations = {
     portfolio: {
       gesamtwert:    "Total Value",
       seitKauf:      "since purchase",
+      gewinn:        "Gain",
+      verlust:       "Loss",
       investiert:    "Invested",
       portfoliowert: "Portfolio Value",
       heute:         "Today",

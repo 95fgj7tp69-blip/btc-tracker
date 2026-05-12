@@ -350,7 +350,7 @@ function Header({ lastUpdated, loading, T, onSettingsOpen, language }) {
 }
 
 // ── Portfolio Card ─────────────────────────────────────────────────────────────
-function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language, darkMode = false }) {
+function PortfolioCard({ portfolioChf, pnlChf, pnlPct, totalInvested = 0, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, transactions = [], btcChfLive = 0, rawPriceData = [], language, darkMode = false }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const isNeg = pnlChf < 0;
@@ -689,6 +689,22 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
           )}
         </div>
       </div>
+
+      {/* Investiert + Gewinn Cards */}
+      {totalInvested > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "0 16px 16px" }}>
+          <div style={{ background: T.input, borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ color: T.textFaint, fontSize: 10, fontWeight: 600, marginBottom: 3 }}>{t("portfolio.investiert")}</div>
+            <div style={{ color: T.text, fontSize: 16, fontWeight: 500 }}>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(totalInvested, currency, usdChf, eurUsd))}</div>
+            <div style={{ color: T.textFaint, fontSize: 11, marginTop: 1 }}>{sym}</div>
+          </div>
+          <div style={{ background: isNeg ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)", border: `1px solid ${isNeg ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"}`, borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ color: isNeg ? "#ef4444" : "#22c55e", fontSize: 10, fontWeight: 600, marginBottom: 3, opacity: 0.85 }}>{isNeg ? t("portfolio.verlust") : t("portfolio.gewinn")}</div>
+            <div style={{ color: isNeg ? "#ef4444" : "#22c55e", fontSize: 16, fontWeight: 500 }}>{new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(Math.abs(pnlChf), currency, usdChf, eurUsd))}</div>
+            <div style={{ color: isNeg ? "#ef4444" : "#22c55e", fontSize: 11, marginTop: 1, opacity: 0.8 }}>{sym} · {isNeg ? "" : "+"}{pnlPct.toFixed(1)}%</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -697,25 +713,25 @@ function PortfolioCard({ portfolioChf, pnlChf, pnlPct, T, currency = "CHF", usdC
 function PositionCard({ totalBtc, portfolioChf, totalInvested, avgChf, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
+  // 4 Nachkommastellen, ausser Bestand < 0.001 → dann 6
+  const btcDecimals = totalBtc < 0.001 ? 6 : 4;
+  const btcDisplay = totalBtc.toLocaleString("de-CH", { minimumFractionDigits: btcDecimals, maximumFractionDigits: btcDecimals });
+  const fmtVal = (v) => new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(v, currency, usdChf, eurUsd));
+
   return (
     <div style={{ margin: "0 12px 12px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "18px 20px" }}>
-      <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 16 }}>{t("position.title")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-        <div style={{ borderRight: `1px solid ${T.divider}`, paddingRight: 16 }}>
-          <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 4 }}>{t("position.bestand")}</div>
-          <div style={{ color: T.text, fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>{fmtBtc(totalBtc)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textSub }}>BTC</span></div>
-          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 4 }}>≈ {sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(portfolioChf, currency, usdChf, eurUsd))}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 14 }}>{t("position.title")}</div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{t("position.bestand")}</div>
+          <div style={{ color: T.text, fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1 }}>
+            {btcDisplay} <span style={{ fontSize: 14, fontWeight: 400, color: T.textMuted }}>BTC</span>
+          </div>
         </div>
-        <div style={{ paddingLeft: 16 }}>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 2 }}>{t("position.investiert")}</div>
-            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(totalInvested, currency, usdChf, eurUsd))}</div>
-          </div>
-          <div>
-            <div style={{ color: T.textMuted, fontSize: 12, marginBottom: 2 }}>{t("position.einstandspreis")}</div>
-            <div style={{ color: T.text, fontSize: 18, fontWeight: 500 }}>{sym} {new Intl.NumberFormat(CURRENCIES[currency].locale, {minimumFractionDigits:0,maximumFractionDigits:0}).format(toDisplay(avgChf, currency, usdChf, eurUsd))}</div>
-            <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{t("position.proBtc")}</div>
-          </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ color: T.textFaint, fontSize: 11, marginBottom: 4 }}>{t("position.einstandspreis")}</div>
+          <div style={{ color: T.text, fontSize: 22, fontWeight: 500, letterSpacing: "-0.02em", lineHeight: 1 }}>{sym} {fmtVal(avgChf)}</div>
+          <div style={{ color: T.textFaint, fontSize: 11, marginTop: 3 }}>{t("position.proBtc")}</div>
         </div>
       </div>
     </div>
@@ -1811,7 +1827,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.1.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.2.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2861,8 +2877,8 @@ export default function App() {
               <div style={scrollStyle}>
                 <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
                 {showFearGreed && <FearGreedCard T={T} language={language} />}
-                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
                 <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
+                <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} totalInvested={totalInvested} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
               </div>
             )}
             {view === "analyse" && (
