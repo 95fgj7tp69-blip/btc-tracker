@@ -821,7 +821,7 @@ function FearGreedCard({ T, language }) {
 }
 
 // ── Market Card ───────────────────────────────────────────────────────────────
-function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language, secondaryCurrency = "none" }) {
+function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf = 0.9, eurUsd = 0.92, language, secondaryCurrency = "none", showChart = true }) {
   const t = tr(translations, language);
   const sym = CURRENCIES[currency].symbol;
   const btcDisplay = toDisplay(btcChf, currency, usdChf, eurUsd);
@@ -908,15 +908,17 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
         </div>
 
         <div style={{ marginBottom: 14 }} />
+        {showChart && (
         <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.divider}`, paddingBottom: 12 }}>
           {TABS.map(tab => (
             <button key={tab} onClick={() => { setActiveTab(tab); try { localStorage.setItem("marketTab", tab); } catch {} }}
               style={{ flex: 1, padding: "5px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit", background: activeTab === tab ? T.input : "transparent", color: activeTab === tab ? T.text : T.textFaint }}>{tab}</button>
           ))}
         </div>
+        )}
       </div>
 
-      <div style={{ height: 180, position: "relative" }}>
+      {showChart && <div style={{ height: 180, position: "relative" }}>
         {loadingChart ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: T.textFaint, fontSize: 13 }}>{t("market.lade")}</div>
         ) : chartData.length > 0 ? (
@@ -971,7 +973,7 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
           </>
         ) : null}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -1594,7 +1596,7 @@ function OnboardingScreen({ onFinish, T, language }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale, showFearGreed = false, setShowFearGreed }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale, showFearGreed = false, setShowFearGreed, showMarketChart = true, setShowMarketChart, showPositionCard = true, setShowPositionCard }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1737,8 +1739,34 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
               <div style={{ color: T.text, fontSize: 15 }}>{t("market.fearGreedLabel")}</div>
               <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>{t("settings.fearGreedHint")}</div>
             </div>
-            <div onClick={() => setShowFearGreed(!showFearGreed)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: showFearGreed ? "#f7931a" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+            <div onClick={() => setShowFearGreed(!showFearGreed)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: showFearGreed ? "#f7931a" : darkMode ? "#3a3a3c" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
               <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showFearGreed ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Markt-Chart */}
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: T.text, fontSize: 15 }}>{t("settings.marktChart")}</div>
+              <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>{t("settings.marktChartHint")}</div>
+            </div>
+            <div onClick={() => setShowMarketChart(!showMarketChart)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: showMarketChart ? "#f7931a" : darkMode ? "#3a3a3c" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+              <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showMarketChart ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Position */}
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: T.text, fontSize: 15 }}>{t("settings.positionCard")}</div>
+              <div style={{ color: T.textFaint, fontSize: 12, marginTop: 2 }}>{t("settings.positionCardHint")}</div>
+            </div>
+            <div onClick={() => setShowPositionCard(!showPositionCard)} style={{ width: 51, height: 31, borderRadius: 16, cursor: "pointer", background: showPositionCard ? "#f7931a" : darkMode ? "#3a3a3c" : "#e0e0e0", position: "relative", transition: "background 0.25s", flexShrink: 0 }}>
+              <div style={{ width: 27, height: 27, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showPositionCard ? 22 : 2, transition: "left 0.25s", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }} />
             </div>
           </div>
         </div>
@@ -1774,18 +1802,22 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         </div>
       )}
 
-      {/* SPRACHE */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {[["de", "Deutsch 🇩🇪"], ["en", "English 🇬🇧"]].map(([code, label], i) => (
-            <button key={code} onClick={() => setLanguage(code)} style={{ padding: "14px 0", background: language === code ? "#f7931a" : "none", border: "none", borderRight: i === 0 ? `1px solid ${T.border}` : "none", color: language === code ? "#000" : T.textMuted, fontSize: 14, fontWeight: language === code ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+      {/* SPRACHE — kompakte Pill-Buttons */}
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 8, marginTop: 24 }}>{t("settings.sprache")}</div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ color: T.textMuted, fontSize: 14 }}>{t("settings.anzeigesprache")}</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[["de", "🇩🇪 DE"], ["en", "🇬🇧 EN"]].map(([code, label]) => (
+            <button key={code} onClick={() => setLanguage(code)}
+              style={{ padding: "7px 16px", background: language === code ? "#f7931a" : T.input, border: `1px solid ${language === code ? "#f7931a" : T.border}`, borderRadius: 20, color: language === code ? "#000" : T.textMuted, fontSize: 13, fontWeight: language === code ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+              {label}
+            </button>
           ))}
         </div>
       </div>
 
       {/* DATEN */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.daten")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 8, marginTop: 24 }}>{t("settings.daten")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
           <div>
@@ -1827,7 +1859,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.2.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.3.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1841,24 +1873,30 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       </div>
 
       {/* RECHTLICHES */}
-      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.rechtliches")}</div>
+      <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 8, marginTop: 24 }}>{t("settings.rechtliches")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+        <div onClick={() => setShowAgbModal(true)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
           <span style={{ color: T.text, fontSize: 15 }}>{t("settings.agb")}</span>
-          <button onClick={() => setShowAgbModal(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ color: T.textFaint, fontSize: 12 }}>{language === "en" ? "view" : "ansehen"}</span>
+            <span style={{ color: T.textMuted, fontSize: 20, lineHeight: 1 }}>›</span>
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+        <div onClick={() => setShowPrivacy(true)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer" }}>
           <span style={{ color: T.text, fontSize: 15 }}>{t("settings.datenschutz")}</span>
-          <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ color: T.textFaint, fontSize: 12 }}>{language === "en" ? "view" : "ansehen"}</span>
+            <span style={{ color: T.textMuted, fontSize: 20, lineHeight: 1 }}>›</span>
+          </div>
         </div>
       </div>
 
       {/* GEFAHRENZONE */}
-      <div style={{ color: "#ef4444", fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 32 }}>{t("settings.kontoLoeschenSection")}</div>
+      <div style={{ color: "#ef4444", fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", opacity: 0.7, marginBottom: 8, marginTop: 32 }}>{t("settings.kontoLoeschenSection")}</div>
       <div style={{ background: T.surface, border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px" }}>
+        <div onClick={() => setShowDeleteModal(true)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer" }}>
           <span style={{ color: "#ef4444", fontSize: 15 }}>{t("settings.kontoLoeschen")}</span>
-          <button onClick={() => setShowDeleteModal(true)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+          <span style={{ color: "#ef4444", fontSize: 20, lineHeight: 1, opacity: 0.6 }}>›</span>
         </div>
       </div>
 
@@ -2459,6 +2497,16 @@ export default function App() {
   });
   const setShowFearGreed = (v) => { setShowFearGreedState(v); try { localStorage.setItem("showFearGreed", String(v)); } catch {} };
 
+  const [showMarketChart, setShowMarketChartState] = useState(() => {
+    try { return localStorage.getItem("showMarketChart") !== "false"; } catch { return true; }
+  });
+  const setShowMarketChart = (v) => { setShowMarketChartState(v); try { localStorage.setItem("showMarketChart", String(v)); } catch {} };
+
+  const [showPositionCard, setShowPositionCardState] = useState(() => {
+    try { return localStorage.getItem("showPositionCard") !== "false"; } catch { return true; }
+  });
+  const setShowPositionCard = (v) => { setShowPositionCardState(v); try { localStorage.setItem("showPositionCard", String(v)); } catch {} };
+
   const [fontScale, setFontScaleState] = useState(() => {
     try { return localStorage.getItem("fontScale") || "M"; } catch { return "M"; }
   });
@@ -2875,9 +2923,9 @@ export default function App() {
           <>
             {view === "dashboard" && (
               <div style={scrollStyle}>
-                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} />
+                <MarketCard btcChf={btcChf} btcUsd={btcUsd} dayChangePct={dayChangePct} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} secondaryCurrency={secondaryCurrency} showChart={showMarketChart} />
                 {showFearGreed && <FearGreedCard T={T} language={language} />}
-                <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />
+                {showPositionCard && <PositionCard totalBtc={totalBtc} portfolioChf={portfolioChf} totalInvested={totalInvested} avgChf={avgChf} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
                 <PortfolioCard portfolioChf={portfolioChf} pnlChf={pnlChf} pnlPct={pnlPct} totalInvested={totalInvested} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} transactions={transactions} btcChfLive={btcChf} rawPriceData={rawPriceData} language={language} darkMode={darkMode} />
               </div>
             )}
@@ -3067,7 +3115,7 @@ export default function App() {
               <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
               <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
             </div>
-            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} showFearGreed={showFearGreed} setShowFearGreed={setShowFearGreed} />
+            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} showFearGreed={showFearGreed} setShowFearGreed={setShowFearGreed} showMarketChart={showMarketChart} setShowMarketChart={setShowMarketChart} showPositionCard={showPositionCard} setShowPositionCard={setShowPositionCard} />
           </div>
         </div>
       )}

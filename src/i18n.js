@@ -199,6 +199,11 @@ export const translations = {
       sekundaerkursAus:     "Aus",
       fearGreedHint:        "Fear & Greed Index im Dashboard anzeigen",
       fearGreedAn:          "An",
+      marktChart:           "Markt-Chart",
+      marktChartHint:       "BTC-Kurschart anzeigen",
+      positionCard:         "Position",
+      positionCardHint:     "BTC Bestand & Einstandspreis anzeigen",
+      anzeigesprache:       "Anzeigesprache",
 
       einstandsMethode:     "EINSTANDSPREIS-METHODE",
 
@@ -571,6 +576,11 @@ export const translations = {
       sekundaerkursAus:     "Off",
       fearGreedHint:        "Show Fear & Greed Index on dashboard",
       fearGreedAn:          "On",
+      marktChart:           "Market chart",
+      marktChartHint:       "Show BTC price chart",
+      positionCard:         "Position",
+      positionCardHint:     "Show BTC balance & cost basis",
+      anzeigesprache:       "Display language",
 
       einstandsMethode:      "COST BASIS METHOD",
 
