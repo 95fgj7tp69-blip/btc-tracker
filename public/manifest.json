@@ -1,6 +1,6 @@
 {
-  "name": "Trackoshi",
-  "short_name": "Trackoshi",
+  "name": "Trackoshi BTC",
+  "short_name": "Trackoshi BTC",
   "description": "Dein persönlicher Bitcoin-Tracker",
   "start_url": "/",
   "display": "standalone",
