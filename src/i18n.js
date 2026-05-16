@@ -401,6 +401,52 @@ export const translations = {
       fehler:       "Fehler",
       ok:           "OK",
     },
+
+    // ── Premium / Paywall ───────────────────────────────────────────────────────
+    premium: {
+      // Sektion in Einstellungen
+      sectionTitle:           "ABONNEMENT",
+      planPremium:            "Trackoshi BTC Premium",
+      planFree:               "Free-Plan",
+      statusActive:           "Aktiv",
+      transactionsCount:      "Transaktionen",
+      manageInAppStore:       "Verwalte dein Abo im App Store unter Einstellungen → [Dein Name] → Abonnements.",
+      upgradeBtn:             "Auf Premium upgraden",
+      restoreBtn:             "Käufe wiederherstellen",
+
+      // Paywall-Modal
+      paywallLimitTitle:      "Transaktions-Limit erreicht",
+      paywallFeatureTitle:    "Premium-Funktion",
+      paywallLimitBody:       "Du hast das kostenlose Limit von {limit} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Upgrade auf Premium für unbegrenzte Transaktionen und KI-Tools.",
+      paywallFeatureBody:     "KI-Tools (News, Portfolio-Analyse, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.",
+      paywallIncludes:        "Premium beinhaltet",
+      featureUnlimited:       "Unbegrenzte Transaktionen",
+      featureNews:            "KI News-Briefing",
+      featurePortfolio:       "KI Portfolio-Analyse",
+      featureMarket:          "KI Markt-Kommentar",
+      webNoticeTitle:         "App holen",
+      webNoticeText:          "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um zu upgraden.",
+      planYearly:             "Jährlich",
+      planMonthly:            "Monatlich",
+      planYearlyHint:         "CHF 2.42 / Monat, jährlich abgerechnet",
+      planMonthlyHint:        "Jederzeit kündbar",
+      badgeBestValue:         "BESTER PREIS",
+      autoRenewNotice:        "Abos verlängern sich automatisch, wenn nicht mind. 24 Stunden vor Periodenende gekündigt. Verwaltung in App Store-Einstellungen.",
+      maybeLater:             "Vielleicht später",
+
+      // Free-Limit Banner im Verlauf
+      bannerLimitReached:     "Free-Limit erreicht ({limit})",
+      bannerLimitSubtitle:    "Upgrade für unbegrenzte Transaktionen",
+      bannerUpgradeBtn:       "Upgrade",
+
+      // Tools-Tab Premium-Badge
+      premiumBadge:           "★ Premium",
+
+      // Restore Purchases Feedback
+      restoreWebOnly:         "Wiederherstellen ist nur in der iOS-App verfügbar.",
+      restoreNothingFound:    "Keine früheren Käufe gefunden. RevenueCat-Integration folgt in Phase B.",
+      mockPurchaseSuccess:    "Premium aktiviert (Testmodus). RevenueCat-Integration folgt in Phase B.",
+    },
   },
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -724,12 +770,12 @@ export const translations = {
     },
 
     tools: {
-      finanzTools:        "Finanz tools",
+      finanzTools:        "Financial Tools",
       kaufSimulator:      "Buy Simulator",
       kaufSimulatorHint:  "Calculate cost basis after additional purchase",
 
       // AI Tools
-      aiTools:        "AI tools",
+      aiTools:        "AI Tools",
       aiPortfolioBtn: "Analyse Portfolio",
       aiPortfolioBtnHint: "Strengths, risks & current position",
       aiMarketBtn:    "Market Commentary",
@@ -773,6 +819,52 @@ export const translations = {
       laden:        "Load",
       fehler:       "Error",
       ok:           "OK",
+    },
+
+    // ── Premium / Paywall ───────────────────────────────────────────────────────
+    premium: {
+      // Section in Settings
+      sectionTitle:           "SUBSCRIPTION",
+      planPremium:            "Trackoshi BTC Premium",
+      planFree:               "Free Plan",
+      statusActive:           "Active",
+      transactionsCount:      "transactions",
+      manageInAppStore:       "Manage your subscription in the App Store under Settings → [Your Name] → Subscriptions.",
+      upgradeBtn:             "Upgrade to Premium",
+      restoreBtn:             "Restore Purchases",
+
+      // Paywall modal
+      paywallLimitTitle:      "Transaction Limit Reached",
+      paywallFeatureTitle:    "Premium Feature",
+      paywallLimitBody:       "You've reached the free limit of {limit} transactions. Existing transactions stay visible. Upgrade to Premium to add unlimited transactions and unlock AI tools.",
+      paywallFeatureBody:     "AI tools (News, Portfolio analysis, Market commentary) are part of Trackoshi BTC Premium.",
+      paywallIncludes:        "Premium includes",
+      featureUnlimited:       "Unlimited transactions",
+      featureNews:            "AI News Briefing",
+      featurePortfolio:       "AI Portfolio Analysis",
+      featureMarket:          "AI Market Commentary",
+      webNoticeTitle:         "Get the App",
+      webNoticeText:          "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to upgrade.",
+      planYearly:             "Yearly",
+      planMonthly:            "Monthly",
+      planYearlyHint:         "CHF 2.42 / month, billed yearly",
+      planMonthlyHint:        "Cancel anytime",
+      badgeBestValue:         "BEST VALUE",
+      autoRenewNotice:        "Subscriptions auto-renew unless cancelled at least 24 hours before period ends. Manage in App Store settings.",
+      maybeLater:             "Maybe later",
+
+      // Free limit banner in history
+      bannerLimitReached:     "Free limit reached ({limit})",
+      bannerLimitSubtitle:    "Upgrade for unlimited transactions",
+      bannerUpgradeBtn:       "Upgrade",
+
+      // Tools tab Premium badge
+      premiumBadge:           "★ Premium",
+
+      // Restore Purchases feedback
+      restoreWebOnly:         "Restore is only available in the iOS app.",
+      restoreNothingFound:    "No previous purchases found. RevenueCat integration follows in Phase B.",
+      mockPurchaseSuccess:    "Premium activated (test mode). RevenueCat integration follows in Phase B.",
     },
   },
 };
