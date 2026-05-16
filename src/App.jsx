@@ -1733,43 +1733,41 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
 
       {/* ABONNEMENT */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>
-        {language === "en" ? "SUBSCRIPTION" : "ABONNEMENT"}
+        {t("premium.sectionTitle")}
       </div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         {isPremium ? (
           <>
-            <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 22 }}>⭐</div>
+            <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ fontSize: 26 }}>⭐</div>
               <div style={{ flex: 1 }}>
-                <div style={{ color: T.text, fontSize: 15, fontWeight: 600 }}>Trackoshi BTC Premium</div>
-                <div style={{ color: "#34c759", fontSize: 12, marginTop: 2 }}>{language === "en" ? "Active" : "Aktiv"}</div>
+                <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("premium.planPremium")}</div>
+                <div style={{ color: "#34c759", fontSize: 14, marginTop: 3, fontWeight: 500 }}>{t("premium.statusActive")}</div>
               </div>
             </div>
-            <div style={{ padding: "12px 18px", color: T.textMuted, fontSize: 12, lineHeight: 1.5, borderBottom: `1px solid ${T.border}` }}>
-              {language === "en"
-                ? "Manage your subscription in the App Store under Settings → [Your Name] → Subscriptions."
-                : "Verwalte dein Abo im App Store unter Einstellungen → [Dein Name] → Abonnements."}
+            <div style={{ padding: "14px 18px", color: T.textMuted, fontSize: 14, lineHeight: 1.5, borderBottom: `1px solid ${T.border}` }}>
+              {t("premium.manageInAppStore")}
             </div>
-            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: T.text, fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
-              {language === "en" ? "Restore Purchases" : "Käufe wiederherstellen"}
+            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "16px 18px", background: "none", border: "none", color: T.text, fontSize: 16, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
+              {t("premium.restoreBtn")}
             </button>
           </>
         ) : (
           <>
-            <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: T.input, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👤</div>
+            <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>👤</div>
               <div style={{ flex: 1 }}>
-                <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{language === "en" ? "Free Plan" : "Free-Plan"}</div>
-                <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>
-                  {transactions.length} / {FREE_TX_LIMIT} {language === "en" ? "transactions" : "Transaktionen"}
+                <div style={{ color: T.text, fontSize: 16, fontWeight: 600 }}>{t("premium.planFree")}</div>
+                <div style={{ color: T.textMuted, fontSize: 14, marginTop: 3 }}>
+                  {transactions.length} / {FREE_TX_LIMIT} {t("premium.transactionsCount")}
                 </div>
               </div>
             </div>
-            <button onClick={onUpgrade} style={{ width: "100%", padding: "14px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", color: "#000", fontSize: 15, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", textAlign: "center", borderBottom: `1px solid ${T.border}` }}>
-              ⭐ {language === "en" ? "Upgrade to Premium" : "Auf Premium upgraden"}
+            <button onClick={onUpgrade} style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", color: "#000", fontSize: 16, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", textAlign: "center", borderBottom: `1px solid ${T.border}` }}>
+              ⭐ {t("premium.upgradeBtn")}
             </button>
-            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: T.textMuted, fontSize: 14, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
-              {language === "en" ? "Restore Purchases" : "Käufe wiederherstellen"}
+            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "16px 18px", background: "none", border: "none", color: T.textMuted, fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
+              {t("premium.restoreBtn")}
             </button>
           </>
         )}
@@ -1960,7 +1958,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.5.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.5.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1975,8 +1973,8 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         {/* DEV: Premium-Status manuell wechseln (für Tests, vor Phase B) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
           <div style={{ flex: 1 }}>
-            <span style={{ color: T.text, fontSize: 15 }}>🛠 Dev: Premium-Test</span>
-            <div style={{ color: T.textFaint, fontSize: 11, marginTop: 2 }}>{language === "en" ? "Toggle for testing" : "Schalter zum Testen"}</div>
+            <span style={{ color: T.text, fontSize: 15 }}>🛠 Dev: Premium</span>
+            <div style={{ color: T.textFaint, fontSize: 11, marginTop: 2 }}>Toggle for testing</div>
           </div>
           <button
             onClick={() => {
@@ -2566,20 +2564,12 @@ function BottomNav({ view, setView, onAdd, T, language }) {
 // ── Paywall Modal ─────────────────────────────────────────────────────────────
 function PaywallModal({ onClose, T, language, reason = "limit" }) {
   // reason: "limit" (25 TX erreicht) oder "feature" (KI-Tool angeklickt)
+  const t = tr(translations, language);
   const isNative = isNativePlatform();
-  const titleText = reason === "limit"
-    ? (language === "en" ? "Transaction Limit Reached" : "Transaktions-Limit erreicht")
-    : (language === "en" ? "Premium Feature" : "Premium-Funktion");
+  const titleText = reason === "limit" ? t("premium.paywallLimitTitle") : t("premium.paywallFeatureTitle");
   const bodyText = reason === "limit"
-    ? (language === "en"
-        ? `You've reached the free limit of ${FREE_TX_LIMIT} transactions. Existing transactions stay visible. Upgrade to Premium to add unlimited transactions and unlock AI tools.`
-        : `Du hast das kostenlose Limit von ${FREE_TX_LIMIT} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Upgrade auf Premium für unbegrenzte Transaktionen und KI-Tools.`)
-    : (language === "en"
-        ? "AI tools (News, Portfolio analysis, Market commentary) are part of Trackoshi BTC Premium."
-        : "KI-Tools (News, Portfolio-Analyse, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.");
-  const webNoticeText = language === "en"
-    ? "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to upgrade."
-    : "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um zu upgraden.";
+    ? t("premium.paywallLimitBody").replace("{limit}", FREE_TX_LIMIT)
+    : t("premium.paywallFeatureBody");
 
   // Mock-Purchase (Phase A): nur für Testzwecke. In Phase B wird das durch RevenueCat ersetzt.
   const handleMockPurchase = (plan) => {
@@ -2587,9 +2577,7 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
     setPremiumStatus(true);
     onClose();
     setTimeout(() => {
-      alert(language === "en"
-        ? "Premium activated (test mode). RevenueCat integration follows in Phase B."
-        : "Premium aktiviert (Testmodus). RevenueCat-Integration folgt in Phase B.");
+      alert(t("premium.mockPurchaseSuccess"));
     }, 100);
   };
 
@@ -2602,26 +2590,26 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #f7931a, #e07b10)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>⭐</div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#f7931a", letterSpacing: "0.05em", textTransform: "uppercase" }}>Trackoshi BTC Premium</div>
-            <div style={{ fontSize: 19, fontWeight: 700 }}>{titleText}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#f7931a", letterSpacing: "0.05em", textTransform: "uppercase" }}>{t("premium.planPremium")}</div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{titleText}</div>
           </div>
         </div>
 
-        <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>{bodyText}</div>
+        <div style={{ color: T.textMuted, fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>{bodyText}</div>
 
         {/* Features-Liste */}
         <div style={{ background: T.input, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: T.textFaint, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-            {language === "en" ? "Premium includes" : "Premium beinhaltet"}
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.textFaint, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+            {t("premium.paywallIncludes")}
           </div>
           {[
-            language === "en" ? "Unlimited transactions" : "Unbegrenzte Transaktionen",
-            language === "en" ? "AI News Briefing" : "KI News-Briefing",
-            language === "en" ? "AI Portfolio analysis" : "KI Portfolio-Analyse",
-            language === "en" ? "AI Market commentary" : "KI Markt-Kommentar",
+            t("premium.featureUnlimited"),
+            t("premium.featureNews"),
+            t("premium.featurePortfolio"),
+            t("premium.featureMarket"),
           ].map((feature, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: T.text, marginBottom: i === 3 ? 0 : 8 }}>
-              <span style={{ color: "#34c759", fontSize: 16, fontWeight: 700 }}>✓</span>
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: T.text, marginBottom: i === 3 ? 0 : 8 }}>
+              <span style={{ color: "#34c759", fontSize: 17, fontWeight: 700 }}>✓</span>
               {feature}
             </div>
           ))}
@@ -2629,9 +2617,9 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
 
         {/* Web vs. iOS */}
         {!isNative ? (
-          <div style={{ background: "#fff8f0", border: "1px solid rgba(247,147,26,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 14, color: "#1c1c1e", fontSize: 13, lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>📱 {language === "en" ? "Get the App" : "App holen"}</div>
-            {webNoticeText}
+          <div style={{ background: "#fff8f0", border: "1px solid rgba(247,147,26,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 14, color: "#1c1c1e", fontSize: 14, lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>📱 {t("premium.webNoticeTitle")}</div>
+            {t("premium.webNoticeText")}
           </div>
         ) : (
           <>
@@ -2640,14 +2628,14 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
               onClick={() => handleMockPurchase("yearly")}
               style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: "pointer", color: "#000", fontFamily: "inherit", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}
             >
-              <div style={{ position: "absolute", top: -8, right: 14, background: "#34c759", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8, letterSpacing: "0.05em" }}>
-                {language === "en" ? "BEST VALUE" : "BESTER PREIS"}
+              <div style={{ position: "absolute", top: -8, right: 14, background: "#34c759", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 8, letterSpacing: "0.05em" }}>
+                {t("premium.badgeBestValue")}
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>{language === "en" ? "Yearly" : "Jährlich"}</div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>{language === "en" ? "CHF 2.42 / month, billed yearly" : "CHF 2.42 / Monat, jährlich abgerechnet"}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{t("premium.planYearly")}</div>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>{t("premium.planYearlyHint")}</div>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>CHF 29.00</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>CHF 29.00</div>
             </button>
 
             {/* Monthly */}
@@ -2656,32 +2644,30 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
               style={{ width: "100%", padding: "16px 18px", background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 14, cursor: "pointer", color: T.text, fontFamily: "inherit", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}
             >
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{language === "en" ? "Monthly" : "Monatlich"}</div>
-                <div style={{ fontSize: 12, color: T.textFaint }}>{language === "en" ? "Cancel anytime" : "Jederzeit kündbar"}</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{t("premium.planMonthly")}</div>
+                <div style={{ fontSize: 13, color: T.textFaint }}>{t("premium.planMonthlyHint")}</div>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>CHF 3.90</div>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>CHF 3.90</div>
             </button>
           </>
         )}
 
         {/* Hinweistext zu Apple-Bedingungen */}
         {isNative && (
-          <div style={{ fontSize: 11, color: T.textFaint, lineHeight: 1.4, marginBottom: 14, textAlign: "center" }}>
-            {language === "en"
-              ? "Subscriptions auto-renew unless cancelled at least 24 hours before period ends. Manage in App Store settings."
-              : "Abos verlängern sich automatisch, wenn nicht mind. 24 Stunden vor Periodenende gekündigt. Verwaltung in App Store-Einstellungen."}
+          <div style={{ fontSize: 12, color: T.textFaint, lineHeight: 1.4, marginBottom: 14, textAlign: "center" }}>
+            {t("premium.autoRenewNotice")}
           </div>
         )}
 
-        <button onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
-          {language === "en" ? "Maybe later" : "Vielleicht später"}
+        <button onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>
+          {t("premium.maybeLater")}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Main App — v3.5.0 (Free/Premium Logic) ──────────────────────────────────
+// ── Main App — v3.5.1 (Free/Premium Logic + i18n refactor) ──────────────────
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -2736,15 +2722,11 @@ export default function App() {
   // Restore Purchases (Phase A: keine echte Aktion, Phase B: RevenueCat)
   const handleRestorePurchases = () => {
     if (!isNativePlatform()) {
-      alert(language === "en"
-        ? "Restore is only available in the iOS app."
-        : "Wiederherstellen ist nur in der iOS-App verfügbar.");
+      alert(tr(translations, language)("premium.restoreWebOnly"));
       return;
     }
     // Phase A: zeige Hinweis. Phase B: ruft Purchases.restorePurchases() auf.
-    alert(language === "en"
-      ? "No previous purchases found. RevenueCat integration follows in Phase B."
-      : "Keine früheren Käufe gefunden. RevenueCat-Integration folgt in Phase B.");
+    alert(tr(translations, language)("premium.restoreNothingFound"));
   };
 
 
@@ -3263,15 +3245,15 @@ export default function App() {
                   <div onClick={() => openPaywall("limit")} style={{ background: "linear-gradient(135deg, #fff4e6, #ffe8cc)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: 14, padding: "12px 14px", marginTop: 12, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
                     <div style={{ fontSize: 22 }}>🔒</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-                        {language === "en" ? `Free limit reached (${FREE_TX_LIMIT})` : `Free-Limit erreicht (${FREE_TX_LIMIT})`}
+                      <div style={{ color: "#1c1c1e", fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
+                        {t("premium.bannerLimitReached").replace("{limit}", FREE_TX_LIMIT)}
                       </div>
-                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.3 }}>
-                        {language === "en" ? "Upgrade for unlimited transactions" : "Upgrade für unbegrenzte Transaktionen"}
+                      <div style={{ color: "#636366", fontSize: 12, lineHeight: 1.3 }}>
+                        {t("premium.bannerLimitSubtitle")}
                       </div>
                     </div>
-                    <div style={{ background: "#f7931a", color: "#000", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8, flexShrink: 0 }}>
-                      {language === "en" ? "Upgrade" : "Upgrade"}
+                    <div style={{ background: "#f7931a", color: "#000", fontSize: 12, fontWeight: 700, padding: "5px 10px", borderRadius: 8, flexShrink: 0 }}>
+                      {t("premium.bannerUpgradeBtn")}
                     </div>
                   </div>
                 )}
@@ -3326,8 +3308,8 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em" }}>{t("tools.aiTools")}</div>
                   {!isPremium && (
-                    <button onClick={() => openPaywall("feature")} style={{ background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 10, padding: "4px 10px", color: "#000", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.05em" }}>
-                      {language === "en" ? "★ PREMIUM" : "★ PREMIUM"}
+                    <button onClick={() => openPaywall("feature")} style={{ background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 12, padding: "7px 14px", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.02em", boxShadow: "0 2px 8px rgba(247,147,26,0.3)" }}>
+                      {t("premium.premiumBadge")}
                     </button>
                   )}
                 </div>
