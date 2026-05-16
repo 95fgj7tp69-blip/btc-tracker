@@ -30,6 +30,24 @@ const api = {
   remove: (id, token) => fetch(`${API_BASE}/api/transactions/${id}`, { method: "DELETE", headers: authHeaders(token) }).then(r => r.json()),
 };
 
+// ── Free / Premium Konfiguration ──────────────────────────────────────────────
+// Free-Plan: max. 25 Transaktionen, keine KI-Tools
+// Premium: unbegrenzte Transaktionen + alle KI-Tools
+// RevenueCat-Integration kommt in Phase B (separater Schritt nach Submission-Vorbereitung)
+const FREE_TX_LIMIT = 25;
+const isNativePlatform = () => {
+  try {
+    return typeof window !== "undefined" && window.location.protocol.startsWith("capacitor");
+  } catch { return false; }
+};
+// Liest Premium-Status aus localStorage. In Phase B wird das von RevenueCat überschrieben.
+const getPremiumStatus = () => {
+  try { return localStorage.getItem("isPremium") === "true"; } catch { return false; }
+};
+const setPremiumStatus = (v) => {
+  try { localStorage.setItem("isPremium", String(v)); } catch {}
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtChf = (n, d = 2) => new Intl.NumberFormat("de-CH", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
 const fmtUsd = (n) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -1635,7 +1653,7 @@ function OnboardingScreen({ onFinish, T, language, onShowDemo }) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale, showFearGreed = false, setShowFearGreed, showMarketChart = true, setShowMarketChart, showPositionCard = true, setShowPositionCard }) {
+function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLogout, currency = "CHF", setCurrency, usdChf = 0.9, eurUsd = 0.92, btcChf = 0, btcUsd = 0, onResetOnboarding, onImport, costMethod = "FIFO", setCostMethod, language, setLanguage, secondaryCurrency = "none", setSecondaryCurrency, fontScale = "M", setFontScale, showFearGreed = false, setShowFearGreed, showMarketChart = true, setShowMarketChart, showPositionCard = true, setShowPositionCard, isPremium = false, onUpgrade, onRestorePurchases }) {
   const t = tr(translations, language);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAgbModal, setShowAgbModal] = useState(false);
@@ -1711,6 +1729,50 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         <div style={{ padding: "4px 0" }}>
           <button onClick={onLogout} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: "#ef4444", fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>{t("settings.abmelden")}</button>
         </div>
+      </div>
+
+      {/* ABONNEMENT */}
+      <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>
+        {language === "en" ? "SUBSCRIPTION" : "ABONNEMENT"}
+      </div>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+        {isPremium ? (
+          <>
+            <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 22 }}>⭐</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: T.text, fontSize: 15, fontWeight: 600 }}>Trackoshi BTC Premium</div>
+                <div style={{ color: "#34c759", fontSize: 12, marginTop: 2 }}>{language === "en" ? "Active" : "Aktiv"}</div>
+              </div>
+            </div>
+            <div style={{ padding: "12px 18px", color: T.textMuted, fontSize: 12, lineHeight: 1.5, borderBottom: `1px solid ${T.border}` }}>
+              {language === "en"
+                ? "Manage your subscription in the App Store under Settings → [Your Name] → Subscriptions."
+                : "Verwalte dein Abo im App Store unter Einstellungen → [Dein Name] → Abonnements."}
+            </div>
+            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: T.text, fontSize: 15, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
+              {language === "en" ? "Restore Purchases" : "Käufe wiederherstellen"}
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: T.input, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👤</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{language === "en" ? "Free Plan" : "Free-Plan"}</div>
+                <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>
+                  {transactions.length} / {FREE_TX_LIMIT} {language === "en" ? "transactions" : "Transaktionen"}
+                </div>
+              </div>
+            </div>
+            <button onClick={onUpgrade} style={{ width: "100%", padding: "14px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", color: "#000", fontSize: 15, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", textAlign: "center", borderBottom: `1px solid ${T.border}` }}>
+              ⭐ {language === "en" ? "Upgrade to Premium" : "Auf Premium upgraden"}
+            </button>
+            <button onClick={onRestorePurchases} style={{ width: "100%", padding: "14px 18px", background: "none", border: "none", color: T.textMuted, fontSize: 14, fontFamily: "inherit", cursor: "pointer", textAlign: "left" }}>
+              {language === "en" ? "Restore Purchases" : "Käufe wiederherstellen"}
+            </button>
+          </>
+        )}
       </div>
 
       {/* DARSTELLUNG */}
@@ -1898,7 +1960,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.4.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.5.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1908,6 +1970,24 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
           <span style={{ color: T.text, fontSize: 15 }}>{t("settings.onboardingReset")}</span>
           <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
+        </div>
+
+        {/* DEV: Premium-Status manuell wechseln (für Tests, vor Phase B) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <div style={{ flex: 1 }}>
+            <span style={{ color: T.text, fontSize: 15 }}>🛠 Dev: Premium-Test</span>
+            <div style={{ color: T.textFaint, fontSize: 11, marginTop: 2 }}>{language === "en" ? "Toggle for testing" : "Schalter zum Testen"}</div>
+          </div>
+          <button
+            onClick={() => {
+              const newVal = !isPremium;
+              setPremiumStatus(newVal);
+              window.location.reload();
+            }}
+            style={{ background: isPremium ? "#34c759" : T.input, border: `1px solid ${T.border}`, color: isPremium ? "#fff" : T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}
+          >
+            {isPremium ? "Premium ON" : "Free"}
+          </button>
         </div>
       </div>
 
@@ -2483,7 +2563,125 @@ function BottomNav({ view, setView, onAdd, T, language }) {
   );
 }
 
-// ── Main App — v2.1.0 ───────────────────────────────────────────────────────
+// ── Paywall Modal ─────────────────────────────────────────────────────────────
+function PaywallModal({ onClose, T, language, reason = "limit" }) {
+  // reason: "limit" (25 TX erreicht) oder "feature" (KI-Tool angeklickt)
+  const isNative = isNativePlatform();
+  const titleText = reason === "limit"
+    ? (language === "en" ? "Transaction Limit Reached" : "Transaktions-Limit erreicht")
+    : (language === "en" ? "Premium Feature" : "Premium-Funktion");
+  const bodyText = reason === "limit"
+    ? (language === "en"
+        ? `You've reached the free limit of ${FREE_TX_LIMIT} transactions. Existing transactions stay visible. Upgrade to Premium to add unlimited transactions and unlock AI tools.`
+        : `Du hast das kostenlose Limit von ${FREE_TX_LIMIT} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Upgrade auf Premium für unbegrenzte Transaktionen und KI-Tools.`)
+    : (language === "en"
+        ? "AI tools (News, Portfolio analysis, Market commentary) are part of Trackoshi BTC Premium."
+        : "KI-Tools (News, Portfolio-Analyse, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.");
+  const webNoticeText = language === "en"
+    ? "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to upgrade."
+    : "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um zu upgraden.";
+
+  // Mock-Purchase (Phase A): nur für Testzwecke. In Phase B wird das durch RevenueCat ersetzt.
+  const handleMockPurchase = (plan) => {
+    if (!isNative) return; // Im Web kein Kauf möglich
+    setPremiumStatus(true);
+    onClose();
+    setTimeout(() => {
+      alert(language === "en"
+        ? "Premium activated (test mode). RevenueCat integration follows in Phase B."
+        : "Premium aktiviert (Testmodus). RevenueCat-Integration folgt in Phase B.");
+    }, 100);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, color: T.text, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "24px 20px 32px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ width: 40, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 18px" }} />
+
+        {/* Hero */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #f7931a, #e07b10)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>⭐</div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#f7931a", letterSpacing: "0.05em", textTransform: "uppercase" }}>Trackoshi BTC Premium</div>
+            <div style={{ fontSize: 19, fontWeight: 700 }}>{titleText}</div>
+          </div>
+        </div>
+
+        <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>{bodyText}</div>
+
+        {/* Features-Liste */}
+        <div style={{ background: T.input, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.textFaint, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+            {language === "en" ? "Premium includes" : "Premium beinhaltet"}
+          </div>
+          {[
+            language === "en" ? "Unlimited transactions" : "Unbegrenzte Transaktionen",
+            language === "en" ? "AI News Briefing" : "KI News-Briefing",
+            language === "en" ? "AI Portfolio analysis" : "KI Portfolio-Analyse",
+            language === "en" ? "AI Market commentary" : "KI Markt-Kommentar",
+          ].map((feature, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: T.text, marginBottom: i === 3 ? 0 : 8 }}>
+              <span style={{ color: "#34c759", fontSize: 16, fontWeight: 700 }}>✓</span>
+              {feature}
+            </div>
+          ))}
+        </div>
+
+        {/* Web vs. iOS */}
+        {!isNative ? (
+          <div style={{ background: "#fff8f0", border: "1px solid rgba(247,147,26,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 14, color: "#1c1c1e", fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>📱 {language === "en" ? "Get the App" : "App holen"}</div>
+            {webNoticeText}
+          </div>
+        ) : (
+          <>
+            {/* Yearly (besser deal) */}
+            <button
+              onClick={() => handleMockPurchase("yearly")}
+              style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: "pointer", color: "#000", fontFamily: "inherit", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}
+            >
+              <div style={{ position: "absolute", top: -8, right: 14, background: "#34c759", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8, letterSpacing: "0.05em" }}>
+                {language === "en" ? "BEST VALUE" : "BESTER PREIS"}
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{language === "en" ? "Yearly" : "Jährlich"}</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>{language === "en" ? "CHF 2.42 / month, billed yearly" : "CHF 2.42 / Monat, jährlich abgerechnet"}</div>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>CHF 29.00</div>
+            </button>
+
+            {/* Monthly */}
+            <button
+              onClick={() => handleMockPurchase("monthly")}
+              style={{ width: "100%", padding: "16px 18px", background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 14, cursor: "pointer", color: T.text, fontFamily: "inherit", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{language === "en" ? "Monthly" : "Monatlich"}</div>
+                <div style={{ fontSize: 12, color: T.textFaint }}>{language === "en" ? "Cancel anytime" : "Jederzeit kündbar"}</div>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>CHF 3.90</div>
+            </button>
+          </>
+        )}
+
+        {/* Hinweistext zu Apple-Bedingungen */}
+        {isNative && (
+          <div style={{ fontSize: 11, color: T.textFaint, lineHeight: 1.4, marginBottom: 14, textAlign: "center" }}>
+            {language === "en"
+              ? "Subscriptions auto-renew unless cancelled at least 24 hours before period ends. Manage in App Store settings."
+              : "Abos verlängern sich automatisch, wenn nicht mind. 24 Stunden vor Periodenende gekündigt. Verwaltung in App Store-Einstellungen."}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
+          {language === "en" ? "Maybe later" : "Vielleicht später"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App — v3.5.0 (Free/Premium Logic) ──────────────────────────────────
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -2514,6 +2712,41 @@ export default function App() {
     try { return localStorage.getItem("onboardingDone") !== "true"; } catch { return true; }
   });
   const [showDemoAfterOnboarding, setShowDemoAfterOnboarding] = useState(false);
+
+  // ── Premium State (Phase A: localStorage. Phase B: RevenueCat) ──────────────
+  const [isPremium, setIsPremium] = useState(() => getPremiumStatus());
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallReason, setPaywallReason] = useState("limit"); // "limit" | "feature"
+
+  // Sync mit localStorage, falls in einem anderen Tab geändert
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "isPremium") setIsPremium(e.newValue === "true");
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  // Helper für Komponenten zum Öffnen der Paywall
+  const openPaywall = (reason = "limit") => {
+    setPaywallReason(reason);
+    setShowPaywall(true);
+  };
+
+  // Restore Purchases (Phase A: keine echte Aktion, Phase B: RevenueCat)
+  const handleRestorePurchases = () => {
+    if (!isNativePlatform()) {
+      alert(language === "en"
+        ? "Restore is only available in the iOS app."
+        : "Wiederherstellen ist nur in der iOS-App verfügbar.");
+      return;
+    }
+    // Phase A: zeige Hinweis. Phase B: ruft Purchases.restorePurchases() auf.
+    alert(language === "en"
+      ? "No previous purchases found. RevenueCat integration follows in Phase B."
+      : "Keine früheren Käufe gefunden. RevenueCat-Integration folgt in Phase B.");
+  };
+
 
   const finishOnboarding = () => {
     try { localStorage.setItem("onboardingDone", "true"); } catch {}
@@ -2739,6 +2972,12 @@ export default function App() {
       const updated = await api.update(form, token);
       setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
     } else {
+      // ── Free-Limit-Check (nur bei neuen Transaktionen) ─────────────────────
+      if (!isPremium && transactions.length >= FREE_TX_LIMIT) {
+        setShowModal(false);
+        openPaywall("limit");
+        return;
+      }
       const created = await api.create(form, token);
       setTransactions(prev => [...prev, created]);
     }
@@ -2757,6 +2996,10 @@ export default function App() {
   const handleImportTransactions = async (rows) => {
     let count = 0;
     for (const row of rows) {
+      // Free-Limit-Check beim Import: stoppe wenn Limit erreicht
+      if (!isPremium && (transactions.length + count) >= FREE_TX_LIMIT) {
+        break;
+      }
       try {
         const created = await api.create(row, token);
         if (created?.id) {
@@ -2862,6 +3105,11 @@ export default function App() {
   })();
 
   const callClaudeAI = async (tool) => {
+    // ── Premium-Check ───────────────────────────────────────────────────────
+    if (!isPremium) {
+      openPaywall("feature");
+      return;
+    }
     setAiLoading(true);
     setAiActiveTool(tool);
     setAiResult(null);
@@ -3010,6 +3258,23 @@ export default function App() {
             )}
             {view === "verlauf" && (
               <div style={{ ...scrollStyle, padding: "0 16px" }}>
+                {/* Free-Limit-Banner */}
+                {!isPremium && transactions.length >= FREE_TX_LIMIT && (
+                  <div onClick={() => openPaywall("limit")} style={{ background: "linear-gradient(135deg, #fff4e6, #ffe8cc)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: 14, padding: "12px 14px", marginTop: 12, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                    <div style={{ fontSize: 22 }}>🔒</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                        {language === "en" ? `Free limit reached (${FREE_TX_LIMIT})` : `Free-Limit erreicht (${FREE_TX_LIMIT})`}
+                      </div>
+                      <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.3 }}>
+                        {language === "en" ? "Upgrade for unlimited transactions" : "Upgrade für unbegrenzte Transaktionen"}
+                      </div>
+                    </div>
+                    <div style={{ background: "#f7931a", color: "#000", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8, flexShrink: 0 }}>
+                      {language === "en" ? "Upgrade" : "Upgrade"}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 16, paddingTop: 4 }}>
                   {[["all", t("verlauf.alle")], ...Object.entries(getTypeMeta(t)).map(([k, v]) => [k, v.label])].map(([id, label]) => (
                     <button key={id} onClick={() => setTxFilter(id)} style={{ padding: "5px 11px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit", background: txFilter === id ? T.text : T.surface, color: txFilter === id ? T.bg : T.textMuted, border: `1px solid ${txFilter === id ? T.text : T.border}`, fontWeight: txFilter === id ? 500 : 400 }}>{label}</button>
@@ -3058,19 +3323,27 @@ export default function App() {
                 </div>
 
                 {/* KI-Tools */}
-                <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginBottom: 10 }}>{t("tools.aiTools")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em" }}>{t("tools.aiTools")}</div>
+                  {!isPremium && (
+                    <button onClick={() => openPaywall("feature")} style={{ background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 10, padding: "4px 10px", color: "#000", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.05em" }}>
+                      {language === "en" ? "★ PREMIUM" : "★ PREMIUM"}
+                    </button>
+                  )}
+                </div>
 
                 {/* News-Briefing — volle Breite */}
                 <button
                   onClick={() => callClaudeAI("news")}
                   disabled={aiLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, marginBottom: 10 }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, marginBottom: 10, position: "relative" }}
                 >
                   <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📰</div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiNewsBtn")}</div>
                     <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiNewsBtnHint")}</div>
                   </div>
+                  {!isPremium && <div style={{ fontSize: 18, color: "#f7931a", flexShrink: 0 }}>🔒</div>}
                 </button>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
@@ -3079,8 +3352,9 @@ export default function App() {
                   <button
                     onClick={() => callClaudeAI("portfolio")}
                     disabled={aiLoading || totalBtc === 0}
-                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1 }}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading || totalBtc === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading || totalBtc === 0 ? 0.5 : 1, position: "relative" }}
                   >
+                    {!isPremium && <div style={{ position: "absolute", top: 10, right: 10, fontSize: 16, color: "#f7931a" }}>🔒</div>}
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📊</div>
                     <div>
                       <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiPortfolioBtn")}</div>
@@ -3092,8 +3366,9 @@ export default function App() {
                   <button
                     onClick={() => callClaudeAI("market")}
                     disabled={aiLoading}
-                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1 }}
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, position: "relative" }}
                   >
+                    {!isPremium && <div style={{ position: "absolute", top: 10, right: 10, fontSize: 16, color: "#f7931a" }}>🔒</div>}
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🌐</div>
                     <div>
                       <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
@@ -3157,7 +3432,7 @@ export default function App() {
               <div style={{ color: T.text, fontSize: 19, fontWeight: 600 }}>{t("settings.title")}</div>
               <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>{t("settings.close")}</button>
             </div>
-            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} showFearGreed={showFearGreed} setShowFearGreed={setShowFearGreed} showMarketChart={showMarketChart} setShowMarketChart={setShowMarketChart} showPositionCard={showPositionCard} setShowPositionCard={setShowPositionCard} />
+            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} T={T} transactions={transactions} userEmail={session?.user?.email} onLogout={() => { setShowSettings(false); handleLogout(); }} currency={currency} setCurrency={setCurrency} usdChf={usdChf} eurUsd={eurUsd} btcChf={btcChf} btcUsd={btcUsd} onResetOnboarding={() => { setShowSettings(false); resetOnboarding(); }} onImport={handleImportTransactions} costMethod={costMethod} setCostMethod={setCostMethod} language={language} setLanguage={setLanguage} secondaryCurrency={secondaryCurrency} setSecondaryCurrency={setSecondaryCurrency} fontScale={fontScale} setFontScale={setFontScale} showFearGreed={showFearGreed} setShowFearGreed={setShowFearGreed} showMarketChart={showMarketChart} setShowMarketChart={setShowMarketChart} showPositionCard={showPositionCard} setShowPositionCard={setShowPositionCard} isPremium={isPremium} onUpgrade={() => { setShowSettings(false); openPaywall("feature"); }} onRestorePurchases={handleRestorePurchases} />
           </div>
         </div>
       )}
@@ -3174,6 +3449,7 @@ export default function App() {
       )}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
+      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} T={T} language={language} reason={paywallReason} />}
     </>
   );
 }
