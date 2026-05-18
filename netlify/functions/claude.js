@@ -1,6 +1,6 @@
 // netlify/functions/claude.js
 // Claude AI Tools: Portfolio-Analyse + Markt-Kommentar + News-Briefing
-// Version: 1.21.0 — CommonJS Format
+// Version: 1.22.0 — Fix #1: Exakte Zahlen-Übergabe für Portfolio-Analyse
 
 const headers = {
   "Content-Type": "application/json",
@@ -40,7 +40,9 @@ exports.handler = async (event) => {
 
   const portfolioPromptDe = `Du bist ein sachlicher Bitcoin-Portfolio-Analyst. Analysiere das folgende Portfolio und gib eine klare, ehrliche Einschätzung auf Deutsch.
 
-Portfolio-Daten:
+WICHTIG: Die folgenden Werte sind bereits exakt berechnet von der App. Verwende sie EXAKT wie angegeben in deiner Antwort. Rechne sie NICHT nach, runde sie NICHT und verändere sie NICHT. Zitiere die Zahlen genau wie sie hier stehen.
+
+Portfolio-Daten (exakt berechnet):
 - BTC-Bestand: ${p.totalBtc} BTC
 - Investiert: ${p.invested} ${p.currency}
 - Portfoliowert heute: ${p.value} ${p.currency}
@@ -56,11 +58,13 @@ Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
 2. **Stärken** — Was läuft gut?
 3. **Risiken & Hinweise** — Was sollte beachtet werden?
 
-Kein Finanzberatungs-Disclaimer nötig. Direkt und auf den Punkt.`;
+Wenn du Zahlen erwähnst, verwende ausschließlich die oben angegebenen Werte. Kein Finanzberatungs-Disclaimer nötig. Direkt und auf den Punkt.`;
 
   const portfolioPromptEn = `You are a factual Bitcoin portfolio analyst. Analyze the following portfolio and provide a clear, honest assessment in English.
 
-Portfolio data:
+IMPORTANT: The following values are already exactly calculated by the app. Use them EXACTLY as given in your response. Do NOT recalculate, round, or modify them. Quote the numbers precisely as they appear here.
+
+Portfolio data (exactly calculated):
 - BTC balance: ${p.totalBtc} BTC
 - Invested: ${p.invested} ${p.currency}
 - Portfolio value today: ${p.value} ${p.currency}
@@ -76,7 +80,7 @@ Structure your response in exactly 3 short sections (2-3 sentences each):
 2. **Strengths** — What is going well?
 3. **Risks & Notes** — What should be considered?
 
-No financial advice disclaimer needed. Direct and to the point.`;
+When mentioning numbers, use only the values provided above. No financial advice disclaimer needed. Direct and to the point.`;
 
   const newsPromptDe = `Du bist ein prägnanter Bitcoin-News-Analyst. Fasse die wichtigsten aktuellen BTC-News der letzten 24-48 Stunden auf Deutsch zusammen.
 
