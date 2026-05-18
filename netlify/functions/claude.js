@@ -1,6 +1,6 @@
 // netlify/functions/claude.js
 // Claude AI Tools: Portfolio-Analyse + Markt-Kommentar + News-Briefing
-// Version: 1.22.0 — Fix #1: Exakte Zahlen-Übergabe für Portfolio-Analyse
+// Version: 1.23.0 — Variante 2: Qualitative Portfolio-Analyse (keine konkreten Beträge/Prozente)
 
 const headers = {
   "Content-Type": "application/json",
@@ -40,9 +40,21 @@ exports.handler = async (event) => {
 
   const portfolioPromptDe = `Du bist ein sachlicher Bitcoin-Portfolio-Analyst. Analysiere das folgende Portfolio und gib eine klare, ehrliche Einschätzung auf Deutsch.
 
-WICHTIG: Die folgenden Werte sind bereits exakt berechnet von der App. Verwende sie EXAKT wie angegeben in deiner Antwort. Rechne sie NICHT nach, runde sie NICHT und verändere sie NICHT. Zitiere die Zahlen genau wie sie hier stehen.
+WICHTIG — REGELN FÜR ZAHLEN IN DEINER ANTWORT:
+Die User sehen die exakten Beträge bereits in der App. Deine Aufgabe ist eine QUALITATIVE Einordnung.
 
-Portfolio-Daten (exakt berechnet):
+VERBOTEN in deiner Antwort:
+- Konkrete Geldbeträge (z.B. "44'016 CHF", "38'882 EUR", "59'866 USD")
+- Konkrete Prozentwerte für Gewinn/Verlust (z.B. "+81.9%", "-12.3%")
+- Konkrete Einstandspreise oder BTC-Kurse als Zahl
+
+ERLAUBT in deiner Antwort:
+- Anzahl Transaktionen (z.B. "45 Transaktionen")
+- Datumsangaben (z.B. "seit Januar 2022")
+- Methodenname (z.B. "FIFO", "AVCO")
+- Qualitative Beschreibungen ("deutlich im Gewinn", "stark gewachsen", "moderat", "leicht im Minus", "Einstandspreis deutlich unter dem aktuellen Kurs")
+
+Portfolio-Daten (NUR als Kontext für deine Einschätzung — NICHT in deiner Antwort wiederholen):
 - BTC-Bestand: ${p.totalBtc} BTC
 - Investiert: ${p.invested} ${p.currency}
 - Portfoliowert heute: ${p.value} ${p.currency}
@@ -54,17 +66,29 @@ Portfolio-Daten (exakt berechnet):
 - Realisierter Gewinn/Verlust: ${p.realizedPnl} ${p.currency}
 
 Strukturiere deine Antwort in genau 3 kurze Abschnitte (je 2-3 Sätze):
-1. **Aktuelle Position** — Wo steht das Portfolio heute?
+1. **Aktuelle Position** — Wo steht das Portfolio qualitativ heute?
 2. **Stärken** — Was läuft gut?
 3. **Risiken & Hinweise** — Was sollte beachtet werden?
 
-Wenn du Zahlen erwähnst, verwende ausschließlich die oben angegebenen Werte. Kein Finanzberatungs-Disclaimer nötig. Direkt und auf den Punkt.`;
+Kein Finanzberatungs-Disclaimer nötig. Direkt und auf den Punkt.`;
 
   const portfolioPromptEn = `You are a factual Bitcoin portfolio analyst. Analyze the following portfolio and provide a clear, honest assessment in English.
 
-IMPORTANT: The following values are already exactly calculated by the app. Use them EXACTLY as given in your response. Do NOT recalculate, round, or modify them. Quote the numbers precisely as they appear here.
+IMPORTANT — RULES FOR NUMBERS IN YOUR RESPONSE:
+Users already see the exact amounts in the app. Your task is a QUALITATIVE assessment.
 
-Portfolio data (exactly calculated):
+FORBIDDEN in your response:
+- Concrete monetary amounts (e.g. "44,016 CHF", "38,882 EUR", "59,866 USD")
+- Concrete percentage values for gain/loss (e.g. "+81.9%", "-12.3%")
+- Concrete cost basis or BTC prices as a number
+
+ALLOWED in your response:
+- Number of transactions (e.g. "45 transactions")
+- Dates (e.g. "since January 2022")
+- Method name (e.g. "FIFO", "AVCO")
+- Qualitative descriptions ("clearly in profit", "strong growth", "moderate", "slightly negative", "cost basis well below current price")
+
+Portfolio data (context for your assessment ONLY — do NOT repeat in your response):
 - BTC balance: ${p.totalBtc} BTC
 - Invested: ${p.invested} ${p.currency}
 - Portfolio value today: ${p.value} ${p.currency}
@@ -76,11 +100,11 @@ Portfolio data (exactly calculated):
 - Realized gain/loss: ${p.realizedPnl} ${p.currency}
 
 Structure your response in exactly 3 short sections (2-3 sentences each):
-1. **Current Position** — Where does the portfolio stand today?
+1. **Current Position** — Where does the portfolio stand qualitatively today?
 2. **Strengths** — What is going well?
 3. **Risks & Notes** — What should be considered?
 
-When mentioning numbers, use only the values provided above. No financial advice disclaimer needed. Direct and to the point.`;
+No financial advice disclaimer needed. Direct and to the point.`;
 
   const newsPromptDe = `Du bist ein prägnanter Bitcoin-News-Analyst. Fasse die wichtigsten aktuellen BTC-News der letzten 24-48 Stunden auf Deutsch zusammen.
 
