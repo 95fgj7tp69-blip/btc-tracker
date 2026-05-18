@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev":   "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.3.3",
+    "@capacitor/core": "^8.3.3",
+    "@capacitor/ios": "^8.3.3",
+    "@revenuecat/purchases-capacitor": "^13.1.1",
     "@supabase/supabase-js": "^2.39.0",
-    "react":     "^18.2.0",
+    "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts":  "^2.12.0"
+    "recharts": "^2.12.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
