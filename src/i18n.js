@@ -444,8 +444,17 @@ export const translations = {
 
       // Restore Purchases Feedback
       restoreWebOnly:         "Wiederherstellen ist nur in der iOS-App verfügbar.",
-      restoreNothingFound:    "Keine früheren Käufe gefunden. RevenueCat-Integration folgt in Phase B.",
-      mockPurchaseSuccess:    "Premium aktiviert (Testmodus). RevenueCat-Integration folgt in Phase B.",
+      restoreNothingFound:    "Keine früheren Käufe gefunden.",
+      restoreSuccess:         "Käufe erfolgreich wiederhergestellt — Premium ist aktiv.",
+      restoreError:           "Wiederherstellen fehlgeschlagen. Bitte später erneut versuchen.",
+
+      // Purchase Feedback
+      mockPurchaseSuccess:    "Premium aktiviert (Testmodus).",
+      purchaseSuccess:        "Premium ist jetzt aktiv. Vielen Dank!",
+      purchaseError:          "Kauf konnte nicht abgeschlossen werden.",
+      purchaseNoPackage:      "Dieses Angebot ist gerade nicht verfügbar. Bitte später erneut versuchen.",
+      purchaseNotActive:      "Kauf erfolgt, aber Premium ist noch nicht aktiv. Bitte App neu starten oder Käufe wiederherstellen.",
+      purchasing:             "Kauf wird verarbeitet…",
     },
   },
 
@@ -863,8 +872,17 @@ export const translations = {
 
       // Restore Purchases feedback
       restoreWebOnly:         "Restore is only available in the iOS app.",
-      restoreNothingFound:    "No previous purchases found. RevenueCat integration follows in Phase B.",
-      mockPurchaseSuccess:    "Premium activated (test mode). RevenueCat integration follows in Phase B.",
+      restoreNothingFound:    "No previous purchases found.",
+      restoreSuccess:         "Purchases restored successfully — Premium is now active.",
+      restoreError:           "Restore failed. Please try again later.",
+
+      // Purchase feedback
+      mockPurchaseSuccess:    "Premium activated (test mode).",
+      purchaseSuccess:        "Premium is now active. Thank you!",
+      purchaseError:          "Purchase could not be completed.",
+      purchaseNoPackage:      "This offer is currently unavailable. Please try again later.",
+      purchaseNotActive:      "Purchase completed, but Premium is not yet active. Please restart the app or restore purchases.",
+      purchasing:             "Processing purchase…",
     },
   },
 };

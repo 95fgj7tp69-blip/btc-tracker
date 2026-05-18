@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Area, AreaChart, Line, LineChart, ComposedChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine, CartesianGrid } from "recharts";
+import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
 const TRACKOSHI_ICON = "data:image/png;base64,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";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
@@ -33,14 +34,25 @@ const api = {
 // ── Free / Premium Konfiguration ──────────────────────────────────────────────
 // Free-Plan: max. 25 Transaktionen, keine KI-Tools
 // Premium: unbegrenzte Transaktionen + alle KI-Tools
-// RevenueCat-Integration kommt in Phase B (separater Schritt nach Submission-Vorbereitung)
+// Premium-Status wird auf iOS via RevenueCat verwaltet, im Web via localStorage (Test/Demo)
 const FREE_TX_LIMIT = 25;
+
+// RevenueCat-Konfiguration
+const RC_API_KEY_IOS = "appl_dvzVFNnKTWODZDzgjvTZmJxURVm";
+const RC_ENTITLEMENT_ID = "premium"; // muss exakt mit dem Entitlement-Identifier in RevenueCat übereinstimmen
+
+// Fallback-Preise (Anzeige im Paywall, falls RevenueCat-Offerings nicht laden)
+const FALLBACK_PRICE_YEARLY = "CHF 29.00";
+const FALLBACK_PRICE_MONTHLY = "CHF 3.90";
+
 const isNativePlatform = () => {
   try {
     return typeof window !== "undefined" && window.location.protocol.startsWith("capacitor");
   } catch { return false; }
 };
-// Liest Premium-Status aus localStorage. In Phase B wird das von RevenueCat überschrieben.
+
+// Web/Dev-Fallback: liest Premium-Status aus localStorage.
+// Wird auf iOS NUR als Initialwert verwendet, bis RevenueCat den echten Status liefert.
 const getPremiumStatus = () => {
   try { return localStorage.getItem("isPremium") === "true"; } catch { return false; }
 };
@@ -1958,7 +1970,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.5.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.6.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -1970,7 +1982,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
 
-        {/* DEV: Premium-Status manuell wechseln (für Tests, vor Phase B) */}
+        {/* DEV: Premium-Status manuell wechseln (für lokale Tests, ohne RevenueCat-Roundtrip) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
           <div style={{ flex: 1 }}>
             <span style={{ color: T.text, fontSize: 15 }}>🛠 Dev: Premium</span>
@@ -2562,27 +2574,57 @@ function BottomNav({ view, setView, onAdd, T, language }) {
 }
 
 // ── Paywall Modal ─────────────────────────────────────────────────────────────
-function PaywallModal({ onClose, T, language, reason = "limit" }) {
+function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPurchaseSuccess }) {
   // reason: "limit" (25 TX erreicht) oder "feature" (KI-Tool angeklickt)
+  // offerings: RevenueCat-Offerings (null wenn nicht geladen) — wir benutzen die Live-Preise wenn vorhanden, sonst Fallback
   const t = tr(translations, language);
   const isNative = isNativePlatform();
+  const [purchasing, setPurchasing] = useState(false); // true während Apple-Dialog
   const titleText = reason === "limit" ? t("premium.paywallLimitTitle") : t("premium.paywallFeatureTitle");
   const bodyText = reason === "limit"
     ? t("premium.paywallLimitBody").replace("{limit}", FREE_TX_LIMIT)
     : t("premium.paywallFeatureBody");
 
-  // Mock-Purchase (Phase A): nur für Testzwecke. In Phase B wird das durch RevenueCat ersetzt.
-  const handleMockPurchase = (plan) => {
+  // Live-Preise von RevenueCat (Hybrid: Fallback wenn nicht verfügbar)
+  const annualPackage = offerings?.current?.annual ?? null;
+  const monthlyPackage = offerings?.current?.monthly ?? null;
+  const yearlyPriceString = annualPackage?.product?.priceString ?? FALLBACK_PRICE_YEARLY;
+  const monthlyPriceString = monthlyPackage?.product?.priceString ?? FALLBACK_PRICE_MONTHLY;
+
+  // Echter Kauf via RevenueCat (Apple-Dialog wird von iOS bereitgestellt)
+  const handlePurchase = async (plan) => {
     if (!isNative) return; // Im Web kein Kauf möglich
-    setPremiumStatus(true);
-    onClose();
-    setTimeout(() => {
-      alert(t("premium.mockPurchaseSuccess"));
-    }, 100);
+    const pkg = plan === "yearly" ? annualPackage : monthlyPackage;
+    if (!pkg) {
+      alert(t("premium.purchaseNoPackage"));
+      return;
+    }
+    setPurchasing(true);
+    try {
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+      const hasPremium = customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null;
+      if (hasPremium) {
+        setPremiumStatus(true);
+        onPurchaseSuccess?.();
+        onClose();
+        setTimeout(() => alert(t("premium.purchaseSuccess")), 100);
+      } else {
+        alert(t("premium.purchaseNotActive"));
+      }
+    } catch (err) {
+      // userCancelled = "PURCHASE_CANCELLED" oder code "1" — kein Fehler-Alert, einfach Modal offen lassen
+      const cancelled = err?.userCancelled || err?.code === "1" || /cancel/i.test(err?.message || "");
+      if (!cancelled) {
+        console.error("Purchase error:", err);
+        alert(t("premium.purchaseError") + (err?.message ? `\n\n${err.message}` : ""));
+      }
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={purchasing ? undefined : onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, color: T.text, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "24px 20px 32px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ width: 40, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 18px" }} />
 
@@ -2625,8 +2667,9 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
           <>
             {/* Yearly (besser deal) */}
             <button
-              onClick={() => handleMockPurchase("yearly")}
-              style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: "pointer", color: "#000", fontFamily: "inherit", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}
+              disabled={purchasing}
+              onClick={() => handlePurchase("yearly")}
+              style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: purchasing ? "wait" : "pointer", color: "#000", fontFamily: "inherit", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", opacity: purchasing ? 0.6 : 1 }}
             >
               <div style={{ position: "absolute", top: -8, right: 14, background: "#34c759", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 8, letterSpacing: "0.05em" }}>
                 {t("premium.badgeBestValue")}
@@ -2635,19 +2678,20 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{t("premium.planYearly")}</div>
                 <div style={{ fontSize: 13, opacity: 0.75 }}>{t("premium.planYearlyHint")}</div>
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>CHF 29.00</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{yearlyPriceString}</div>
             </button>
 
             {/* Monthly */}
             <button
-              onClick={() => handleMockPurchase("monthly")}
-              style={{ width: "100%", padding: "16px 18px", background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 14, cursor: "pointer", color: T.text, fontFamily: "inherit", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              disabled={purchasing}
+              onClick={() => handlePurchase("monthly")}
+              style={{ width: "100%", padding: "16px 18px", background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 14, cursor: purchasing ? "wait" : "pointer", color: T.text, fontFamily: "inherit", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", opacity: purchasing ? 0.6 : 1 }}
             >
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontSize: 16, fontWeight: 600 }}>{t("premium.planMonthly")}</div>
                 <div style={{ fontSize: 13, color: T.textFaint }}>{t("premium.planMonthlyHint")}</div>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>CHF 3.90</div>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>{monthlyPriceString}</div>
             </button>
           </>
         )}
@@ -2659,15 +2703,15 @@ function PaywallModal({ onClose, T, language, reason = "limit" }) {
           </div>
         )}
 
-        <button onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>
-          {t("premium.maybeLater")}
+        <button disabled={purchasing} onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: purchasing ? "wait" : "pointer", fontSize: 15, fontFamily: "inherit", opacity: purchasing ? 0.6 : 1 }}>
+          {purchasing ? t("premium.purchasing") : t("premium.maybeLater")}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Main App — v3.5.1 (Free/Premium Logic + i18n refactor) ──────────────────
+// ── Main App — v3.6.0 (RevenueCat Integration + Bug #1 Fix: KI-Analyse Rohzahlen) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -2699,12 +2743,16 @@ export default function App() {
   });
   const [showDemoAfterOnboarding, setShowDemoAfterOnboarding] = useState(false);
 
-  // ── Premium State (Phase A: localStorage. Phase B: RevenueCat) ──────────────
+  // ── Premium State ─────────────────────────────────────────────────────────
+  // Initial-Wert aus localStorage (Web-Fallback + Schnellstart vor RC-Antwort);
+  // wird auf iOS sofort durch RevenueCat-CustomerInfo überschrieben.
   const [isPremium, setIsPremium] = useState(() => getPremiumStatus());
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallReason, setPaywallReason] = useState("limit"); // "limit" | "feature"
+  const [rcOfferings, setRcOfferings] = useState(null);        // RevenueCat-Offerings für Live-Preise
+  const [rcReady, setRcReady] = useState(false);               // true sobald RC initialisiert ist
 
-  // Sync mit localStorage, falls in einem anderen Tab geändert
+  // Sync mit localStorage, falls in einem anderen Tab geändert (Web)
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "isPremium") setIsPremium(e.newValue === "true");
@@ -2713,20 +2761,91 @@ export default function App() {
     return () => window.removeEventListener("storage", handler);
   }, []);
 
+  // ── RevenueCat Initialisierung (nur auf iOS/Android Native) ────────────────
+  useEffect(() => {
+    if (!isNativePlatform()) {
+      // Web: kein RevenueCat — wir nutzen weiterhin localStorage für Demo/Test
+      setRcReady(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        // 1. SDK konfigurieren
+        await Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
+        await Purchases.configure({ apiKey: RC_API_KEY_IOS });
+
+        // 2. Optional: User-ID an Supabase koppeln (falls eingeloggt)
+        try {
+          const sessionRes = await supabase.auth.getSession();
+          const uid = sessionRes?.data?.session?.user?.id;
+          if (uid) {
+            await Purchases.logIn({ appUserID: uid });
+          }
+        } catch (e) {
+          console.warn("RC logIn skipped:", e?.message);
+        }
+
+        // 3. Customer Info abrufen → Premium-Status setzen
+        const ci = await Purchases.getCustomerInfo();
+        const hasPremium = ci?.customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null
+                       || ci?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null;
+        if (!cancelled) {
+          setIsPremium(hasPremium);
+          setPremiumStatus(hasPremium); // localStorage als schneller Cache
+        }
+
+        // 4. Offerings (Live-Preise) laden
+        try {
+          const offerings = await Purchases.getOfferings();
+          if (!cancelled) setRcOfferings(offerings);
+        } catch (e) {
+          console.warn("RC getOfferings failed, using fallback prices:", e?.message);
+        }
+
+        // 5. Listener: Premium-Änderungen (z.B. Abo abgelaufen, Family Sharing)
+        await Purchases.addCustomerInfoUpdateListener((info) => {
+          const active = info?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null;
+          setIsPremium(active);
+          setPremiumStatus(active);
+        });
+
+        if (!cancelled) setRcReady(true);
+      } catch (err) {
+        console.error("RevenueCat init failed:", err);
+        // Fallback: localStorage-Status bleibt aktiv, kein Crash
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Helper für Komponenten zum Öffnen der Paywall
   const openPaywall = (reason = "limit") => {
     setPaywallReason(reason);
     setShowPaywall(true);
   };
 
-  // Restore Purchases (Phase A: keine echte Aktion, Phase B: RevenueCat)
-  const handleRestorePurchases = () => {
+  // Restore Purchases (iOS: RevenueCat. Web: Hinweis)
+  const handleRestorePurchases = async () => {
+    const t2 = tr(translations, language);
     if (!isNativePlatform()) {
-      alert(tr(translations, language)("premium.restoreWebOnly"));
+      alert(t2("premium.restoreWebOnly"));
       return;
     }
-    // Phase A: zeige Hinweis. Phase B: ruft Purchases.restorePurchases() auf.
-    alert(tr(translations, language)("premium.restoreNothingFound"));
+    try {
+      const { customerInfo } = await Purchases.restorePurchases();
+      const hasPremium = customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null;
+      if (hasPremium) {
+        setIsPremium(true);
+        setPremiumStatus(true);
+        alert(t2("premium.restoreSuccess"));
+      } else {
+        alert(t2("premium.restoreNothingFound"));
+      }
+    } catch (err) {
+      console.error("Restore error:", err);
+      alert(t2("premium.restoreError") + (err?.message ? `\n\n${err.message}` : ""));
+    }
   };
 
 
@@ -3099,19 +3218,27 @@ export default function App() {
     const firstTx = transactions.length > 0
       ? [...transactions].sort((a, b) => a.date.localeCompare(b.date))[0].date
       : "n/a";
+
+    // Bug #1 Fix: Rohzahlen in Display-Währung berechnen (ohne Tausendertrenner),
+    // damit Claude die Werte exakt übernimmt und nicht selbst nachrechnet.
+    const toDisplayNum = (chfAmount) => {
+      const val = toDisplay(chfAmount, currency, usdChf, eurUsd);
+      return Math.round(val);
+    };
+
     const portfolioPayload = {
       totalBtc: totalBtc.toFixed(8),
-      invested: fmt(totalInvested),
-      value: fmt(portfolioChf),
-      pnl: fmt(pnlChf),
+      invested: toDisplayNum(totalInvested),
+      value: toDisplayNum(portfolioChf),
+      pnl: toDisplayNum(pnlChf),
       pnlPct: pnlPct.toFixed(1),
-      breakEven: fmt(avgChf),
-      btcPrice: fmt(btcChf),
+      breakEven: toDisplayNum(avgChf),
+      btcPrice: toDisplayNum(btcChf),
       change24h: dayChangePct?.toFixed(2) ?? "n/a",
       method: costMethod,
       txCount: transactions.length,
       firstTx,
-      realizedPnl: fmt(realizedPnl),
+      realizedPnl: toDisplayNum(realizedPnl),
       currency,
     };
     try {
@@ -3431,7 +3558,7 @@ export default function App() {
       )}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
-      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} T={T} language={language} reason={paywallReason} />}
+      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} T={T} language={language} reason={paywallReason} offerings={rcOfferings} onPurchaseSuccess={() => setIsPremium(true)} />}
     </>
   );
 }
