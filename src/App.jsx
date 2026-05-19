@@ -1981,24 +1981,6 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
           <span style={{ color: T.text, fontSize: 15 }}>{t("settings.onboardingReset")}</span>
           <button onClick={onResetOnboarding} style={{ background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>→</button>
         </div>
-
-        {/* DEV: Premium-Status manuell wechseln (für lokale Tests, ohne RevenueCat-Roundtrip) */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
-          <div style={{ flex: 1 }}>
-            <span style={{ color: T.text, fontSize: 15 }}>🛠 Dev: Premium</span>
-            <div style={{ color: T.textFaint, fontSize: 11, marginTop: 2 }}>Toggle for testing</div>
-          </div>
-          <button
-            onClick={() => {
-              const newVal = !isPremium;
-              setPremiumStatus(newVal);
-              window.location.reload();
-            }}
-            style={{ background: isPremium ? "#34c759" : T.input, border: `1px solid ${T.border}`, color: isPremium ? "#fff" : T.textMuted, borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}
-          >
-            {isPremium ? "Premium ON" : "Free"}
-          </button>
-        </div>
       </div>
 
       {/* RECHTLICHES */}
