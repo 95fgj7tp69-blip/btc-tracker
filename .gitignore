@@ -23,3 +23,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Lokale Backups & Notizen
+App.jsx_backup
+Docs/
