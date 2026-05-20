@@ -2245,6 +2245,55 @@ function ClearDataModal({ onClose, onImport, T, language }) {
 
 // ── Demo Import Modal ─────────────────────────────────────────────────────────
 
+// Demo-Transaktionen (45 Stück, 2022–2026) — hardcoded statt CSV-Fetch (iOS-kompatibel)
+const DEMO_TRANSACTIONS = [
+  { date: "2022-01-15", type: "buy", btc: 0.01316,  chf: 500,   fee: 5.0,   note: "DCA Januar 2022" },
+  { date: "2022-02-15", type: "buy", btc: 0.01429,  chf: 500,   fee: 5.0,   note: "DCA Februar 2022" },
+  { date: "2022-03-15", type: "buy", btc: 0.0122,   chf: 500,   fee: 5.0,   note: "DCA März 2022" },
+  { date: "2022-04-15", type: "buy", btc: 0.01316,  chf: 500,   fee: 5.0,   note: "DCA April 2022" },
+  { date: "2022-05-15", type: "buy", btc: 0.03333,  chf: 1000,  fee: 10.0,  note: "Crash — Nachkauf" },
+  { date: "2022-06-15", type: "buy", btc: 0.15,     chf: 3000,  fee: 30.0,  note: "Crash — Grosseinkauf" },
+  { date: "2022-07-15", type: "buy", btc: 0.0381,   chf: 800,   fee: 8.0,   note: "DCA Juli 2022" },
+  { date: "2022-08-15", type: "buy", btc: 0.03333,  chf: 800,   fee: 8.0,   note: "DCA August 2022" },
+  { date: "2022-09-15", type: "buy", btc: 0.075,    chf: 1500,  fee: 15.0,  note: "Crash — Nachkauf" },
+  { date: "2022-10-15", type: "buy", btc: 0.04,     chf: 800,   fee: 8.0,   note: "DCA Oktober 2022" },
+  { date: "2022-11-15", type: "buy", btc: 0.3125,   chf: 5000,  fee: 50.0,  note: "FTX-Crash — Grosseinkauf" },
+  { date: "2022-12-15", type: "buy", btc: 0.125,    chf: 2000,  fee: 20.0,  note: "DCA Dezember 2022" },
+  { date: "2023-01-15", type: "buy", btc: 0.04706,  chf: 800,   fee: 8.0,   note: "DCA Januar 2023" },
+  { date: "2023-02-15", type: "buy", btc: 0.03333,  chf: 800,   fee: 8.0,   note: "DCA Februar 2023" },
+  { date: "2023-03-15", type: "buy", btc: 0.03704,  chf: 1000,  fee: 10.0,  note: "DCA März 2023" },
+  { date: "2023-06-15", type: "buy", btc: 0.03704,  chf: 1000,  fee: 10.0,  note: "DCA Juni 2023" },
+  { date: "2023-09-15", type: "buy", btc: 0.04,     chf: 1000,  fee: 10.0,  note: "DCA September 2023" },
+  { date: "2023-11-15", type: "buy", btc: 0.03333,  chf: 1200,  fee: 12.0,  note: "DCA November 2023" },
+  { date: "2023-12-15", type: "buy", btc: 0.02857,  chf: 1200,  fee: 12.0,  note: "DCA Dezember 2023" },
+  { date: "2024-01-15", type: "buy", btc: 0.03659,  chf: 1500,  fee: 15.0,  note: "DCA Januar 2024" },
+  { date: "2024-02-15", type: "buy", btc: 0.03,     chf: 1500,  fee: 15.0,  note: "DCA Februar 2024" },
+  { date: "2024-03-15", type: "buy", btc: 0.03077,  chf: 2000,  fee: 20.0,  note: "Halving-Kauf" },
+  { date: "2024-04-15", type: "buy", btc: 0.01724,  chf: 1000,  fee: 10.0,  note: "DCA April 2024" },
+  { date: "2024-06-15", type: "buy", btc: 0.01667,  chf: 1000,  fee: 10.0,  note: "DCA Juni 2024" },
+  { date: "2024-08-15", type: "buy", btc: 0.01786,  chf: 1000,  fee: 10.0,  note: "DCA August 2024" },
+  { date: "2024-10-15", type: "buy", btc: 0.02344,  chf: 1500,  fee: 15.0,  note: "DCA Oktober 2024" },
+  { date: "2024-11-15", type: "buy", btc: 0.00909,  chf: 800,   fee: 8.0,   note: "DCA November 2024" },
+  { date: "2024-12-01", type: "sell",btc: 0.15789,  chf: 15000, fee: 150.0, note: "Teilgewinn nahe ATH" },
+  { date: "2024-12-15", type: "buy", btc: 0.0086,   chf: 800,   fee: 8.0,   note: "DCA Dezember 2024" },
+  { date: "2025-01-15", type: "buy", btc: 0.01,     chf: 1000,  fee: 10.0,  note: "DCA Januar 2025" },
+  { date: "2025-02-15", type: "buy", btc: 0.01205,  chf: 1000,  fee: 10.0,  note: "DCA Februar 2025" },
+  { date: "2025-03-15", type: "buy", btc: 0.016,    chf: 1200,  fee: 12.0,  note: "DCA März 2025" },
+  { date: "2025-04-15", type: "buy", btc: 0.03226,  chf: 2000,  fee: 20.0,  note: "Korrektur — Nachkauf" },
+  { date: "2025-05-15", type: "buy", btc: 0.01471,  chf: 1000,  fee: 10.0,  note: "DCA Mai 2025" },
+  { date: "2025-06-15", type: "buy", btc: 0.01389,  chf: 1000,  fee: 10.0,  note: "DCA Juni 2025" },
+  { date: "2025-07-15", type: "buy", btc: 0.01282,  chf: 1000,  fee: 10.0,  note: "DCA Juli 2025" },
+  { date: "2025-08-15", type: "buy", btc: 0.0122,   chf: 1000,  fee: 10.0,  note: "DCA August 2025" },
+  { date: "2025-09-15", type: "buy", btc: 0.01136,  chf: 1000,  fee: 10.0,  note: "DCA September 2025" },
+  { date: "2025-10-15", type: "buy", btc: 0.01087,  chf: 1000,  fee: 10.0,  note: "DCA Oktober 2025" },
+  { date: "2025-11-15", type: "buy", btc: 0.0102,   chf: 1000,  fee: 10.0,  note: "DCA November 2025" },
+  { date: "2025-12-15", type: "buy", btc: 0.00952,  chf: 1000,  fee: 10.0,  note: "DCA Dezember 2025" },
+  { date: "2026-01-15", type: "buy", btc: 0.0098,   chf: 1000,  fee: 10.0,  note: "DCA Januar 2026" },
+  { date: "2026-02-15", type: "buy", btc: 0.01111,  chf: 1000,  fee: 10.0,  note: "DCA Februar 2026" },
+  { date: "2026-03-15", type: "buy", btc: 0.01205,  chf: 1000,  fee: 10.0,  note: "DCA März 2026" },
+  { date: "2026-04-15", type: "buy", btc: 0.03226,  chf: 2000,  fee: 20.0,  note: "Korrektur — Nachkauf" },
+];
+
 function DemoImportModal({ onClose, onImport, transactions, T, language }) {
   const t = tr(translations, language);
   const [status, setStatus] = useState(null); // null | "saving" | "done" | "error"
@@ -2259,21 +2308,8 @@ function DemoImportModal({ onClose, onImport, transactions, T, language }) {
       setProgress(animPct);
     }, 150);
     try {
-      const res = await fetch(`${API_BASE}/demo-transaktionen.csv`);
-      if (!res.ok) throw new Error("CSV nicht gefunden");
-      const text = await res.text();
-      const lines = text.replace(/^\uFEFF/, "").split("\n").filter(l => l.trim());
-      const rows = lines.slice(1).map(line => {
-        const parts = line.split(",");
-        return {
-          date: parts[0]?.trim(),
-          type: parts[1]?.trim(),
-          btc:  parseFloat(parts[2]) || 0,
-          chf:  parseFloat(parts[3]) || 0,
-          fee:  parseFloat(parts[4]) || 0,
-          note: parts[5]?.trim().replace(/^"|"$/g, "") || "",
-        };
-      }).filter(r => r.date && r.type && r.btc > 0);
+      // Demo-Daten aus hardcoded Array (iOS-kompatibel, kein Fetch nötig)
+      const rows = DEMO_TRANSACTIONS.filter(r => r.date && r.type && r.btc > 0);
 
       const existing = new Set(transactions.map(tx => `${tx.date}_${tx.type}_${tx.btc}`));
       const toImport = rows.filter(r => !existing.has(`${r.date}_${r.type}_${r.btc}`));
@@ -2693,7 +2729,7 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
   );
 }
 
-// ── Main App — v3.6.0 (RevenueCat Integration + Bug #1 Fix: KI-Analyse Rohzahlen) ──
+// ── Main App — v3.6.2 (Bug A: Demo-Daten hardcoded für iOS-Kompatibilität) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
