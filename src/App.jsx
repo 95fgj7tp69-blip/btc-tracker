@@ -2414,6 +2414,11 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
       <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderRadius: "20px 20px 0 0", padding: "12px 20px 40px", width: "100%", maxWidth: 430, maxHeight: "92vh", overflowY: "auto" }}>
         <div style={{ width: 36, height: 4, background: T.border, borderRadius: 2, margin: "0 auto 16px" }} />
         <div style={{ color: T.text, fontSize: 19, fontWeight: 500, marginBottom: 20 }}>{editTx ? t("txModal.titelEdit") : t("txModal.titelNeu")}</div>
+        {!editTx && (
+          <div style={{ color: T.textMuted, fontSize: 13, lineHeight: 1.4, marginBottom: 20, marginTop: -12, padding: "10px 14px", background: T.input, borderRadius: 10 }}>
+            {t("txModal.praeambel")}
+          </div>
+        )}
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{t("txModal.typ")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -2440,8 +2445,8 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
         <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{t("txModal.notiz")}</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("txModal.abbrechen")}</button>
-          <button onClick={handleSave} disabled={saving} style={{ padding: "15px 0", background: saving ? T.textFaint : TYPE_META[form.type].color, border: "none", color: form.type === "buy" ? "#000" : "#fff", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
-            {saving ? t("txModal.speichernLaed") : editTx ? t("txModal.speichern") : `${TYPE_META[form.type].label}`}
+          <button onClick={handleSave} disabled={saving} style={{ padding: "15px 0", background: saving ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+            {saving ? t("txModal.speichernLaed") : t("txModal.speichern")}
           </button>
         </div>
       </div>
@@ -2665,10 +2670,9 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
           {[
             t("premium.featureUnlimited"),
             t("premium.featureNews"),
-            t("premium.featurePortfolio"),
             t("premium.featureMarket"),
-          ].map((feature, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: T.text, marginBottom: i === 3 ? 0 : 8 }}>
+          ].map((feature, i, arr) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: T.text, marginBottom: i === arr.length - 1 ? 0 : 8 }}>
               <span style={{ color: "#34c759", fontSize: 17, fontWeight: 700 }}>✓</span>
               {feature}
             </div>
@@ -2729,7 +2733,7 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
   );
 }
 
-// ── Main App — v3.7.0 (Onboarding-Icon dynamisch + KI-Portfolio-Analyse für v1.0 deaktiviert) ──
+// ── Main App — v3.8.0 (Apple 1.1.6 Fix: Tracker-Wording, Speichern-Button, Einstandsrechner) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -3419,7 +3423,7 @@ export default function App() {
                 <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em", marginTop: 20, marginBottom: 10 }}>{t("tools.finanzTools")}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 20 }}>
 
-                  {/* Kauf-Simulator */}
+                  {/* Einstandsrechner */}
                   <button onClick={() => setShowDcaModal(true)} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 160, padding: "16px 14px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <svg width="22" height="22" viewBox="0 0 28 28" fill="none">

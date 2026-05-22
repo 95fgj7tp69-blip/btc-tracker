@@ -124,15 +124,15 @@ export const translations = {
 
     // ── DCA Calculator ──────────────────────────────────────────────────────────
     dca: {
-      title:           "Kauf-Simulator",
-      chartTitle:      "KAUF-SIMULATOR",
-      betrag:          "Kaufbetrag",
+      title:           "Einstandsrechner",
+      chartTitle:      "EINSTANDSRECHNER",
+      betrag:          "Betrag",
       berechnen:       "Berechnen",
       neuerEinstand:   "Neuer Einstandspreis",
       neueBtc:         "Neue BTC",
       neuesInvestiert: "Neu investiert",
       close:           "Schliessen",
-      einstandBerechnen: "Einstandspreis bei Nachkauf berechnen",
+      einstandBerechnen: "Neuen Einstandspreis beim Aufstocken berechnen",
     },
 
     // ── Verlauf ─────────────────────────────────────────────────────────────────
@@ -154,6 +154,7 @@ export const translations = {
     // ── Transaction Modal ───────────────────────────────────────────────────────
     txModal: {
       titelNeu:        "Transaktion erfassen",
+      praeambel:       "Trage eine bereits getätigte Bitcoin-Transaktion in dein Portfolio ein. Trackoshi führt keine Käufe oder Verkäufe aus.",
       titelEdit:       "Transaktion bearbeiten",
       datum:           "DATUM",
       typ:             "TYP",
@@ -325,7 +326,7 @@ export const translations = {
       slides: [
         {
           title: "Dein BTC-Portfolio.\nAuf einen Blick.",
-          text:  "Professionelles Bitcoin-Tracking in CHF, EUR oder USD — mit KI-Analyse und echten Marktdaten.",
+          text:  "Dein persönlicher Bitcoin-Tracker in CHF, EUR oder USD. Erfasse deine Transaktionen und behalte den Überblick — ohne Handel, ohne Wallet-Verbindung.",
         },
         {
           title: "Dashboard,\ndas alles zeigt.",
@@ -337,7 +338,7 @@ export const translations = {
         },
         {
           title: "KI-Tools, die\nmitdenken.",
-          text:  "Portfolio-Analyse, Markt-Kommentar und BTC-News — von Claude AI, direkt in der App.",
+          text:  "Markt-Kommentar und BTC-News — von Claude AI, direkt in der App.",
         },
         {
           title: "Sicher.\nPrivat. Deins.",
@@ -349,8 +350,8 @@ export const translations = {
     // ── Tools ───────────────────────────────────────────────────────────────────
     tools: {
       finanzTools:    "Finanz-Tools",
-      kaufSimulator:  "Kauf-Simulator",
-      kaufSimulatorHint: "Einstandspreis bei Nachkauf berechnen",
+      kaufSimulator:  "Einstandsrechner",
+      kaufSimulatorHint: "Neuen Einstandspreis beim Aufstocken berechnen",
 
       // KI-Tools
       aiTools:        "KI-Tools",
@@ -418,11 +419,10 @@ export const translations = {
       paywallLimitTitle:      "Transaktions-Limit erreicht",
       paywallFeatureTitle:    "Premium-Funktion",
       paywallLimitBody:       "Du hast das kostenlose Limit von {limit} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Upgrade auf Premium für unbegrenzte Transaktionen und KI-Tools.",
-      paywallFeatureBody:     "KI-Tools (News, Portfolio-Analyse, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.",
+      paywallFeatureBody:     "KI-Tools (News, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.",
       paywallIncludes:        "Premium beinhaltet",
       featureUnlimited:       "Unbegrenzte Transaktionen",
       featureNews:            "KI News-Briefing",
-      featurePortfolio:       "KI Portfolio-Analyse",
       featureMarket:          "KI Markt-Kommentar",
       webNoticeTitle:         "App holen",
       webNoticeText:          "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um zu upgraden.",
@@ -567,15 +567,15 @@ export const translations = {
     },
 
     dca: {
-      title:           "Buy Simulator",
-      chartTitle:      "BUY SIMULATOR",
-      betrag:          "Purchase Amount",
+      title:           "Cost Basis Calculator",
+      chartTitle:      "COST BASIS CALCULATOR",
+      betrag:          "Amount",
       berechnen:       "Calculate",
       neuerEinstand:   "New Cost Basis",
       neueBtc:         "New BTC",
       neuesInvestiert: "New Total Invested",
       close:           "Close",
-      einstandBerechnen: "Calculate cost basis after additional purchase",
+      einstandBerechnen: "Calculate new cost basis when adding to your position",
     },
 
     verlauf: {
@@ -594,6 +594,7 @@ export const translations = {
 
     txModal: {
       titelNeu:        "Add Transaction",
+      praeambel:       "Record a Bitcoin transaction you have already made into your portfolio. Trackoshi does not buy or sell anything.",
       titelEdit:       "Edit Transaction",
       datum:           "DATE",
       typ:             "TYPE",
@@ -757,7 +758,7 @@ export const translations = {
       slides: [
         {
           title: "Your BTC portfolio.\nAt a glance.",
-          text:  "Professional Bitcoin tracking in CHF, EUR or USD — with AI analysis and live market data.",
+          text:  "Your personal Bitcoin tracker in CHF, EUR or USD. Record your transactions and keep track — no trading, no wallet connection.",
         },
         {
           title: "Dashboard that\nshows everything.",
@@ -769,7 +770,7 @@ export const translations = {
         },
         {
           title: "AI tools that\nthink ahead.",
-          text:  "Portfolio analysis, market commentary and BTC news — from Claude AI, directly in the app.",
+          text:  "Market commentary and BTC news — from Claude AI, directly in the app.",
         },
         {
           title: "Secure.\nPrivate. Yours.",
@@ -780,8 +781,8 @@ export const translations = {
 
     tools: {
       finanzTools:        "Financial Tools",
-      kaufSimulator:      "Buy Simulator",
-      kaufSimulatorHint:  "Calculate cost basis after additional purchase",
+      kaufSimulator:      "Cost Basis Calculator",
+      kaufSimulatorHint:  "Calculate new cost basis when adding to your position",
 
       // AI Tools
       aiTools:        "AI Tools",
@@ -846,11 +847,10 @@ export const translations = {
       paywallLimitTitle:      "Transaction Limit Reached",
       paywallFeatureTitle:    "Premium Feature",
       paywallLimitBody:       "You've reached the free limit of {limit} transactions. Existing transactions stay visible. Upgrade to Premium to add unlimited transactions and unlock AI tools.",
-      paywallFeatureBody:     "AI tools (News, Portfolio analysis, Market commentary) are part of Trackoshi BTC Premium.",
+      paywallFeatureBody:     "AI tools (News, Market commentary) are part of Trackoshi BTC Premium.",
       paywallIncludes:        "Premium includes",
       featureUnlimited:       "Unlimited transactions",
       featureNews:            "AI News Briefing",
-      featurePortfolio:       "AI Portfolio Analysis",
       featureMarket:          "AI Market Commentary",
       webNoticeTitle:         "Get the App",
       webNoticeText:          "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to upgrade.",
