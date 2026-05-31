@@ -145,10 +145,10 @@ export const translations = {
 
     // ── Transaction Types ───────────────────────────────────────────────────────
     txType: {
-      buy:          "Kauf",
-      sell:         "Verkauf",
-      transfer_in:  "Einbuchung",
-      transfer_out: "Ausbuchung",
+      buy:          "Erworben",
+      sell:         "Veräussert",
+      transfer_in:  "Einbuchen",
+      transfer_out: "Ausbuchen",
     },
 
     // ── Transaction Modal ───────────────────────────────────────────────────────
@@ -167,6 +167,14 @@ export const translations = {
       abbrechen:       "Abbrechen",
       speichern:       "Speichern",
       speichernLaed:   "Wird gespeichert...",
+      typErklaerungLink:        "Was bedeuten diese?",
+      typErklaerungTitel:       "Transaktions-Typen erklärt",
+      typErklaerungSchliessen:  "Verstanden",
+      typErklaerungErworben:    "**Erworben** — Du hast Bitcoin gekauft (Kaufpreis und Gebühren beeinflussen deinen Einstandspreis).",
+      typErklaerungVeraeussert: "**Veräussert** — Du hast Bitcoin verkauft (realisierter Gewinn oder Verlust wird berechnet).",
+      typErklaerungEinbuchen:   "**Einbuchen** — Du hast Bitcoin auf deine Wallet erhalten, ohne Kauf (z.B. Transfer von einer anderen Wallet). Bestand erhöht sich, Einstandspreis bleibt unverändert.",
+      typErklaerungAusbuchen:   "**Ausbuchen** — Du hast Bitcoin aus deiner Wallet entnommen, ohne Verkauf. Bestand verringert sich, Einstandspreis bleibt unverändert.",
+      typErklaerungFooter:      "Trackoshi führt selbst keine Käufe oder Verkäufe aus. Du erfasst hier nur Transaktionen, die du bereits getätigt hast.",
       validierung: {
         btcRequired:   "BTC-Menge eingeben",
         betragRequired: "Betrag eingeben",
@@ -586,8 +594,8 @@ export const translations = {
     },
 
     txType: {
-      buy:          "Buy",
-      sell:         "Sell",
+      buy:          "Acquired",
+      sell:         "Disposed",
       transfer_in:  "Transfer In",
       transfer_out: "Transfer Out",
     },
@@ -607,6 +615,14 @@ export const translations = {
       abbrechen:       "Cancel",
       speichern:       "Save",
       speichernLaed:   "Saving...",
+      typErklaerungLink:        "What do these mean?",
+      typErklaerungTitel:       "Transaction types explained",
+      typErklaerungSchliessen:  "Got it",
+      typErklaerungErworben:    "**Acquired** — You bought Bitcoin (purchase price and fees affect your cost basis).",
+      typErklaerungVeraeussert: "**Disposed** — You sold Bitcoin (realised gain or loss is calculated).",
+      typErklaerungEinbuchen:   "**Transfer In** — You received Bitcoin into your wallet without a purchase (e.g. transfer from another wallet). Holdings increase, cost basis stays the same.",
+      typErklaerungAusbuchen:   "**Transfer Out** — You moved Bitcoin out of your wallet without a sale. Holdings decrease, cost basis stays the same.",
+      typErklaerungFooter:      "Trackoshi does not execute any buys or sells. You only record transactions you have already made.",
       validierung: {
         btcRequired:    "Enter BTC amount",
         betragRequired: "Enter amount",

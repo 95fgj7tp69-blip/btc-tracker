@@ -2396,6 +2396,7 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
   const blank = { date: new Date().toISOString().slice(0, 10), btc: "", chf: "", fee: "", type: "buy", note: "" };
   const [form, setForm] = useState(editTx ? { ...editTx, btc: String(editTx.btc), chf: String(parseFloat(chfToDisplay(editTx.chf).toFixed(2))), fee: String(parseFloat(chfToDisplay(editTx.fee ?? 0).toFixed(2))) } : blank);
   const [saving, setSaving] = useState(false);
+  const [showTypInfo, setShowTypInfo] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const isTransfer = form.type === "transfer_in" || form.type === "transfer_out";
   const iStyle = { width: "100%", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.text, padding: "13px 14px", borderRadius: 10, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", WebkitAppearance: "none" };
@@ -2420,7 +2421,16 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
           </div>
         )}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{t("txModal.typ")}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ color: T.textMuted, fontSize: 13 }}>{t("txModal.typ")}</div>
+            <button
+              type="button"
+              onClick={() => setShowTypInfo(true)}
+              style={{ background: "none", border: "none", padding: 0, color: "#f7931a", fontSize: 13, fontFamily: "inherit", cursor: "pointer", textDecoration: "underline" }}
+            >
+              {t("txModal.typErklaerungLink")}
+            </button>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {Object.entries(TYPE_META).map(([k, m]) => (<button key={k} onClick={() => set("type", k)} style={{ padding: "10px 0", borderRadius: 10, background: form.type === k ? m.bg : T.input, border: `1px solid ${form.type === k ? m.color + "55" : T.inputBorder}`, color: form.type === k ? m.color : T.textMuted, cursor: "pointer", fontSize: 14, fontWeight: 500, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><span style={{ fontSize: 17 }}>{m.icon}</span>{m.label}</button>))}
           </div>
@@ -2450,6 +2460,34 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
           </button>
         </div>
       </div>
+      {showTypInfo && (
+        <div
+          onClick={() => setShowTypInfo(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24, maxWidth: 380, width: "100%", maxHeight: "80vh", overflowY: "auto" }}
+          >
+            <div style={{ color: T.text, fontSize: 17, fontWeight: 600, marginBottom: 16 }}>
+              {t("txModal.typErklaerungTitel")}
+            </div>
+            <div style={{ color: T.textSub, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: t("txModal.typErklaerungErworben").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+            <div style={{ color: T.textSub, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: t("txModal.typErklaerungVeraeussert").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+            <div style={{ color: T.textSub, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: t("txModal.typErklaerungEinbuchen").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+            <div style={{ color: T.textSub, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }} dangerouslySetInnerHTML={{ __html: t("txModal.typErklaerungAusbuchen").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+            <div style={{ color: T.textMuted, fontSize: 13, lineHeight: 1.5, padding: "12px 14px", background: T.input, borderRadius: 10, marginBottom: 16 }}>
+              {t("txModal.typErklaerungFooter")}
+            </div>
+            <button
+              onClick={() => setShowTypInfo(false)}
+              style={{ width: "100%", padding: "14px 0", background: "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}
+            >
+              {t("txModal.typErklaerungSchliessen")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2733,7 +2771,7 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
   );
 }
 
-// ── Main App — v3.8.0 (Apple 1.1.6 Fix: Tracker-Wording, Speichern-Button, Einstandsrechner) ──
+// ── Main App — v3.9.0 (Apple 1.1.6 Build 5: Typ-Labels buchhalterisch + Erklärungs-Modal) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
