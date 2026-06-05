@@ -44,6 +44,10 @@ const RC_ENTITLEMENT_ID = "premium"; // muss exakt mit dem Entitlement-Identifie
 // Fallback-Preis (Anzeige im Paywall, falls RevenueCat-Offerings nicht laden)
 const FALLBACK_PRICE_LIFETIME = "USD 14.99";
 
+// Passwort-Reset: Supabase schickt den Recovery-Link auf diese Seite (auf cyon gehostet).
+// Muss exakt in Supabase → Authentication → URL Configuration → Redirect URLs stehen.
+const PASSWORD_RESET_URL = "https://trackoshi.com/passwort-reset.html";
+
 const isNativePlatform = () => {
   try {
     return typeof window !== "undefined" && window.location.protocol.startsWith("capacitor");
@@ -237,7 +241,7 @@ function AuthScreen({ T, language }) {
         setSuccess(t("auth.confirmationSent"));
       } else if (mode === "reset") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+          redirectTo: PASSWORD_RESET_URL,
         });
         if (error) throw error;
         setSuccess(t("auth.resetSent"));
@@ -2759,7 +2763,7 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
   );
 }
 
-// ── Main App — v3.10.0 (v1.1: Einmalkauf statt Abo, KI-Tools entfernt, Restore in Paywall) ──
+// ── Main App — v3.11.0 (v1.1: Einmalkauf statt Abo, KI-Tools entfernt, Restore in Paywall, Passwort-Reset-Fix) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
