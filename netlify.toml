@@ -34,11 +34,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/claude"
-  to   = "/.netlify/functions/claude"
-  status = 200
-
-[[redirects]]
   from = "/api/market"
   to   = "/.netlify/functions/market"
   status = 200
