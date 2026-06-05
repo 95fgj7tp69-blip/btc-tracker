@@ -32,8 +32,8 @@ const api = {
 };
 
 // ── Free / Premium Konfiguration ──────────────────────────────────────────────
-// Free-Plan: max. 25 Transaktionen, keine KI-Tools
-// Premium: unbegrenzte Transaktionen + alle KI-Tools
+// Free-Plan: max. 25 Transaktionen
+// Premium: unbegrenzte Transaktionen (einmaliger Kauf)
 // Premium-Status wird auf iOS via RevenueCat verwaltet, im Web via localStorage (Test/Demo)
 const FREE_TX_LIMIT = 25;
 
@@ -41,9 +41,8 @@ const FREE_TX_LIMIT = 25;
 const RC_API_KEY_IOS = "appl_dvzVFNnKTWODZDzgjvTZmJxURVm";
 const RC_ENTITLEMENT_ID = "premium"; // muss exakt mit dem Entitlement-Identifier in RevenueCat übereinstimmen
 
-// Fallback-Preise (Anzeige im Paywall, falls RevenueCat-Offerings nicht laden)
-const FALLBACK_PRICE_YEARLY = "CHF 29.00";
-const FALLBACK_PRICE_MONTHLY = "CHF 3.90";
+// Fallback-Preis (Anzeige im Paywall, falls RevenueCat-Offerings nicht laden)
+const FALLBACK_PRICE_LIFETIME = "USD 14.99";
 
 const isNativePlatform = () => {
   try {
@@ -1575,25 +1574,21 @@ function OnboardingScreen({ onFinish, T, language, onShowDemo }) {
     )},
     { title: slidesData[3].title, text: slidesData[3].text, svg: (
         <svg viewBox="0 0 280 210" width="270" style={{ display: "block" }}>
-          <rect x="20" y="10" width="240" height="130" rx="14" fill="#2c2c2e" stroke="#3a3a3c" strokeWidth="1"/>
-          <rect x="32" y="22" width="32" height="32" rx="8" fill="#f7931a"/>
-          <text x="48" y="43" fontSize="14" fill="#000" textAnchor="middle" fontWeight="700">AI</text>
-          <text x="72" y="34" fontSize="11" fontWeight="600" fill="#fff">Portfolio-Analyse</text>
-          <text x="72" y="48" fontSize="9" fill="#777">Powered by Claude AI</text>
-          <rect x="32" y="64" width="185" height="7" rx="3" fill="#3a3a3c"/>
-          <rect x="32" y="78" width="155" height="7" rx="3" fill="#3a3a3c"/>
-          <rect x="32" y="92" width="200" height="7" rx="3" fill="#3a3a3c"/>
-          <rect x="32" y="106" width="125" height="7" rx="3" fill="#3a3a3c"/>
-          <rect x="32" y="120" width="165" height="7" rx="3" fill="#f7931a" fillOpacity="0.25"/>
-          <rect x="20" y="152" width="74" height="50" rx="10" fill="#2c2c2e" stroke="#3a3a3c" strokeWidth="1"/>
-          <text x="57" y="175" fontSize="20" textAnchor="middle">📊</text>
-          <text x="57" y="191" fontSize="9" fill="#777" textAnchor="middle">Portfolio</text>
-          <rect x="103" y="152" width="74" height="50" rx="10" fill="#2c2c2e" stroke="#3a3a3c" strokeWidth="1"/>
-          <text x="140" y="175" fontSize="20" textAnchor="middle">🌐</text>
-          <text x="140" y="191" fontSize="9" fill="#777" textAnchor="middle">Markt</text>
-          <rect x="186" y="152" width="74" height="50" rx="10" fill="#2c2c2e" stroke="#f7931a" strokeWidth="1" strokeOpacity="0.5"/>
-          <text x="223" y="175" fontSize="20" textAnchor="middle">📰</text>
-          <text x="223" y="191" fontSize="9" fill="#f7931a" textAnchor="middle">BTC-News</text>
+          {/* Rechner-Korpus */}
+          <rect x="78" y="14" width="124" height="182" rx="18" fill="#2c2c2e" stroke="#3a3a3c" strokeWidth="1.5"/>
+          {/* Display */}
+          <rect x="92" y="28" width="96" height="38" rx="8" fill="#111"/>
+          <text x="180" y="54" fontSize="20" fill="#f7931a" textAnchor="end" fontWeight="700" fontFamily="monospace">₿</text>
+          <rect x="100" y="38" width="40" height="6" rx="3" fill="#3a3a3c"/>
+          <rect x="100" y="50" width="28" height="6" rx="3" fill="#3a3a3c"/>
+          {/* Tastenraster 4x4 */}
+          {[0,1,2,3].map((row) => [0,1,2,3].map((col) => {
+            const accent = (row === 3 && col === 3);
+            return (
+              <rect key={`${row}-${col}`} x={94 + col * 25} y={80 + row * 27} width={19} height={19} rx={5}
+                fill={accent ? "#f7931a" : "#3a3a3c"} />
+            );
+          }))}
         </svg>
     )},
     { title: slidesData[4].title, text: slidesData[4].text, svg: (
@@ -2635,34 +2630,32 @@ function BottomNav({ view, setView, onAdd, T, language }) {
 }
 
 // ── Paywall Modal ─────────────────────────────────────────────────────────────
-function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPurchaseSuccess }) {
-  // reason: "limit" (25 TX erreicht) oder "feature" (KI-Tool angeklickt)
-  // offerings: RevenueCat-Offerings (null wenn nicht geladen) — wir benutzen die Live-Preise wenn vorhanden, sonst Fallback
+function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPurchaseSuccess, onRestore }) {
+  // reason: "limit" (25 TX erreicht) oder "feature"
+  // offerings: RevenueCat-Offerings (null wenn nicht geladen) — wir benutzen den Live-Preis wenn vorhanden, sonst Fallback
   const t = tr(translations, language);
   const isNative = isNativePlatform();
   const [purchasing, setPurchasing] = useState(false); // true während Apple-Dialog
+  const [restoring, setRestoring] = useState(false);
   const titleText = reason === "limit" ? t("premium.paywallLimitTitle") : t("premium.paywallFeatureTitle");
   const bodyText = reason === "limit"
     ? t("premium.paywallLimitBody").replace("{limit}", FREE_TX_LIMIT)
     : t("premium.paywallFeatureBody");
 
-  // Live-Preise von RevenueCat (Hybrid: Fallback wenn nicht verfügbar)
-  const annualPackage = offerings?.current?.annual ?? null;
-  const monthlyPackage = offerings?.current?.monthly ?? null;
-  const yearlyPriceString = annualPackage?.product?.priceString ?? FALLBACK_PRICE_YEARLY;
-  const monthlyPriceString = monthlyPackage?.product?.priceString ?? FALLBACK_PRICE_MONTHLY;
+  // Live-Preis von RevenueCat (Hybrid: Fallback wenn nicht verfügbar)
+  const lifetimePackage = offerings?.current?.lifetime ?? offerings?.current?.availablePackages?.[0] ?? null;
+  const lifetimePriceString = lifetimePackage?.product?.priceString ?? FALLBACK_PRICE_LIFETIME;
 
   // Echter Kauf via RevenueCat (Apple-Dialog wird von iOS bereitgestellt)
-  const handlePurchase = async (plan) => {
+  const handlePurchase = async () => {
     if (!isNative) return; // Im Web kein Kauf möglich
-    const pkg = plan === "yearly" ? annualPackage : monthlyPackage;
-    if (!pkg) {
+    if (!lifetimePackage) {
       alert(t("premium.purchaseNoPackage"));
       return;
     }
     setPurchasing(true);
     try {
-      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: lifetimePackage });
       const hasPremium = customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] != null;
       if (hasPremium) {
         setPremiumStatus(true);
@@ -2681,6 +2674,15 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
       }
     } finally {
       setPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      await onRestore?.();
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -2707,8 +2709,8 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
           </div>
           {[
             t("premium.featureUnlimited"),
-            t("premium.featureNews"),
-            t("premium.featureMarket"),
+            t("premium.featureOneTime"),
+            t("premium.featureUpdates"),
           ].map((feature, i, arr) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: T.text, marginBottom: i === arr.length - 1 ? 0 : 8 }}>
               <span style={{ color: "#34c759", fontSize: 17, fontWeight: 700 }}>✓</span>
@@ -2725,42 +2727,28 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
           </div>
         ) : (
           <>
-            {/* Yearly (besser deal) */}
+            {/* Einmalkauf */}
             <button
-              disabled={purchasing}
-              onClick={() => handlePurchase("yearly")}
-              style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: purchasing ? "wait" : "pointer", color: "#000", fontFamily: "inherit", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", opacity: purchasing ? 0.6 : 1 }}
+              disabled={purchasing || restoring}
+              onClick={handlePurchase}
+              style={{ width: "100%", padding: "16px 18px", background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 14, cursor: purchasing ? "wait" : "pointer", color: "#000", fontFamily: "inherit", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", opacity: purchasing ? 0.6 : 1 }}
             >
-              <div style={{ position: "absolute", top: -8, right: 14, background: "#34c759", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 8, letterSpacing: "0.05em" }}>
-                {t("premium.badgeBestValue")}
-              </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{t("premium.planYearly")}</div>
-                <div style={{ fontSize: 13, opacity: 0.75 }}>{t("premium.planYearlyHint")}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{t("premium.planLifetime")}</div>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>{t("premium.planLifetimeHint")}</div>
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{yearlyPriceString}</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{purchasing ? t("premium.purchasing") : lifetimePriceString}</div>
             </button>
 
-            {/* Monthly */}
+            {/* Restore (Apple-Pflicht bei Non-Consumables) */}
             <button
-              disabled={purchasing}
-              onClick={() => handlePurchase("monthly")}
-              style={{ width: "100%", padding: "16px 18px", background: T.input, border: `1px solid ${T.inputBorder}`, borderRadius: 14, cursor: purchasing ? "wait" : "pointer", color: T.text, fontFamily: "inherit", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", opacity: purchasing ? 0.6 : 1 }}
+              disabled={purchasing || restoring}
+              onClick={handleRestore}
+              style={{ width: "100%", padding: "13px 0", background: "none", border: "none", color: "#f7931a", borderRadius: 12, cursor: restoring ? "wait" : "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit", marginBottom: 6, opacity: (purchasing || restoring) ? 0.6 : 1 }}
             >
-              <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>{t("premium.planMonthly")}</div>
-                <div style={{ fontSize: 13, color: T.textFaint }}>{t("premium.planMonthlyHint")}</div>
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>{monthlyPriceString}</div>
+              {restoring ? t("premium.purchasing") : t("premium.restoreBtn")}
             </button>
           </>
-        )}
-
-        {/* Hinweistext zu Apple-Bedingungen */}
-        {isNative && (
-          <div style={{ fontSize: 12, color: T.textFaint, lineHeight: 1.4, marginBottom: 14, textAlign: "center" }}>
-            {t("premium.autoRenewNotice")}
-          </div>
         )}
 
         <button disabled={purchasing} onClick={onClose} style={{ width: "100%", padding: "13px 0", background: "none", border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: 12, cursor: purchasing ? "wait" : "pointer", fontSize: 15, fontFamily: "inherit", opacity: purchasing ? 0.6 : 1 }}>
@@ -2771,7 +2759,7 @@ function PaywallModal({ onClose, T, language, reason = "limit", offerings, onPur
   );
 }
 
-// ── Main App — v3.9.0 (Apple 1.1.6 Build 5: Typ-Labels buchhalterisch + Erklärungs-Modal) ──
+// ── Main App — v3.10.0 (v1.1: Einmalkauf statt Abo, KI-Tools entfernt, Restore in Paywall) ──
 export default function App() {
   const [session, setSession]               = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
@@ -2788,9 +2776,6 @@ export default function App() {
   const [showDcaModal, setShowDcaModal]         = useState(false);
   const [showSzenarioModal, setShowSzenarioModal] = useState(false);
   const [showSettings, setShowSettings]     = useState(false);
-  const [aiResult, setAiResult]             = useState(null);
-  const [aiLoading, setAiLoading]           = useState(false);
-  const [aiActiveTool, setAiActiveTool]     = useState(null); // "portfolio" | "market"
   const [editTx, setEditTx]                 = useState(null);
   const [loading, setLoading]               = useState(false);
   const [dbLoading, setDbLoading]           = useState(true);
@@ -3238,92 +3223,11 @@ export default function App() {
 
   const filteredTx = [...transactions].filter(t => txFilter === "all" || t.type === txFilter).sort((a, b) => b.date.localeCompare(a.date));
 
-  // ── Claude AI Tools ───────────────────────────────────────────────────────────
   const fmt = (chfAmount) => {
     const val = toDisplay(chfAmount, currency, usdChf, eurUsd);
     return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
   };
 
-  const realizedPnl = (() => {
-    const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-    const lots = [];
-    let realized = 0;
-    for (const tx of sorted) {
-      if (tx.type === "buy") {
-        lots.push({ btc: +tx.btc, costPerBtc: (+tx.chf + +(tx.fee || 0)) / +tx.btc });
-      } else if (tx.type === "sell") {
-        let toSell = +tx.btc;
-        const proceeds = +tx.chf - +(tx.fee || 0);
-        const avgCost = lots.length ? lots.reduce((s, l) => s + l.btc * l.costPerBtc, 0) / lots.reduce((s, l) => s + l.btc, 0) : 0;
-        realized += proceeds - toSell * avgCost;
-        while (toSell > 1e-10 && lots.length) {
-          if (lots[0].btc <= toSell) { toSell -= lots[0].btc; lots.shift(); }
-          else { lots[0].btc -= toSell; toSell = 0; }
-        }
-      }
-    }
-    return realized;
-  })();
-
-  const callClaudeAI = async (tool) => {
-    // ── Premium-Check ───────────────────────────────────────────────────────
-    if (!isPremium) {
-      openPaywall("feature");
-      return;
-    }
-    setAiLoading(true);
-    setAiActiveTool(tool);
-    setAiResult(null);
-    const btcPrice = currency === "CHF" ? btcChf : currency === "USD" ? btcUsd : btcUsd * eurUsd;
-    const firstTx = transactions.length > 0
-      ? [...transactions].sort((a, b) => a.date.localeCompare(b.date))[0].date
-      : "n/a";
-
-    // Bug #1 Fix: Rohzahlen in Display-Währung berechnen (ohne Tausendertrenner),
-    // damit Claude die Werte exakt übernimmt und nicht selbst nachrechnet.
-    const toDisplayNum = (chfAmount) => {
-      const val = toDisplay(chfAmount, currency, usdChf, eurUsd);
-      return Math.round(val);
-    };
-
-    const portfolioPayload = {
-      totalBtc: totalBtc.toFixed(8),
-      invested: toDisplayNum(totalInvested),
-      value: toDisplayNum(portfolioChf),
-      pnl: toDisplayNum(pnlChf),
-      pnlPct: pnlPct.toFixed(1),
-      breakEven: toDisplayNum(avgChf),
-      btcPrice: toDisplayNum(btcChf),
-      change24h: dayChangePct?.toFixed(2) ?? "n/a",
-      method: costMethod,
-      txCount: transactions.length,
-      firstTx,
-      realizedPnl: toDisplayNum(realizedPnl),
-      currency,
-    };
-    try {
-      const res = await fetch(`${API_BASE}/api/claude`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool, portfolio: tool === "news" ? null : portfolioPayload, lang: language }),
-      });
-      const data = await res.json();
-      setAiResult(data.result || "error");
-    } catch {
-      setAiResult("error");
-    }
-    setAiLoading(false);
-  };
-
-  const renderMarkdown = (text) =>
-    text.split("\n").map((line, i) => {
-      const parts = line.split(/\*\*(.*?)\*\*/g);
-      return (
-        <p key={i} style={{ margin: "4px 0" }}>
-          {parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
-        </p>
-      );
-    });
   const scrollStyle = { overflowY: "auto", maxHeight: "calc(100vh - 80px - env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch", paddingBottom: 100 };
 
   // Splash Screen — während Auth-Check und initialem Daten-Laden
@@ -3490,84 +3394,6 @@ export default function App() {
                     </div>
                   </button>
                 </div>
-
-                {/* KI-Tools */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ color: T.textFaint, fontSize: 11, fontWeight: 600, letterSpacing: "0.01em" }}>{t("tools.aiTools")}</div>
-                  {!isPremium && (
-                    <button onClick={() => openPaywall("feature")} style={{ background: "linear-gradient(135deg, #f7931a, #e07b10)", border: "none", borderRadius: 12, padding: "7px 14px", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.02em", boxShadow: "0 2px 8px rgba(247,147,26,0.3)" }}>
-                      {t("premium.premiumBadge")}
-                    </button>
-                  )}
-                </div>
-
-                {/* News-Briefing — volle Breite */}
-                <button
-                  onClick={() => callClaudeAI("news")}
-                  disabled={aiLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, marginBottom: 10, position: "relative" }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>📰</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiNewsBtn")}</div>
-                    <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiNewsBtnHint")}</div>
-                  </div>
-                  {!isPremium && <div style={{ fontSize: 18, color: "#f7931a", flexShrink: 0 }}>🔒</div>}
-                </button>
-
-                {/* Markt-Kommentar — volle Breite (Portfolio-Analyse für v1.0 deaktiviert) */}
-                <button
-                  onClick={() => callClaudeAI("market")}
-                  disabled={aiLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "#fff8f0", border: `1px solid rgba(247,147,26,0.15)`, borderRadius: 18, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", textAlign: "left", opacity: aiLoading ? 0.5 : 1, marginBottom: 20, position: "relative" }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 11, background: "#f7931a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🌐</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: "#1c1c1e", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t("tools.aiMarketBtn")}</div>
-                    <div style={{ color: "#636366", fontSize: 11, lineHeight: 1.4 }}>{t("tools.aiMarketBtnHint")}</div>
-                  </div>
-                  {!isPremium && <div style={{ fontSize: 18, color: "#f7931a", flexShrink: 0 }}>🔒</div>}
-                </button>
-
-                {/* Loading */}
-                {aiLoading && (
-                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20, textAlign: "center", color: T.textMuted, fontSize: 15 }}>
-                    <div style={{ width: 24, height: 24, border: `3px solid ${T.border}`, borderTopColor: "#f7931a", borderRadius: "50%", animation: "btc-spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-                    {t("tools.aiLoading")}
-                  </div>
-                )}
-
-                {/* Fehler */}
-                {!aiLoading && aiResult === "error" && (
-                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
-                    <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 10, padding: 14, color: "#ef4444", fontSize: 14 }}>
-                      {t("tools.aiError")}
-                    </div>
-                  </div>
-                )}
-
-                {/* Resultat */}
-                {!aiLoading && aiResult && aiResult !== "error" && (
-                  <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: 20 }}>
-                    {/* Header mit X */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                      <span style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.06em" }}>
-                        {aiActiveTool === "portfolio" ? t("tools.aiPortfolioBtn") : t("tools.aiMarketBtn")}
-                      </span>
-                      <button
-                        onClick={() => setAiResult(null)}
-                        style={{ background: T.input, border: `1px solid ${T.border}`, color: T.textMuted, borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "inherit" }}
-                      >✕</button>
-                    </div>
-                    <div style={{ background: T.input, borderRadius: 12, padding: 16, fontSize: 14, lineHeight: 1.65, color: T.text }}>
-                      {renderMarkdown(aiResult)}
-                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", color: T.textFaint, fontSize: 11 }}>
-                        <span>{t("tools.aiPoweredBy")}</span>
-                        <span>{t("tools.aiDisclaimer")}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </>
@@ -3601,7 +3427,7 @@ export default function App() {
       )}
       <BottomNav view={view} setView={setView} onAdd={() => { setEditTx(null); setShowModal(true); }} T={T} language={language} />
       {showModal && <TransactionModal onClose={() => { setShowModal(false); setEditTx(null); }} onSave={handleSave} editTx={editTx} T={T} currency={currency} usdChf={usdChf} eurUsd={eurUsd} language={language} />}
-      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} T={T} language={language} reason={paywallReason} offerings={rcOfferings} onPurchaseSuccess={() => setIsPremium(true)} />}
+      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} T={T} language={language} reason={paywallReason} offerings={rcOfferings} onPurchaseSuccess={() => setIsPremium(true)} onRestore={handleRestorePurchases} />}
     </>
   );
 }

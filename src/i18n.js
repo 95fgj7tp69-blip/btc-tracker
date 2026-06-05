@@ -345,8 +345,8 @@ export const translations = {
           text:  "Break-even, realisierter Gewinn, DCA-Effizienz — sieh genau wo du stehst.",
         },
         {
-          title: "KI-Tools, die\nmitdenken.",
-          text:  "Markt-Kommentar und BTC-News — von Claude AI, direkt in der App.",
+          title: "Tools, die\nrechnen.",
+          text:  "Einstandsrechner und Szenario-Rechner — plane deine Strategie und sieh, wie sich dein Portfolio entwickeln kann.",
         },
         {
           title: "Sicher.\nPrivat. Deins.",
@@ -357,27 +357,15 @@ export const translations = {
 
     // ── Tools ───────────────────────────────────────────────────────────────────
     tools: {
-      finanzTools:    "Finanz-Tools",
+      finanzTools:    "Tools",
       kaufSimulator:  "Einstandsrechner",
       kaufSimulatorHint: "Neuen Einstandspreis beim Aufstocken berechnen",
 
-      // KI-Tools
-      aiTools:        "KI-Tools",
-      aiPortfolioBtn: "Portfolio analysieren",
-      aiPortfolioBtnHint: "Stärken, Risiken & aktuelle Position",
-      aiMarketBtn:    "Markt-Kommentar",
-      aiMarketBtnHint: "Aktuelle BTC-Marktlage & Ausblick",
-      aiNewsBtn:      "BTC-News",
-      aiNewsBtnHint:  "Aktuelle BTC-News, von KI zusammengefasst",
       szenarioHilfe:  "Wie wird berechnet?",
       szenarioHilfeTitle: "Berechnungsmethode",
       szenarioHilfeText: "Der Sparplan verwendet den DCA-Durchschnittskurs: den Mittelwert zwischen dem heutigen BTC-Kurs und dem Zielkurs. Damit wird angenommen, dass du über den Zeitraum zu steigenden Preisen kaufst — realistischer als der reine Zielkurs.",
       szenarioHilfeFormel: "Ø Kaufkurs = (heute + Zielkurs) ÷ 2",
       szenarioHilfeClose: "Verstanden",
-      aiLoading:      "Claude denkt...",
-      aiError:        "Fehler beim Laden. Bitte erneut versuchen.",
-      aiPoweredBy:    "Powered by Claude AI",
-      aiDisclaimer:   "Keine Anlageberatung.",
     },
 
     // ── Demo Import Modal ───────────────────────────────────────────────────────
@@ -414,32 +402,28 @@ export const translations = {
     // ── Premium / Paywall ───────────────────────────────────────────────────────
     premium: {
       // Sektion in Einstellungen
-      sectionTitle:           "ABONNEMENT",
+      sectionTitle:           "PREMIUM",
       planPremium:            "Trackoshi BTC Premium",
       planFree:               "Free-Plan",
       statusActive:           "Aktiv",
       transactionsCount:      "Transaktionen",
-      manageInAppStore:       "Verwalte dein Abo im App Store unter Einstellungen → [Dein Name] → Abonnements.",
+      manageInAppStore:       "Einmalkauf — kein Abo. Wiederherstellen über den Button unten.",
       upgradeBtn:             "Auf Premium upgraden",
       restoreBtn:             "Käufe wiederherstellen",
 
       // Paywall-Modal
       paywallLimitTitle:      "Transaktions-Limit erreicht",
       paywallFeatureTitle:    "Premium-Funktion",
-      paywallLimitBody:       "Du hast das kostenlose Limit von {limit} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Upgrade auf Premium für unbegrenzte Transaktionen und KI-Tools.",
-      paywallFeatureBody:     "KI-Tools (News, Markt-Kommentar) sind Teil von Trackoshi BTC Premium.",
+      paywallLimitBody:       "Du hast das kostenlose Limit von {limit} Transaktionen erreicht. Bestehende Transaktionen bleiben sichtbar. Schalte mit einem einmaligen Kauf unbegrenzte Transaktionen frei.",
+      paywallFeatureBody:     "Schalte unbegrenzte Transaktionen frei — einmal zahlen, für immer behalten.",
       paywallIncludes:        "Premium beinhaltet",
       featureUnlimited:       "Unbegrenzte Transaktionen",
-      featureNews:            "KI News-Briefing",
-      featureMarket:          "KI Markt-Kommentar",
+      featureOneTime:         "Einmaliger Kauf, kein Abo",
+      featureUpdates:         "Alle zukünftigen Updates inklusive",
       webNoticeTitle:         "App holen",
-      webNoticeText:          "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um zu upgraden.",
-      planYearly:             "Jährlich",
-      planMonthly:            "Monatlich",
-      planYearlyHint:         "CHF 2.42 / Monat, jährlich abgerechnet",
-      planMonthlyHint:        "Jederzeit kündbar",
-      badgeBestValue:         "BESTER PREIS",
-      autoRenewNotice:        "Abos verlängern sich automatisch, wenn nicht mind. 24 Stunden vor Periodenende gekündigt. Verwaltung in App Store-Einstellungen.",
+      webNoticeText:          "Premium ist nur in der iOS-App verfügbar. Lade Trackoshi BTC im App Store, um freizuschalten.",
+      planLifetime:           "Premium freischalten",
+      planLifetimeHint:       "Einmal zahlen, für immer behalten",
       maybeLater:             "Vielleicht später",
 
       // Free-Limit Banner im Verlauf
@@ -785,8 +769,8 @@ export const translations = {
           text:  "Break-even, realized gain, DCA efficiency — see exactly where you stand.",
         },
         {
-          title: "AI tools that\nthink ahead.",
-          text:  "Market commentary and BTC news — from Claude AI, directly in the app.",
+          title: "Tools that\ndo the math.",
+          text:  "Cost basis calculator and scenario calculator — plan your strategy and see how your portfolio could develop.",
         },
         {
           title: "Secure.\nPrivate. Yours.",
@@ -796,27 +780,15 @@ export const translations = {
     },
 
     tools: {
-      finanzTools:        "Financial Tools",
+      finanzTools:        "Tools",
       kaufSimulator:      "Cost Basis Calculator",
       kaufSimulatorHint:  "Calculate new cost basis when adding to your position",
 
-      // AI Tools
-      aiTools:        "AI Tools",
-      aiPortfolioBtn: "Analyse Portfolio",
-      aiPortfolioBtnHint: "Strengths, risks & current position",
-      aiMarketBtn:    "Market Commentary",
-      aiMarketBtnHint: "Current BTC market situation & outlook",
-      aiNewsBtn:      "BTC News",
-      aiNewsBtnHint:  "Current BTC news summarized by AI",
       szenarioHilfe:  "How is this calculated?",
       szenarioHilfeTitle: "Calculation method",
       szenarioHilfeText: "The savings plan uses the DCA average price: the midpoint between today's BTC price and the target price. This assumes you buy at rising prices over time — more realistic than using the target price alone.",
       szenarioHilfeFormel: "Avg. price = (today + target) ÷ 2",
       szenarioHilfeClose: "Got it",
-      aiLoading:      "Claude is thinking...",
-      aiError:        "Error loading. Please try again.",
-      aiPoweredBy:    "Powered by Claude AI",
-      aiDisclaimer:   "Not financial advice.",
     },
 
     demoImport: {
@@ -850,32 +822,28 @@ export const translations = {
     // ── Premium / Paywall ───────────────────────────────────────────────────────
     premium: {
       // Section in Settings
-      sectionTitle:           "SUBSCRIPTION",
+      sectionTitle:           "PREMIUM",
       planPremium:            "Trackoshi BTC Premium",
       planFree:               "Free Plan",
       statusActive:           "Active",
       transactionsCount:      "transactions",
-      manageInAppStore:       "Manage your subscription in the App Store under Settings → [Your Name] → Subscriptions.",
+      manageInAppStore:       "One-time purchase — no subscription. Restore via the button below.",
       upgradeBtn:             "Upgrade to Premium",
       restoreBtn:             "Restore Purchases",
 
       // Paywall modal
       paywallLimitTitle:      "Transaction Limit Reached",
       paywallFeatureTitle:    "Premium Feature",
-      paywallLimitBody:       "You've reached the free limit of {limit} transactions. Existing transactions stay visible. Upgrade to Premium to add unlimited transactions and unlock AI tools.",
-      paywallFeatureBody:     "AI tools (News, Market commentary) are part of Trackoshi BTC Premium.",
+      paywallLimitBody:       "You've reached the free limit of {limit} transactions. Existing transactions stay visible. Unlock unlimited transactions with a single one-time purchase.",
+      paywallFeatureBody:     "Unlock unlimited transactions — pay once, keep forever.",
       paywallIncludes:        "Premium includes",
       featureUnlimited:       "Unlimited transactions",
-      featureNews:            "AI News Briefing",
-      featureMarket:          "AI Market Commentary",
+      featureOneTime:         "One-time purchase, no subscription",
+      featureUpdates:         "All future updates included",
       webNoticeTitle:         "Get the App",
-      webNoticeText:          "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to upgrade.",
-      planYearly:             "Yearly",
-      planMonthly:            "Monthly",
-      planYearlyHint:         "CHF 2.42 / month, billed yearly",
-      planMonthlyHint:        "Cancel anytime",
-      badgeBestValue:         "BEST VALUE",
-      autoRenewNotice:        "Subscriptions auto-renew unless cancelled at least 24 hours before period ends. Manage in App Store settings.",
+      webNoticeText:          "Premium is only available in the iOS app. Download Trackoshi BTC from the App Store to unlock.",
+      planLifetime:           "Unlock Premium",
+      planLifetimeHint:       "Pay once, keep forever",
       maybeLater:             "Maybe later",
 
       // Free limit banner in history
