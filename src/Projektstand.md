@@ -1,204 +1,125 @@
 # BTC Portfolio App — Projektstand
 
-> **Aktuelle Version: 3.1.2** · Letzte Änderung: 2026-05
+## Stack
+- **Frontend**: React (JSX) + Vite, Recharts
+- **iOS-Wrapper**: Capacitor (App im App Store live)
+- **Backend**: Netlify Functions (Node.js)
+- **Datenbank**: Supabase (PostgreSQL, EU/Irland)
+- **IAP**: RevenueCat (Entitlement `premium`)
+- **Hosting**: Netlify (PWA), cyon.ch (Marketing-Site trackoshi.com)
+- **Live URL (App Store/PWA)**: `https://trackoshi.netlify.app`
+- **DEV/Staging**: `https://dev--trackoshi.netlify.app`
+- **GitHub**: `95fgj7tp69-blip/btc-tracker`
+- **Lokaler Mac-Pfad**: `~/Documents/btc-tracker/`
 
----
+## App Store / iOS
+- **App-Name**: Trackoshi BTC (Blue Bubble GmbH, Schweiz)
+- **Bundle ID**: `com.bluebubble.trackoshi`
+- **App Store ID**: `6770056556` | **Apple Team ID**: `3RD76SZLYB`
+- **Apple Reviewer-Account**: `applereview@bluebubble.ch`
+- **Live seit**: 2. Juni 2026 (erst 1.0.1, dann 1.1.0)
+- **AKTUELL LIVE**: Version 1.1.0, Build 7 (von Apple akzeptiert, im Store ausgeliefert)
+- **Info.plist**: `ITSAppUsesNonExemptEncryption = NO` gesetzt (keine Export-Compliance-Frage mehr)
+- **Zahlende Kunden**: bisher keine (Stand 6. Juni 2026)
 
-## Inhaltsverzeichnis
-1. [Infrastruktur](#infrastruktur)
-2. [App-Features](#app-features)
-3. [Fachliche Dokumentation](#fachliche-dokumentation)
-4. [Versionshistorie](#versionshistorie)
-5. [Offene Pendenzen](#offene-pendenzen)
-6. [Geplante Features](#geplante-features)
-7. [Entwicklung & Workflow](#entwicklung--workflow)
+## Monetarisierung (RevenueCat)
+- **Modell**: Einmalkauf (Non-Consumable) statt Abo — Umstellung in v1.1
+- **Produkt**: `com.bluebubble.trackoshi.premium.lifetime` (Apple-ID `6776755516`), USD 14.99
+- **Entitlement**: `premium` (einziges Entitlement)
+- **Offering**: `default`, Package `$rc_lifetime`
+- **RevenueCat iOS Public Key**: `appl_dvzVFNnKTWODZDzgjvTZmJxURVm` | **Project ID**: `projeaf3fcad`
+- **Alte Abo-Produkte** (`.premium.monthly`, `.premium.yearly`): AUFGERÄUMT (6. Juni 2026) — aus `default`-Offering entfernt, vom `premium`-Entitlement detacht (nur noch Lifetime dran), in ASC beide auf "Aus Verkauf entfernen" (0 von 175 Ländern). Produkte liegen in RevenueCat noch als verwaiste Karteileichen (bewusst, schaden nicht — können später gelöscht werden).
 
----
-
-## 1. Infrastruktur
-
-### Stack
-| Schicht | Technologie |
-|---------|-------------|
-| Frontend | React (JSX), Recharts |
-| Backend | Netlify Functions (Node.js) |
-| Datenbank | Supabase (PostgreSQL) |
-| Hosting | Netlify |
-| Live URL (Web) | `trackoshi.netlify.app` (früher: `bb-btc-tracker.netlify.app`) |
-| Live URL (Dev) | `dev--trackoshi.netlify.app` |
-| GitHub | `95fgj7tp69-blip/btc-tracker` |
-| Native App | Capacitor (iOS + Android) |
-| iOS Build | Mac Mini von Stefan, Xcode 26.4.1 |
-
-### Supabase
+## Supabase
 - **Project ID**: `xjkomserewmxktwvmoaa`
 - **URL**: `https://xjkomserewmxktwvmoaa.supabase.co`
 - **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa29tc2VyZXdteGt0d3Ztb2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjEzNTMsImV4cCI6MjA5MjUzNzM1M30.4GVJpwwQUCwhFGgMPFFYr_H23RUbX_3TpRAYpbvy9Es`
 - **Tabelle**: `transactions` (id, date, btc, chf, fee, type, note, user_id, created_at)
-- **RLS**: aktiviert — jeder User sieht nur eigene Daten
+- **RLS**: aktiviert mit Policies (jeder User sieht nur eigene Daten)
 - **Auth**: E-Mail + Passwort, Redirect URL auf Netlify gesetzt
 - **Region**: AWS eu-west-1 (Irland) — DSGVO-konform
-- **Service Role Key**: für "Konto löschen" in Netlify als `SUPABASE_SECRET_KEY` hinterlegt
-- **Hinweis**: beide Branches (main + dev) teilen dieselbe Datenbank
 
-### Supabase Constraint (erledigt auf dev + main)
+## Supabase Constraint (erledigt auf dev + main)
 ```sql
 ALTER TABLE transactions DROP CONSTRAINT transactions_type_check;
 ALTER TABLE transactions ADD CONSTRAINT transactions_type_check
-  CHECK (type IN ('buy', 'sell', 'transfer_in', 'transfer_out'));
+CHECK (type IN ('buy', 'sell', 'transfer_in', 'transfer_out'));
 ```
 
-### Preis-Architektur
-```
-App --> /api/prices  (Netlify Function, 60s Cache)   --> CoinGecko
-App --> /api/history (Netlify Function, 24h Cache)   --> CoinGecko
-         --> [[YYYY-MM-DD, usdPrice], ...] für letzte 730 Tage
-         --> wird auch für monatliche PriceChart-Daten verwendet
-App --> /api/market  (Netlify Function, tab-abhängig) --> CoinGecko
-         --> 1T: 5min Cache / 1W+: 60min Cache
-         --> für MarketCard Live-Chart
-App --> /api/claude  (Netlify Function)              --> Anthropic API
-```
-- CoinGecko liefert BTC in USD — Umrechnung in CHF/EUR via `usdChf` / `eurUsd`
-- Alle CoinGecko-Calls laufen durch Proxys (kein direkter Frontend-Zugriff)
-- Preise **immer** über Proxy, nie direkt CoinGecko
-
-### API_BASE Logik (Capacitor)
-```js
-// capacitor://localhost = native App (iOS/Android) → absolute URL nötig
-// https: = Browser/PWA → relative URLs, kein CORS
-const API_BASE = (typeof window !== "undefined" && window.location.protocol.startsWith("capacitor"))
-  ? "https://trackoshi.netlify.app"
-  : (import.meta.env.VITE_API_BASE ?? "");
-```
-- Im Browser: leerer String → relative URLs → kein CORS-Problem
-- In nativer App: absolute URL auf `trackoshi.netlify.app`
-
-### Repo-Struktur
+## Repo-Struktur
 ```
 btc-tracker/
   src/
-    App.jsx              ← Haupt-React-Komponente
-    i18n.js              ← Übersetzungen DE/EN
+    App.jsx        <- Haupt-React-Komponente
+    i18n.js        <- Übersetzungen DE/EN
   netlify/functions/
     transactions.js
-    prices.js            ← Preis-Proxy mit 60s Cache
-    history.js           ← Historische Kurse mit 24h Cache
-    market.js            ← MarketCard Chart-Proxy (tab-abhängiger Cache)
-    claude.js            ← Anthropic API Proxy (KI-Tools)
-  ios/                   ← Capacitor iOS Projekt (Xcode)
+    prices.js      <- Preis-Proxy mit 60s Cache
+    history.js     <- Historische Kurse mit 24h Cache
+    (claude.js     <- in v1.1 GELÖSCHT, KI-Tools entfernt)
+  ios/             <- Capacitor iOS-Projekt (Xcode baut von hier)
   public/
-    manifest.json        ← PWA Manifest
-    demo-transaktionen.csv  ← Demo-Daten (45 Transaktionen 2022–2026)
+    manifest.json           <- PWA Manifest
+    demo-transaktionen.csv  <- Demo-Daten (45 Transaktionen 2022-2026)
     icons/
       icon-512.png
       icon-192.png
       icon-180.png
-  index.html, package.json, vite.config.js, netlify.toml, capacitor.config.json
+  index.html, package.json, vite.config.js, netlify.toml
 ```
+Marketing-Site auf cyon (trackoshi.com): `bestaetigt.html` (Auth-Bestätigung), `passwort-reset.html` (Passwort-Reset, löst Recovery-Token ein), `agb.html`, `datenschutz.html`, `kontakt.html`. App-Assets müssen unter `/img/` liegen — `/icons/` ist auf cyon ein reservierter Apache-Alias.
 
----
-
-## 2. App-Features
-
-### Auth & Benutzer
+## App-Features (aktueller Stand)
 - [x] Login / Register / Passwort-Reset (Supabase Auth)
-- [x] Passwort-Toggle (Auge-Symbol) in Login, Register und Passwort-Modal
 - [x] Mehrbenutzerfähig (RLS, jeder sieht nur eigene Daten)
 - [x] JWT-Token in allen API-Calls
-- [x] Passwort ändern (Modal in Einstellungen)
-- [x] Konto löschen (Modal mit Bestätigungstext)
-- [x] AGB & Datenschutz: Checkbox bei Registrierung + Modal in Einstellungen
-
-### UI & Navigation
 - [x] Dark/Light Mode (localStorage) — Standard: Light Mode
 - [x] Dark Mode kontrastreicher (Apple iOS Dark Mode Stil)
-- [x] Navigation: 5 Tabs (Dashboard / Analyse / + / Verlauf / Tools)
-- [x] Einstellungen via Zahnrad-Icon im Header (Modal)
-- [x] Header verschlankt: nur Logo + Zahnrad + Aktualisierungszeit (kein redundanter Kurs)
-- [x] Header-Icon: echtes App-Icon (`icon-192.png`) statt SVG-Platzhalter
-- [x] Einstellungen neu strukturiert: KONTO → DARSTELLUNG → **DASHBOARD** (Währung, Sekundärkurs, Fear&Greed, Einstandspreis) → SPRACHE → DATEN → APP-INFO → RECHTLICHES
-- [x] Schriftgrösse wählbar S/M/L in Einstellungen (zoom-basiert, Standard M)
-- [x] Onboarding: 5 Slides mit SVG-Illustrationen
-- [x] Splash Screen beim App-Start (inkl. DB-Laden) — mit echtem App-Icon
-- [x] Login Screen — mit echtem App-Icon
-- [x] DEV-Banner (lila) auf dev--trackoshi.netlify.app
-- [x] iPhone Safe-Area, Viewport-Meta
-- [x] PWA: manifest.json, Icons (512/192/180px), Apple-Touch-Icon Meta-Tags
-- [x] Typografie: Abschnittstitel in Sentence case (statt KAPITÄLCHEN), 11px/600/textFaint
-- [x] Kontrast Light Mode verbessert: textMuted → #2c2c2e, textFaint → #48484a
-
-### Währung & Kurse
 - [x] Live BTC-Kurs (via Netlify Proxy /api/prices, 60s Cache)
 - [x] Live Wechselkurse USD/CHF und EUR/USD von CoinGecko (via Proxy)
 - [x] Portfolio-Währung wählbar: CHF / EUR / USD (gespeichert in localStorage)
-- [x] Sekundärkurs wählbar: Aus / CHF / EUR / USD (gespeichert in localStorage)
-- [x] Primär- und Sekundärkurs in MarketCard auf gleicher Zeile (Primär links gross, Sekundär rechts klein)
 - [x] Alle Anzeigen in gewählter Währung (Portfolio, Position, Markt, Break-Even, DCA)
 - [x] Transaktionseingabe in gewählter Währung, Speicherung immer in CHF
-- [x] MarketCard Chart-Achsen und Tooltip in gewählter Währung
-- [x] PriceChart (Analyse) in gewählter Währung
-
-### Dashboard
-- [x] Reihenfolge: MarketCard zuerst, dann PortfolioCard, dann PositionCard
-- [x] MarketCard: Dual-Y-Achsen (links: absoluter Kurs, rechts: % seit Periodenstart)
-- [x] MarketCard: 0%-Linie (gestrichelt, = Eröffnungskurs des gewählten Zeitraums)
-- [x] MarketCard: Tab-%-Änderung im Badge (nicht mehr fix 24h)
-- [x] MarketCard: Icon vor "Bitcoin (BTC)" entfernt
-- [x] MarketCard: Fear & Greed Index als eigene Card (optional, Toggle in Einstellungen, Standard: OFF)
-- [x] FearGreedCard: Halbkreis-Gauge (voller Gradient rot→gelb→grün), Zeiger, 7-Tage-Vergleich
-- [x] Portfolio-Chart: AreaChart mit Grün-Gradient, weiche Gridlines, Heute-Dot
-- [x] Portfolio-Chart Tabs: nur verfügbare Tabs angezeigt (1T / 7T / 30T / Alle)
-- [x] Portfolio-Chart: echte Portfoliowert-Linie via /api/history
-- [x] MarketCard: Live-Chart via /api/market (gecacht, tab-abhängig)
-- [x] Gesamtwert Schriftgrösse angepasst (28px statt 36px — gleich wie BTC-Kurs)
-- [x] Custom Tooltip: Dark Pill mit Blur-Effekt (MarketCard + PortfolioCard)
-
-### Analyse-Tab
-- [x] Kursverlauf vs. Einstand (PriceChart) — in gewählter Währung
-- [x] PriceChart: Y-Achse schliesst Einstandspreis immer ein
-- [x] Break-Even Analyse: neuer Gauge (voller Gradient rot→gelb→grün, Zeiger)
-- [x] Alle Abschnittstitel in Sentence case (statt KAPITÄLCHEN)
-- [x] Realisierter Gewinn/Verlust
-- [x] DCA-Effizienz Chart: Ø Kaufpreis pro Jahr
-- [x] Chart-Achsen gerundet (niceRound — keine krummen Zahlen)
-
-### Transaktionen & Verlauf
-- [x] Typen: Kauf / Verkauf / Einbuchung / Ausbuchung
-- [x] Einbuchung (transfer_in): BTC +, Einstandspreis unverändert
-- [x] Ausbuchung (transfer_out): BTC −, Einstandspreis unverändert
-- [x] Verlauf-Filter: Alle / Kauf / Verkauf / Einbuchung / Ausbuchung
-- [x] Swipe-to-delete (iOS-Stil, Halb-Swipe mit Bestätigungs-Dialog)
-
-### Einstandspreis-Methoden
-- [x] FIFO — First In, First Out (Standard, Parqet-kompatibel)
-- [x] AVCO — Weighted Average Cost
-- [x] Methode wählbar in Einstellungen (localStorage)
-- [x] Info-Modal zur Erklärung der Methoden (Fragezeichen-Icon)
-
-### Tools-Tab
-- [x] Kauf-Simulator (Bottom-Sheet Modal): Einstandspreis bei Nachkauf berechnen
-- [x] Szenario-Rechner: Portfoliowert bei Ziel-BTC-Kurs (intern, keine API)
-- [x] KI-Tools: Portfolio analysieren (Claude API)
-- [x] KI-Tools: Markt-Kommentar (Claude API, Web Search)
-- [x] KI-Tools: News-Briefing (Claude API, Web Search)
-- [x] Tools-Tab: 2×2 Kacheln für Finanz-Tools, News-Briefing als volle Breite, 2×1 für KI-Tools
-
-### Daten
 - [x] CSV-Export in gewählter Währung + Spalte "Portfoliowert heute"
 - [x] CSV-Import mit Duplikaterkennung (Einstellungen → DATEN)
+- [x] Dashboard: PortfolioCard, PositionCard, MarketCard
+- [x] Analyse-Tab: PriceChart, BreakEvenCard, Realisierter P&L, DCA-Effizienz Chart
+- [x] Navigation: 5 Tabs (Dashboard / Analyse / + / Verlauf / Tools)
+- [x] Transaktionen: Kauf / Verkauf / Einbuchung / Ausbuchung
+- [x] Einbuchung (transfer_in): BTC Bestand +, Einstandspreis unverändert
+- [x] Ausbuchung (transfer_out): BTC Bestand −, Einstandspreis unverändert
+- [x] FIFO-Methode für Einstandspreis (Standard, Lot-Verwaltung)
+- [x] AVCO-Methode für Einstandspreis (Weighted Average Cost)
+- [x] Einstandspreis-Methode wählbar in Einstellungen (localStorage)
+- [x] Info-Modal zur Erklärung der Methoden (Fragezeichen-Icon)
+- [x] Portfolio-Chart: Investiert + Portfoliowert, gemeinsame Y-Achse ab 0
+- [x] Portfolio-Chart Tabs: nur verfügbare Tabs angezeigt (1T/7T/30T/Alle)
+- [x] Realisierter Gewinn/Verlust (Analyse-Tab)
+- [x] DCA-Effizienz Chart (Analyse-Tab): Ø Kaufpreis pro Jahr
+- [x] Kauf-Simulator als Bottom-Sheet Modal im Tools-Tab
+- [x] Szenario-Rechner im Tools-Tab (Portfoliowert bei Zielkurs)
+- [x] Paywall: ein Einmalkauf-Button (`offerings.current.lifetime`, Fallback `FALLBACK_PRICE_LIFETIME="USD 14.99"`), Feature-Liste, **Restore-Button** (Apple-Pflicht bei Non-Consumables)
+- [x] `isNativePlatform()`-Schutz: RevenueCat (`Purchases.configure`) wird im Browser übersprungen (App.jsx Zeile ~51, 2815, 2880). Im Web zeigt die Paywall "Premium nur in der iOS-App verfügbar" statt Kauf-Button — Web-PWA bricht NICHT
+- [x] Free-Limit: max. 25 Transaktionen, Premium = unbegrenzt
+- [x] KI-Tools ENTFERNT in v1.1 (Portfolio-Analyse, Markt-Kommentar, BTC-News) — States, callClaudeAI, renderMarkdown, Tools-Buttons, i18n ai*-Keys, claude.js, /api/claude-Redirect alle raus
+- [x] BTC-Kurs im Header (Preis + 24h-Änderung, in gewählter Währung)
+- [x] Einstellungen via Zahnrad-Icon im Header (Modal)
+- [x] Onboarding: 5 Slides mit SVG-Illustrationen (Slide 3 in v1.1 neu: Taschenrechner-SVG "Tools, die rechnen", bewusst ohne Wort "Kauf"/"Buy" wegen Apple 1.1.6)
 - [x] Demo-Daten laden (Einstellungen → DATEN)
 - [x] Alle Transaktionen löschen (mit Fortschrittsbalken, Konto bleibt erhalten)
+- [x] Passwort ändern (Modal in Einstellungen)
+- [x] Passwort-Reset end-to-end gefixt (v1.1): `PASSWORD_RESET_URL="https://trackoshi.com/passwort-reset.html"`, App sendet `redirectTo` darauf; Seite löst Recovery-Token via updateUser ein; Supabase Redirect-Whitelist erweitert
+- [x] Konto löschen (Modal mit Bestätigungstext)
+- [x] AGB & Datenschutz: Checkbox bei Registrierung + Modal in Einstellungen
+- [x] PWA: manifest.json, Icons (512/192/180px), Apple-Touch-Icon Meta-Tags
+- [x] Splash Screen beim App-Start
+- [x] Netlify Proxy für Preisdaten (60s Cache) und historische Kurse (24h Cache)
+- [x] Verlauf-Filter: Alle / Kauf / Verkauf / Einbuchung / Ausbuchung
+- [x] DEV-Banner (lila) auf dev--trackoshi.netlify.app
+- [x] iPhone Safe-Area, Viewport-Meta
+- [x] Mehrsprachigkeit DE/EN: i18n.js, Systemsprache-Erkennung, Umschalter in Einstellungen
 
-### Mehrsprachigkeit
-- [x] DE/EN: i18n.js, Systemsprache-Erkennung, Umschalter in Einstellungen
-- [x] Sprach-Button: 🇩🇪 Deutsch / 🇬🇧 English
-
----
-
-## 3. Fachliche Dokumentation
-
-### Transaktions-Typen
+## Transaktions-Typen
 | Typ | Label DE | Label EN | Farbe | Wirkung |
 |-----|----------|----------|-------|---------|
 | buy | Kauf | Buy | Grün | BTC +, Investiert +, Einstand neu |
@@ -206,15 +127,16 @@ btc-tracker/
 | transfer_in | Einbuchung | Transfer In | Blau | BTC +, Einstand unverändert |
 | transfer_out | Ausbuchung | Transfer Out | Orange | BTC −, Einstand unverändert |
 
-### Finanzberechnungen
+## Finanzberechnungen
 ```js
 const totalBtc = buyBtc - sellBtc + transferInBtc - transferOutBtc
-const buyInvested = sum(buy.chf + buy.fee)
+const buyInvested = sum(buy.chf + buy.fee)       // immer in CHF
 const sellProceeds = sum(sell.chf - sell.fee)
 const totalInvested = buyInvested - sellProceeds
 const pnlChf = portfolioChf - totalInvested
 const pnlPct = (pnlChf / buyInvested) * 100
 
+// Anzeige-Umrechnung
 const toDisplay = (chfAmount, currency, usdChf, eurUsd) => {
   if (currency === "CHF") return chfAmount;
   if (currency === "USD") return chfAmount / usdChf;
@@ -222,7 +144,7 @@ const toDisplay = (chfAmount, currency, usdChf, eurUsd) => {
 }
 ```
 
-### Einstandspreis-Methoden
+## Einstandspreis-Methoden
 **FIFO — First In, First Out (Standard)**
 - Jeder Kauf = eigenes Lot; beim Verkauf älteste Lots zuerst
 - Kompatibel mit Parqet
@@ -231,7 +153,15 @@ const toDisplay = (chfAmount, currency, usdChf, eurUsd) => {
 - Bei Kauf: `avco = (poolBtc * avco + kosten) / (poolBtc + btc)`
 - Bei Verkauf / Transfer: AVCO unverändert
 
-### CSV Import/Export Format
+## Mehrsprachigkeit
+- **Datei**: `src/i18n.js` — alle sichtbaren Texte in DE + EN
+- **Spracherkennung beim ersten Start**: `navigator.language` — Deutsch (de, de-CH, de-AT etc.) → DE, alles andere → EN
+- **Danach**: localStorage `"language"` hat Vorrang
+- **Umschalten**: Einstellungen → SPRACHE → DE / EN
+- **Neue Features**: Texte immer zuerst in i18n.js (de + en), dann `t("key")` im JSX
+- **Test**: App auf EN stellen und durchklicken — alles noch Deutsch = fehlt in i18n.js
+
+## CSV Import/Export Format
 ```
 Datum,Typ,BTC,CHF Betrag,CHF Gebühren,Notiz
 2024-01-15,buy,0.25,9875,15,DCA Start
@@ -241,19 +171,16 @@ Datum,Typ,BTC,CHF Betrag,CHF Gebühren,Notiz
 ```
 - Import: Einstellungen → DATEN → Import
 - Duplikaterkennung: Datum + Typ + BTC
-- Rückwärtskompatibel: `type=transfer` + `note=TransferIn/Out` wird gemappt
+- Rückwärtskompatibel: type=transfer + note=TransferIn/Out wird gemappt
 
-### Mehrsprachigkeit
-- **Datei**: `src/i18n.js` — alle sichtbaren Texte in DE + EN
-- **Erkennung beim ersten Start**: `navigator.language` → Deutsch (de, de-CH, de-AT …) → DE, sonst EN
-- **Danach**: localStorage `"language"` hat Vorrang
-- **Umschalten**: Einstellungen → SPRACHE → DE 🇩🇪 / EN 🇬🇧
-- **Neue Features**: Texte immer zuerst in i18n.js (de + en), dann `t("key")` im JSX
+## Preis-Architektur
+```
+App --> /api/prices  (Netlify Function, 60s Cache) --> CoinGecko
+App --> /api/history (Netlify Function, 24h Cache) --> CoinGecko
+         --> [[YYYY-MM-DD, usdPrice], ...] für letzte 730 Tage
+```
 
----
-
-## 4. Versionshistorie
-
+## Versionshistorie
 | Version | Datum | Änderungen |
 |---------|-------|------------|
 | 1.0.0 | 2026-04 | Initiale Version |
@@ -288,148 +215,94 @@ Datum,Typ,BTC,CHF Betrag,CHF Gebühren,Notiz
 | 1.16.4 | 2026-04 | PWA Icons deployed |
 | 1.17.0 | 2026-04 | Pull-to-Refresh entfernt (iOS Konflikt) |
 | 1.17.1 | 2026-05 | AGB & Datenschutz (Registrierung + Einstellungen) |
-| 1.18.0 | 2026-05 | Mehrsprachigkeit DE/EN: i18n.js, Systemsprache-Erkennung |
-| 2.1.1 | 2026-05 | Passwort-Toggle (Auge) in Login + Passwort-Modal |
-| 2.1.2 | 2026-05 | PriceChart + Portfolio-Chart: CHF/EUR Umrechnung korrigiert |
-| 2.1.3 | 2026-05 | Header-Badge: dynamisches Währungs-Label (CHF/EUR/USD 24h) |
-| 2.2.0 | 2026-05 | Sekundärkurs im Header (wählbar, Standard: Aus) |
-| 2.2.1 | 2026-05 | Chart-Achsen gerundet (niceRound) |
-| 2.2.2 | 2026-05 | MarketCard: Achsen + Tooltip in gewählter Währung |
-| 2.2.3 | 2026-05 | i18n: Sekundärkurs-Texte DE/EN, hardcodierte Strings entfernt |
-| 2.2.4 | 2026-05 | Gross-/Kleinschreibung: dca.chartTitle statt .toUpperCase() |
-| 2.2.4 | 2026-05 | Sprach-Button: 🇨🇭 → 🇩🇪 |
-| 2.3.0 | 2026-05 | Swipe-to-delete im Verlauf (iOS-Stil, Halb-Swipe) |
-| 2.3.1 | 2026-05 | Alle CoinGecko-Calls via Proxy — neue Netlify Function market.js |
-| 2.4.0 | 2026-05 | Kontrast verbessert (DARK + LIGHT), Schriftgrösse S/M/L in Einstellungen |
-| 2.4.1 | 2026-05 | Einstellungen neu strukturiert, zoom-Modal-Fix |
-| 2.5.0 | 2026-05 | MarketCard: Dual-Y-Achsen, Tab-%-Änderung im Badge |
-| 2.5.1 | 2026-05 | PriceChart: Einstandspreis-Linie immer sichtbar |
-| 2.5.2 | 2026-05 | PriceChart: Y-Achse schliesst Einstandspreis ein |
-| 2.5.5 | 2026-05 | MarketCard: 0%-Linie via ReferenceLine |
-| 2.5.6 | 2026-05 | Dashboard: MarketCard nach oben verschoben |
-| 2.6.0 | 2026-05 | Header verschlankt, Primär- + Sekundärkurs in MarketCard |
-| 2.7.0 | 2026-05 | Szenario-Rechner im Tools-Tab |
-| 2.8.0 | 2026-05 | Capacitor iOS: API_BASE fix, vite.config.js base:'./', Netlify Functions auf main deployed |
-| 2.8.1 | 2026-05 | Gesamtwert Schriftgrösse 36→28px |
-| 2.8.2 | 2026-05 | Header-Icon: echtes App-Icon; MarketCard-Icon entfernt |
-| 2.8.3 | 2026-05 | Splash Screen + Login Screen: echtes App-Icon |
-| 2.8.4 | 2026-05 | Portfolio-Chart: AreaChart, Grün-Gradient, Heute-Dot, weiche Gridlines |
-| 2.8.5 | 2026-05 | Typografie: Sentence case, Custom Tooltip Dark Pill |
-| 2.8.6 | 2026-05 | Tools-Tab: 2×2 Kacheln (#fff8f0); Kontrast Light Mode verbessert |
-| 2.8.7 | 2026-05 | Portfolio-Chart: dynamischer Gradient (grün/rot je nach Gewinn/Verlust) |
-| 2.8.8 | 2026-05 | Währungskürzel kleiner; Tools Dark Mode fix; Kachel-Höhe fix |
-| 2.8.9 | 2026-05 | Realisierter G/V: kein + Vorzeichen bei Gewinn |
-| 2.9.0 | 2026-05 | Währungskürzel Ausrichtung: minWidth 44px |
-| 2.9.1 | 2026-05 | Zahnrad-Icon SVG; Legende kompakter |
-| 2.9.2–2.9.3 | 2026-05 | Währungskürzel Ausrichtung: Primär/Sekundär verschiedene Grösse |
-| 2.9.4 | 2026-05 | Fear & Greed Index in MarketCard; News-Briefing KI-Tool |
-| 2.9.5–2.9.6 | 2026-05 | Fear & Greed Gauge Fixes (Zeiger, Farben) |
-| 3.0.0 | 2026-05 | FearGreedCard als eigene Card; Toggle in Einstellungen (Standard: OFF) |
-| 3.1.0 | 2026-05 | Einstellungen: Dashboard-Abschnitt; Primär/Sekundärkurs gleiche Zeile |
-| 3.1.1 | 2026-05 | Gauge voller Gradient; Sekundärkurs gap statt space-between |
-| 3.1.2 | 2026-05 | Analyse: alle Titel Sentence case; Break-Even Gauge neu (voller Gradient) |
+| 1.18.0 | 2026-05 | Mehrsprachigkeit DE/EN: i18n.js, Systemsprache-Erkennung, Umschalter in Einstellungen |
+| 1.0(5) | 2026-06-02 | App-Store-Launch (nach 2 Apple-Ablehnungen unter 1.1.6: Trading-Vokabular → Accounting-Begriffe Acquired/Disposed/Transfer In/Out + Info-Modal) |
+| 1.0.1 | 2026-06 | App-Store-Darstellung aktualisiert (Metadaten-only) |
+| 1.1.0 (Build 7) | 2026-06-05 | Abo → Einmalkauf (Non-Consumable USD 14.99), KI-Tools entfernt, Paywall neu (Restore-Button), Passwort-Reset gefixt, ASC-Texte/Screenshots erneuert |
+| — | 2026-06-06 | 1.1.0 von Apple akzeptiert & live. RevenueCat/ASC aufgeräumt (Abos entfernt). Marketing-Site trackoshi.com aktualisiert |
 
----
+## Aktuelle Version
+**1.1.0 (Build 7)** — LIVE im App Store (akzeptiert 6. Juni 2026). Aufräumen abgeschlossen.
 
-## 5. Offene Pendenzen
+## Geänderte Dateien in Version 1.1.0
+- `src/App.jsx` (Version `1.1.0`, KI-States/Funktionen raus, Paywall neu, Passwort-Reset-URL, Onboarding-Slide 3)
+- `src/i18n.js` (ai*-Keys raus, neue Paywall/Onboarding-Texte DE+EN)
+- `netlify/functions/claude.js` (gelöscht)
+- `netlify.toml` (`/api/claude`-Redirect entfernt)
+- `ios/App/App/Info.plist` (`ITSAppUsesNonExemptEncryption = NO`)
+- cyon: `passwort-reset.html` (neu)
+- Git: Branch `dev`, HEAD `d9dc9b8`
 
-### Technische Schuld
-| # | Bereich | Problem | Aufwand |
-|---|---------|---------|---------|
-| 1 | BreakEvenCard / RealizedPnl / DcaChart | Hardcodierte `language === "en"` Strings — noch nicht in i18n.js | Mittel |
+## Erledigt (6. Juni 2026)
+- [x] RevenueCat/ASC aufgeräumt: Abos aus Offering, vom Entitlement detacht, in ASC aus Verkauf
+- [x] Marketing-Site trackoshi.com aktualisiert (KI raus, Einmalkauf, live-Status, Apple-Badge, neue Mockups, Pricing konsistent)
+- [x] `dev` → `main` Merge: OBSOLET, wird NICHT gemacht (siehe Branch-Workflow unten)
 
----
+## Offene Punkte (für später — Richtung A: iOS-Weiterentwicklung)
+1. App Store Connect API-Key (P8) in RevenueCat-Dashboard hochladen (vollständige Produkt-Integration)
+2. Hardcodierte USD-Preis-Strings in Paywall durch RevenueCat `priceString` ersetzen
+3. Vollständiges Deep Linking (Custom URL Scheme / Universal Link für Supabase-Auth-Redirect zurück in iOS-App)
+4. Login-Screen UX (freundlicherer Willkommenstext, aktuell nur "Anmelden")
+5. "Lade…"-Indikator als sticky Floating-Toast (scrollt bei grossen iOS-Schriftgrössen weg)
+6. Hero-Mockup auf trackoshi.com bei nächster GRÜNER Marktlage neu in Canva (aktuell noch altes dashboard.png mit "t"-Logo; bei BTC-Minus sieht rote Kurve schlecht aus)
+7. Falls je Premium-only-Feature dazukommt: Webseiten-Pricing-Text wieder offener formulieren (aktuell "Premium hebt nur das Transaktionslimit auf")
 
-## 6. Geplante Features / App Store Roadmap
+## Mögliche Richtung B: Google Play Store
+- Code ~90% wiederverwendbar: Capacitor baut denselben Web-Build für Android (`npx cap add android`). UI/Supabase/Berechnungen unverändert.
+- ABER Monetarisierung eigene Baustelle: Apple-Non-Consumable funktioniert NICHT auf Android. Nötig: eigenes managed product in Google Play Console → in RevenueCat als 2. Store-Produkt ans selbe `premium`-Entitlement → RevenueCat-Android-Public-Key in App → `isNativePlatform()` auf iOS/Android-Unterscheidung erweitern.
+- Zusätzlich: Google-Play-Developer-Account (einmalig 25 USD), Android-Store-Assets, Datenschutz-Deklaration, App-Signing.
+- Empfehlung: erst iOS-Daten sammeln (Downloads/Käufe/Friktion), bevor Android-Aufwand investiert wird.
 
-### Capacitor / App Store — In Arbeit
-| Status | Was |
-|--------|-----|
-| ✅ | Capacitor installiert + initialisiert |
-| ✅ | iOS Platform hinzugefügt (`ios/` Ordner) |
-| ✅ | vite.config.js: `base: './'` |
-| ✅ | API_BASE: relativ im Browser, absolut in nativer App |
-| ✅ | App läuft im iOS Simulator (iPhone 17 Pro, iOS 26.4.1) |
-| ✅ | Netlify Functions auf main deployed |
-| ✅ | Apple ID erstellt: `stefan.vongunten@bluebubble.ch` |
-| ✅ | D-U-N-S Nummer für Blue Bubble GmbH erhalten |
-| ✅ | Apple Developer Enrollment gestartet (Organization) |
-| ⏳ | Apple Developer Account aktivieren (USD 99, nach Apple-Bestätigung) |
-| ⏳ | App Store Connect: App anlegen, Bundle ID registrieren |
-| ⏳ | Xcode Signing & Capabilities konfigurieren |
-| ⏳ | Sign in with Apple einbauen (Apple-Pflicht) |
-| ⏳ | App Icon finalisieren — 1024×1024px PNG, kein Alpha |
-| ⏳ | Screenshots iPhone 6.7" |
-| ⏳ | App-Beschreibung DE + EN (max. 4000 Zeichen) |
+## Nächste mögliche Features
+- [ ] PWA App-Icon: finales Icon mit echtem ₿-Symbol (Figma/Canva)
+- [ ] Swipe to delete im Verlauf
+- [ ] Error Boundary (weisser Bildschirm verhindern)
+- [ ] Offline-Modus: letzte Preise cachen
+- [ ] Sats-Anzeige (1 BTC = 100'000'000 Sats)
+- [ ] Stack Progress Tracker (Ziel-BTC setzen)
+- [ ] Floating/sticky "Lade..."-Indikator (scrollt bei grossen iOS-Schriftgrössen weg)
+- [ ] Freundlicherer Login-Screen
 
-### Code — noch offen
-| Priorität | Feature |
-|-----------|---------|
-| 🟡 Mittel | Error Boundary (weisser Bildschirm verhindern) |
-| 🟡 Mittel | Offline-Modus: letzte Preise cachen |
-| 🟢 Gering | Sats-Anzeige (1 BTC = 100'000'000 Sats) |
-| 🟢 Gering | Stack Progress Tracker (Ziel-BTC setzen) |
-| 🟢 Gering | Haptic Feedback bei Transaktionen |
-| 🟢 Gering | Biometrie-Login (Face ID / Touch ID) |
+## Workflow (GitHub Branches) — WICHTIG, geändert 6. Juni 2026
+- **dev** → aktive Entwicklung UND Quelle für iOS-Builds (dev--trackoshi.netlify.app). Enthält Paywall + RevenueCat + 25-Transaktionen-Limit. Xcode baut aus dem Arbeitsverzeichnis (dev-Stand).
+- **main** → ALTER Web-PWA-Stand VOR der Paywall, ohne Limit. Nirgends beworben/downloadbar = praktisch private Altversion.
+- **KEIN Merge dev → main mehr.** Der frühere "dev testen → main spiegeln"-Workflow ist OBSOLET. dev und main sind bewusst zwei getrennte Editionen geworden (dev = iOS-App mit Paywall, main = altes Gratis-Web ohne Limit). Würde man dev → main mergen, bekäme die Web-Version das 25-Limit OHNE Kaufmöglichkeit (Kauf nur via iOS) → würde Web-Nutzer aussperren. Daher: main in Ruhe lassen.
 
----
+Ablauf für iOS-Builds:
+1. Änderungen auf `dev` pushen → testen (dev--trackoshi.netlify.app)
+2. Vor Archive: `npm run build && npx cap sync ios`
+3. Xcode: Archive → Upload → TestFlight → echtes Gerät → ASC zur Review
 
-## 7. Entwicklung & Workflow
-
-### GitHub Branches
-| Branch | Umgebung | URL |
-|--------|----------|-----|
-| `main` | Produktiv | trackoshi.netlify.app |
-| `dev` | Test | dev--trackoshi.netlify.app |
-
-**Ablauf:**
-1. Neue Dateien auf `dev` pushen → testen
-2. Wenn ok → `git merge origin/dev` auf main → `git push origin main`
-3. Für Xcode: nach jedem Push auf dev lokal `git pull origin dev && npm run build && npx cap sync`
-
-**⚠️ Wichtig:** `git reset --hard` löscht den `ios/` Ordner und `capacitor.config.json`. Falls nötig:
-```bash
-npx cap init "Trackoshi" "com.bluebubble.trackoshi" --web-dir dist
-npx cap add ios
-npm run build && npx cap sync
-npx cap open ios
-```
-
-### Capacitor Build-Workflow (lokal auf Mac)
-```bash
-# Projektordner: ~/Documents/btc-tracker (Branch: dev)
-
-# 1. Vite Build
-npm run build
-
-# 2. Capacitor sync
-npx cap sync
-
-# 3. iOS in Xcode öffnen
-npx cap open ios
-
-# 4. In Xcode: Play ▶ → Simulator startet
-```
-
-### Best Practices
-- **Versionsnummer**: bei jeder Änderung in `App.jsx` mitanpassen (SemVer: MAJOR.MINOR.PATCH)
-- **Mehrsprachigkeit**: neue Texte immer zuerst in `i18n.js` (de + en), dann `t("key")` im JSX
-- **netlify.toml**: Cache-Header für `index.html` (no-store) und `/assets/*` (immutable) — neue Functions immer mit Redirect eintragen — liegt im **Root**, nicht in `src/`
+## Best Practices (immer einbauen)
+- **Versionsnummer**: bei jeder Änderung in App.jsx mitanpassen (Patch = Bugfix, Minor = neues Feature)
+- **Mehrsprachigkeit**: neue Texte immer zuerst in i18n.js (de + en), dann `t("key")` im JSX
+- **netlify.toml**: Cache-Header für index.html (no-store) und /assets/* (immutable)
 - **Kommentare in JSX**: immer `//` oder `/* */`, nie `<!-- -->` — sonst Build-Fehler
 - **Dateien auf GitHub**: immer auf dem Mac, nie auf iPhone (iOS wandelt Anführungszeichen um)
 - **JSX return mit Modals**: immer in `<>...</>` Fragment wrappen
+- **exportCSV**: immer im Haupt-App-Kontext definieren (braucht currency, usdChf, eurUsd, btcUsd, btcChf)
 - **Währungslogik**: Anzeige und Eingabe in gewählter Währung, Speicherung immer in CHF
-- **Preise**: immer über Proxy (`/api/prices`, `/api/history`, `/api/market`), nie direkt CoinGecko
-- **API_BASE**: `protocol.startsWith("capacitor")` für native App-Erkennung
+- **Preise**: immer über /api/prices (Proxy), nie direkt CoinGecko
 - **Supabase Constraint**: bei neuen Typen zuerst DROP, dann ADD CONSTRAINT
 
-### Technische Hinweise
+## Technische Hinweise
 - **Netlify Build Credits**: Free Plan = 300/Monat, pro Deploy ~1–2 Credits
 - **Auto-Publishing**: aktiviert auf main und dev
+- **Supabase Service Role Key**: für "Konto löschen" — in Netlify als SUPABASE_SECRET_KEY hinterlegt
 - **Supabase**: beide Branches teilen dieselbe Datenbank
-- **CoinGecko Skalierung**: alle Calls gecacht via Proxy
-- **Datenschutz-Kontakt**: support [at] bluebubble [dot] ch
-- **Anthropic API Key**: als `ANTHROPIC_API_KEY` in Netlify hinterlegt
-- **Apple Developer**: `stefan.vongunten@bluebubble.ch` — Organization: Blue Bubble GmbH
-- **Bundle ID**: `com.bluebubble.trackoshi`
-- **Netlify Functions URL**: `trackoshi.netlify.app` (nicht `bb-btc-tracker.netlify.app`)
+- **SemVer**: MAJOR.MINOR.PATCH — Patch für Bugfix, Minor für neue Features
+- **CoinGecko API**: liefert BTC in usd, chf und eur gleichzeitig — kein separater FX-Feed nötig
+- **FIFO**: Standard-Methode, Lots in Array, shift() beim Verkauf
+- **Demo-CSV**: public/demo-transaktionen.csv — 45 Transaktionen 2022–2026
+- **Datenschutz**: support [at] bluebubble [dot] ch
+- **Marketing-Site (trackoshi.com auf cyon)**: aktualisiert 6. Juni — KI raus, Einmalkauf, live-Status, echte App-Store-Links (`https://apps.apple.com/app/id6770056556`), offizieller weisser Apple-Badge. Screenshots-Grid = 3 Canva-Mockups (Analyse/Verlauf/Einstellungen, Cache-Buster `?v=4`). CSS-Fix: `.phone-frame img { width:100% }` (sonst Hero in Edge riesig). Bild-Cache auf cyon via `?v=`-Versionsnummer brechen (cyon ≠ Netlify-Cache-Header).
+
+## iOS / App Store — Erfahrungswerte
+- **Guideline 1.1.6**: Screenshots & UI-Vokabular werden genau geprüft. Trading-Sprache ("Kauf/Verkauf") triggert Ablehnung auch bei Tracker-Apps. Accounting-Begriffe (Acquired/Disposed/Transfer In/Out) gehen durch.
+- **Screenshots**: 6,9"-Slot hochladen (1290×2796 PNG) — Apple leitet 6,5" automatisch ab. Simulator-Screenshots ggf. auf echte PNG-Maße konvertieren.
+- **Code nie auf iPhone editieren**: iOS-Autokorrektur zerstört Anführungszeichen. Mac = Quelle der Wahrheit.
+- **TestFlight-Käufe laufen immer in der Sandbox** — belasten nie eine echte Karte. Non-Consumable bleibt an der Apple-ID "kleben"; Erstkauf-Dialog erscheint nur bei Apple-ID, die nie gekauft hat. Premium hängt an der Apple-ID, NICHT am Supabase-Konto (überlebt Kontowechsel — korrekt).
+- **IAP-Einreichung (neueres ASC-UI)**: IAP nicht mehr auf der Versionsseite anhängbar; separat "Zur Prüfung übermitteln", Apple koppelt automatisch an die nächste App-Einreichung. IAP braucht konfigurierte **Verfügbarkeit** (Länder), sonst Ablehnung beim Übermitteln. Status `MISSING_METADATA` vor Genehmigung ist normal.
+- **Build-Zuweisung**: Build muss auf der Versionsseite unter "Build" hinzugefügt werden, bevor "Zur Prüfung hinzufügen" geht.
+- **Export-Compliance**: `ITSAppUsesNonExemptEncryption = NO` in Info.plist eliminiert die Frage bei jedem Build.
+- **Supabase Data API**: neue Tabellen im public-Schema brauchen ab 30.10.2026 explizites GRANT — nicht-dringend für bestehende Tabellen.
