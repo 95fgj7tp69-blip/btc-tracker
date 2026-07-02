@@ -29,11 +29,11 @@ exports.handler = async (event) => {
       const dt = new Date(ts);
       let label;
       if (days === 1) {
-        label = dt.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+        label = dt.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" });
       } else if (days <= 7) {
-        label = dt.toLocaleDateString("de-CH", { weekday: "short" });
+        label = dt.toLocaleDateString("de-CH", { weekday: "short", timeZone: "Europe/Zurich" });
       } else {
-        label = dt.toLocaleDateString("de-CH", { day: "numeric", month: "short" });
+        label = dt.toLocaleDateString("de-CH", { day: "numeric", month: "short", timeZone: "Europe/Zurich" });
       }
       return { t: label, v: Math.round(price) };
     });
