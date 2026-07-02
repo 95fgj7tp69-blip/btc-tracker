@@ -913,9 +913,20 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
     return i % Math.floor(n / 5) === 0 || i === n - 1;
   }).map(d => d.t);
 
-  const fmtAxis = (usdVal) => {
-    const converted = niceRound(toDisplay(usdVal * usdChf, currency, usdChf, eurUsd));
-    return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(converted);
+  // Y-Achsen-Raster aus der sichtbaren Spanne ableiten (nicht aus dem Absolutwert),
+  // damit min/mid/max immer runde UND verschiedene Werte zeigen (Bug: doppelte Labels).
+  const dispMin = toDisplay(minV * usdChf, currency, usdChf, eurUsd);
+  const dispMax = toDisplay(maxV * usdChf, currency, usdChf, eurUsd);
+  const dispSpan = dispMax - dispMin;
+  const axisStep = dispSpan > 0 ? Math.pow(10, Math.floor(Math.log10(dispSpan)) - 1) : 1;
+
+  // Rundungsrichtung nach Rolle: max aufrunden, min abrunden → Labels umschliessen die Daten
+  // (Domain sitzt auf rohen minV/maxV), mid nach nächstem Schritt.
+  const fmtAxis = (usdVal, mode = "round") => {
+    const disp = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
+    const n = disp / axisStep;
+    const r = mode === "ceil" ? Math.ceil(n) : mode === "floor" ? Math.floor(n) : Math.round(n);
+    return new Intl.NumberFormat(CURRENCIES[currency].locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(r * axisStep);
   };
   const fmtTooltip = (usdVal) => {
     const converted = toDisplay(usdVal * usdChf, currency, usdChf, eurUsd);
@@ -989,8 +1000,8 @@ function MarketCard({ btcChf, btcUsd, dayChangePct, T, currency = "CHF", usdChf 
 
             {/* Linke Y-Achse: absoluter Kurs */}
             <div style={{ position: "absolute", left: 6, top: 8, bottom: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
-              {[maxV, (minV + maxV) / 2, minV].map((v, i) => (
-                <span key={i} style={{ fontSize: 9, color: T.textMuted, textAlign: "left" }}>{fmtAxis(v)}</span>
+              {[[maxV, "ceil"], [(minV + maxV) / 2, "round"], [minV, "floor"]].map(([v, mode], i) => (
+                <span key={i} style={{ fontSize: 9, color: T.textMuted, textAlign: "left" }}>{fmtAxis(v, mode)}</span>
               ))}
             </div>
 
@@ -1971,7 +1982,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.6.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.6.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
