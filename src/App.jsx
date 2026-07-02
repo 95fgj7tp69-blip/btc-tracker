@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Area, AreaChart, Line, LineChart, ComposedChart, ResponsiveContainer, YAxis, XAxis, Tooltip, Legend, ReferenceLine, CartesianGrid } from "recharts";
 import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 const TRACKOSHI_ICON = "/icons/icon-192.png";
 import { createClient } from "@supabase/supabase-js";
 import { translations, tr } from "./i18n";
@@ -1969,7 +1971,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.6.0" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.6.1" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -3191,7 +3193,7 @@ export default function App() {
     });
   }, [rawPriceData, transactions]);
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     const sym = currency;
     const conv = (chfVal) => {
       if (currency === "CHF") return chfVal;
@@ -3212,6 +3214,29 @@ export default function App() {
       ].join(","));
     const csv = [header, ...rows].join("\n");
     const filename = `btc-transaktionen-${sym}-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    // Nativ (iOS): Datei in den Cache schreiben und via iOS-Share-Sheet teilen.
+    // Grund: URL.createObjectURL + <a download> wird im WKWebView still verschluckt.
+    if (isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data: "\uFEFF" + csv,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+        await Share.share({
+          title: filename,
+          url: result.uri,
+          dialogTitle: filename,
+        });
+      } catch (e) {
+        alert(t("csv.exportFehler"));
+      }
+      return;
+    }
+
+    // Web/PWA: bestehende Blob-Download-Logik (unver\u00E4ndert).
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

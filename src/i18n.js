@@ -386,6 +386,7 @@ export const translations = {
       gebuehr:        "Gebuehr",
       notiz:          "Notiz",
       portfoliowert:  "Portfoliowert heute",
+      exportFehler:   "Export fehlgeschlagen. Bitte erneut versuchen.",
     },
 
     // ── Allgemein ───────────────────────────────────────────────────────────────
@@ -807,6 +808,7 @@ export const translations = {
       gebuehr:       "Fee",
       notiz:         "Note",
       portfoliowert: "Portfolio Value Today",
+      exportFehler:  "Export failed. Please try again.",
     },
 
     common: {
