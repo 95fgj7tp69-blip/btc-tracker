@@ -1982,7 +1982,7 @@ function SettingsView({ darkMode, setDarkMode, T, transactions, userEmail, onLog
       {/* APP INFO */}
       <div style={{ color: T.textMuted, fontSize: 12, letterSpacing: "0.08em", marginBottom: 8, marginTop: 24 }}>{t("settings.appInfo")}</div>
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
-        {[{ label: t("settings.version"), value: "3.6.2" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
+        {[{ label: t("settings.version"), value: "3.6.3" }, { label: t("settings.datenbank"), value: "Supabase" }, { label: t("settings.kursApi"), value: "CoinGecko" }].map(({ label, value }, i, arr) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <span style={{ color: T.text, fontSize: 15 }}>{label}</span>
             <span style={{ color: T.textMuted, fontSize: 15 }}>{value}</span>
@@ -2408,6 +2408,7 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
   const blank = { date: new Date().toISOString().slice(0, 10), btc: "", chf: "", fee: "", type: "buy", note: "" };
   const [form, setForm] = useState(editTx ? { ...editTx, btc: String(editTx.btc), chf: String(parseFloat(chfToDisplay(editTx.chf).toFixed(2))), fee: String(parseFloat(chfToDisplay(editTx.fee ?? 0).toFixed(2))) } : blank);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [showTypInfo, setShowTypInfo] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const isTransfer = form.type === "transfer_in" || form.type === "transfer_out";
@@ -2415,12 +2416,18 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
   const handleSave = async () => {
     if (!form.btc) return;
     setSaving(true);
+    setSaveError(false);
     // Immer in CHF speichern
     const chfAmount = isTransfer ? 0 : displayToChf(+form.chf || 0);
     const chfFee = displayToChf(+form.fee || 0);
-    await onSave({ ...form, btc: +form.btc, chf: chfAmount, fee: chfFee });
-    setSaving(false);
-    onClose();
+    try {
+      await onSave({ ...form, btc: +form.btc, chf: chfAmount, fee: chfFee });
+      setSaving(false);
+      onClose();
+    } catch (e) {
+      setSaving(false);
+      setSaveError(true);
+    }
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
@@ -2465,6 +2472,7 @@ function TransactionModal({ onClose, onSave, editTx, T, currency = "CHF", usdChf
         )}
         {!isTransfer && <div style={{ marginBottom: 16, marginTop: 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{t("txModal.gebuehr")} ({sym})</div><input type="number" placeholder="z.B. 5.50" inputMode="decimal" value={form.fee} onChange={e => set("fee", e.target.value)} style={iStyle} step="any" /></div>}
         <div style={{ marginBottom: 16, marginTop: !isTransfer ? 0 : 12 }}><div style={{ color: T.textMuted, fontSize: 13, marginBottom: 8 }}>{t("txModal.notiz")}</div><input type="text" placeholder={isTransfer ? "z.B. Kraken → Ledger" : "z.B. DCA Kauf"} value={form.note} onChange={e => set("note", e.target.value)} style={iStyle} /></div>
+        {saveError && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{t("txModal.speichernFehler")}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: "15px 0", background: T.input, border: `1px solid ${T.inputBorder}`, color: T.textMuted, borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>{t("txModal.abbrechen")}</button>
           <button onClick={handleSave} disabled={saving} style={{ padding: "15px 0", background: saving ? T.textFaint : "#f7931a", border: "none", color: "#000", borderRadius: 12, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
@@ -3133,6 +3141,7 @@ export default function App() {
   const handleSave = async (form) => {
     if (form.id && transactions.find(t => t.id === form.id)) {
       const updated = await api.update(form, token);
+      if (!updated?.id) throw new Error(updated?.error || "Update fehlgeschlagen");
       setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
     } else {
       // ── Free-Limit-Check (nur bei neuen Transaktionen) ─────────────────────
@@ -3142,6 +3151,7 @@ export default function App() {
         return;
       }
       const created = await api.create(form, token);
+      if (!created?.id) throw new Error(created?.error || "Speichern fehlgeschlagen");
       setTransactions(prev => [...prev, created]);
     }
   };
