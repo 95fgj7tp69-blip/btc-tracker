@@ -3242,7 +3242,10 @@ export default function App() {
           dialogTitle: filename,
         });
       } catch (e) {
-        alert(t("csv.exportFehler"));
+        // Kein Fehler-Alert bei Nutzer-Abbruch ("Share canceled") oder
+        // Doppel-Tap ("Can't share while sharing is in progress") — Plugin rejected in beiden Fällen.
+        const msg = e?.message || "";
+        if (!/cancel|in progress/i.test(msg)) alert(t("csv.exportFehler"));
       }
       return;
     }
